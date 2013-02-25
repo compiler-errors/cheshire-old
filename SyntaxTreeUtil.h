@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-#include "Nodes.h"
+#include "ParserNodes.h"
 
 void printExpression(ExpressionNode*);
 void printParameterList(ParameterList*);

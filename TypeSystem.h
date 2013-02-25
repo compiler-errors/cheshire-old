@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include "Nodes.h"
+#include "ParserNodes.h"
 
 extern InternalTypeNode
 

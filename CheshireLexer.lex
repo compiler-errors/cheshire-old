@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "Enums.h"
-#include "Nodes.h"
+#include "ParserNodes.h"
 #include "LexerUtil.h"
 #include "CheshireParser.yy.h"
 

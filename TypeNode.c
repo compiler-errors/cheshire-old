@@ -3,7 +3,7 @@
  * Implements: 
  */
 
-#include "Nodes.h"
+#include "ParserNodes.h"
 
 static InternalTypeNode* allocTypeNode(void) {
     InternalTypeNode* node = (InternalTypeNode*) malloc(sizeof(InternalTypeNode));

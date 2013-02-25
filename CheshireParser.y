@@ -1,10 +1,12 @@
 %{
+
 #include "Enums.h"
-#include "Nodes.h"
+#include "ParserNodes.h"
 #include "CheshireParser.yy.h"
 #include "CheshireLexer.yy.h"
 
 int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg);
+
 %}
 
 %code requires {
