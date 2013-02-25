@@ -1,0 +1,3 @@
+todo: check if "pass" works correctly in codegen phase, including automatic-"return 0" fallback, like C.
+todo: alias definitions (alias TYPENAME as NEWNAME) -- an "input".
+todo: should variable declarations *always* have values?

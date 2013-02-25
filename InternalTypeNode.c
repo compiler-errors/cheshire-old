@@ -1,6 +1,6 @@
-/* File: 
+/* File: InternalTypeNode.c
  * Author: Michael Goulet
- * Implements: 
+ * Implements: ParserNodes.h
  */
 
 #include "ParserNodes.h"

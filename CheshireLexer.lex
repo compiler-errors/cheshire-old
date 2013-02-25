@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "Enums.h"
+#include "ParserEnums.h"
 #include "ParserNodes.h"
 #include "LexerUtil.h"
 #include "CheshireParser.yy.h"
@@ -31,6 +31,7 @@ BACKSLASH   "\\"
 Number|Bool|Int|Decimal|void|infer  { determineReservedType(yytext, &(yylval->reserved_type)); return TOK_RESERVED_TYPE; }
 True|False|Null                     { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
+pass      return TOK_PASS;
 global    return TOK_GLOBAL_VARIABLE;
 assert    return TOK_ASSERT;
 class     return TOK_CLASS;

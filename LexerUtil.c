@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "LexerUtil.h"
-#include "Enums.h"
+#include "ParserEnums.h"
 
 void determineReservedType(const char* string, ReservedType* var) {
     switch (string[0]) {

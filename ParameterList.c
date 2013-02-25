@@ -1,6 +1,6 @@
-/* File: 
+/* File: ParameterList.c
  * Author: Michael Goulet
- * Implements: 
+ * Implements: ParserNodes.h
  */
 
 #include "ParserNodes.h"

@@ -1,6 +1,6 @@
 %{
 
-#include "Enums.h"
+#include "ParserEnums.h"
 #include "ParserNodes.h"
 #include "CheshireParser.yy.h"
 #include "CheshireLexer.yy.h"
@@ -22,7 +22,7 @@ typedef void* yyscan_t;
 
 %define api.pure
 %lex-param   { yyscan_t scanner }
-%parse-param { ExpressionNode** expression }
+%parse-param { ParserTopNode** output }
 %parse-param { yyscan_t scanner }
 %expect 0
 
@@ -61,6 +61,7 @@ typedef void* yyscan_t;
 %token TOK_RSQUARE
 %token TOK_COMMA
 %token TOK_HAT
+%token TOK_PASS
 %token TOK_ACCESSOR
 %token TOK_SIZEOF
 %token TOK_SET
@@ -102,6 +103,8 @@ typedef void* yyscan_t;
 %type <expression> expression
 %type <expression> expression_statement
 %type <statement> statement
+%type <statement> statement_or_pass
+%type <block_list> block_or_pass
 %type <block_list> block
 %type <block_list> block_contains
 %type <parameter_list> parameter_list
@@ -111,16 +114,27 @@ typedef void* yyscan_t;
 %%
 
 input
-    : expression  { *expression = $1 ; }
-    | statement  { }
+    : TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER TOK_LN  { *output = createMethodDeclaration( $2 , $3 ); YYACCEPT; }
+    | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 ); YYACCEPT; }
+    ;
+
+block_or_pass
+    : TOK_PASS  { $$ = NULL; }
+    | block  { $$ = $1; }
     ;
 
 statement
     : expression_statement TOK_LN  { $$ = createExpressionStatement( $1 ); }
+    | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
     | block  { $$ = createBlockStatement( $1 ); }
-    | TOK_IF TOK_LPAREN expression TOK_RPAREN statement TOK_ELSE statement %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
-    | TOK_IF TOK_LPAREN expression TOK_RPAREN statement %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
-    | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement  { $$ = createWhileStatement( $3 , $5 ); }
+    | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
+    | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
+    | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
+    ;
+
+statement_or_pass
+    : TOK_PASS  { $$ = createBlockStatement(NULL); }
+    | statement  { $$ = $1 ; }
     ;
 
 block

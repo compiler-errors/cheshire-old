@@ -1,6 +1,6 @@
-/* File: 
+/* File: StatementNode.c
  * Author: Michael Goulet
- * Implements: 
+ * Implements: ParserNodes.h
  */
 
 #include "ParserNodes.h"
@@ -75,6 +75,19 @@ StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* bl
     return node;
 }
 
+StatementNode* createVariableDefinition(InternalTypeNode* type, char* variable, ExpressionNode* value) {
+    StatementNode* node = allocStatementNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = S_VARIABLE_DEF;
+    node->varDefinition.type = type;
+    node->varDefinition.variable = variable;
+    node->varDefinition.value = value;
+    return node;
+}
+
 void deleteStatementNode(StatementNode* node) {
     switch (node->type) {
         case S_NOP:
@@ -96,6 +109,10 @@ void deleteStatementNode(StatementNode* node) {
             deleteExpressionNode(node->conditional.condition);
             deleteStatementNode(node->conditional.block);
             break;
+        case S_VARIABLE_DEF:
+            free(node->varDefinition.variable);
+            deleteTypeNode(node->varDefinition.type);
+            deleteExpressionNode(node->varDefinition.value);
     }
     free(node);
 }

@@ -1,8 +1,8 @@
-/* 
+/*
  * File:   LexerUtil.h
  * Author: Michael Goulet
  * Implementation: LexerUtil.c
- * 
+ *
  * "LexerUtil.h" is meant for small functions that are used solely by the lexer (CheshireLexer.lex)
  * The functions are only used internally within the lexer and are subject to change,
  * and thus should not be trusted when used outside of the lexer.
@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-#include "Enums.h"
+#include "ParserEnums.h"
 
 void determineReservedType(const char*, ReservedType* var);
 void determineReservedLiteral(const char*, ReservedLiteral* var);
