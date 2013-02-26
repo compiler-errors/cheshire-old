@@ -37,6 +37,7 @@ typedef void* yyscan_t;
     struct tagInternalTypeNode* type_node;
     struct tagStatementNode* statement;
     struct tagBlockList* block_list;
+    struct tagTypeList* type_list;
 }
 
 %token TOK_ASSERT
@@ -62,6 +63,7 @@ typedef void* yyscan_t;
 %token TOK_COMMA
 %token TOK_HAT
 %token TOK_PASS
+%token TOK_LAMBDA_PARAMS
 %token TOK_ACCESSOR
 %token TOK_SIZEOF
 %token TOK_SET
@@ -110,6 +112,8 @@ typedef void* yyscan_t;
 %type <parameter_list> parameter_list
 %type <parameter_list> parameter_list_contains
 %type <type_node> typename
+%type <type_list> type_list
+%type <type_list> type_list_contains
 
 %%
 
@@ -196,6 +200,17 @@ typename
     | TOK_IDENTIFIER TOK_HAT  { $$ = createTypeNode( $1 , TRUE ); }
     | TOK_RESERVED_TYPE  { $$ = createReservedTypeNode( $1 , FALSE ); }
     | TOK_RESERVED_TYPE TOK_HAT  { $$ = createReservedTypeNode( $1 , TRUE ); }
+    | typename TOK_LAMBDA_PARAMS type_list  { //////////////////// }
+    ;
+
+type_list
+    : TOK_LPAREN type_list_contains TOK_RPAREN  { $$ = $2 ; }
+    | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
+    ;
+
+type_list_contains
+    : typename  { $$ = linkTypeList( $1 , NULL ); }
+    | typename TOK_COMMA type_list_contains  { $$ = linkTypeList( $1 , $3 ); }
     ;
 
 %%

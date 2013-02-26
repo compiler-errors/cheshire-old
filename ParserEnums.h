@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 typedef enum { PRT_NONE, PRT_METHOD_DECLARATION, PRT_METHOD_DEFINITION } ParserReturnType;
-typedef enum { RT_NUMBER, RT_BOOL, RT_INT, RT_DECIMAL, RT_VOID, RT_INFER } ReservedType; //add Object, Boolean too...
+typedef enum { RT_NUMBER, RT_INT, RT_DECIMAL, RT_VOID, RT_INFER, RT_OBJECT, RT_BOOLEAN } ReservedType;
 typedef enum { RL_TRUE, RL_FALSE, RL_NULL } ReservedLiteral;
 typedef enum { IT_GC, IT_HEAP } InstantiationType;
 typedef enum { IPP_PRE, IPP_POST } IncrementPrePost;
@@ -63,6 +63,12 @@ typedef enum {
     OP_ARRAY_ACCESS,
     OP_STRING,
     OP_SIZEOF_TYPE
+    //special operations
+    /*
+    OP_DOWNCAST
+    OP_UPCAST
+    OP_REINTERPRETCAST
+     */
 } OperationType;
 
 typedef enum {

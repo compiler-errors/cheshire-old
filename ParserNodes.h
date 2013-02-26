@@ -23,6 +23,7 @@ struct tagParameterList;
 struct tagInternalTypeNode;
 struct tagStatementNode;
 struct tagBlockList;
+struct tagTypeList;
 
 typedef struct tagParserTopNode {
     ParserReturnType type;

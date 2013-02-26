@@ -28,7 +28,7 @@ BACKSLASH   "\\"
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
-Number|Bool|Int|Decimal|void|infer  { determineReservedType(yytext, &(yylval->reserved_type)); return TOK_RESERVED_TYPE; }
+Number|Boolean|Int|Decimal|void|infer|Object  { determineReservedType(yytext, &(yylval->reserved_type)); return TOK_RESERVED_TYPE; }
 True|False|Null                     { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
 pass      return TOK_PASS;
@@ -52,6 +52,7 @@ cast      return TOK_CAST;
 "["  return TOK_LBRACKET;
 "]"  return TOK_RBRACKET;
 ","  return TOK_COMMA;
+"::" return TOK_LAMBDA_PARAMS;
 ":"  return TOK_ACCESSOR;
 {QUOTE}([^"\"""\n"]|{BACKSLASH}[abfnrtv"'"{QUOTE}{BACKSLASH}"?"])*{QUOTE}   { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }

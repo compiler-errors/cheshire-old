@@ -270,8 +270,8 @@ void printInternalTypeNode(InternalTypeNode* node) {
             case RT_NUMBER:
                 printf("Number");
                 break;
-            case RT_BOOL:
-                printf("Bool");
+            case RT_BOOLEAN:
+                printf("Boolean");
                 break;
             case RT_INT:
                 printf("Int");
@@ -285,6 +285,8 @@ void printInternalTypeNode(InternalTypeNode* node) {
             case RT_INFER:
                 printf("infer");
                 break;
+            case RT_OBJECT:
+                printf("object");
         }
     } else {
         printf("%s", node->baseType); //FIXME: ("%s", string) might be redundant?

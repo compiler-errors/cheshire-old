@@ -1,3 +1,8 @@
-todo: check if "pass" works correctly in codegen phase, including automatic-"return 0" fallback, like C.
-todo: alias definitions (alias TYPENAME as NEWNAME) -- an "input".
-todo: should variable declarations *always* have values?
+TODO: add a delete^ operator
+TODO: add support for global variables (and their scope)
+TODO: add a "constant" value for unchangable types, which may NOT be used as an lvalue in a "set" node.
+
+long-term to do:
+check if "pass" works correctly in codegen phase, including automatic-"return 0" fallback, like C.
+should variable declarations *always* have values?
+exceptions?

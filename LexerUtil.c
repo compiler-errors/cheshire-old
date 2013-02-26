@@ -14,7 +14,7 @@ void determineReservedType(const char* string, ReservedType* var) {
             *var = RT_NUMBER;
             break;
         case 'B':
-            *var = RT_BOOL;
+            *var = RT_BOOLEAN;
             break;
         case 'I':
             *var = RT_INT;
@@ -27,6 +27,9 @@ void determineReservedType(const char* string, ReservedType* var) {
             break;
         case 'i':
             *var = RT_INFER;
+            break;
+        case 'O':
+            *var = RT_OBJECT;
             break;
         default:
             *var = -1;
