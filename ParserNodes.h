@@ -18,14 +18,17 @@ extern "C" {
 #define PANIC_OR_RETURN_NULL { printf("Couldn't allocate anything. NULL!\n"); exit(0); return NULL; }
 
 struct tagParserTopNode;
-struct tagExpressionNode;
 struct tagParameterList;
-struct tagCheshireType;
+struct tagExpressionNode;
+struct tagExpressionList;
 struct tagStatementNode;
 struct tagBlockList;
-struct tagTypeList;
 
 typedef int TypeKey;
+
+typedef struct tagCheshireType {
+    TypeKey typeKey;
+} CheshireType;
 
 typedef struct tagParserTopNode {
     ParserReturnType type;
@@ -33,12 +36,19 @@ typedef struct tagParserTopNode {
         struct {
             char* functionName;
             struct tagCheshireType type;
+            struct tagParameterList* params;
             struct tagBlockList* body;
         } method;
         
         //todo: also classes!
     };
 } ParserTopNode;
+
+typedef struct tagParameterList {
+    struct tagCheshireType type;
+    char* name;
+    struct tagParameterList* next;
+} ParameterList;
 
 typedef struct tagExpressionNode {
     OperationType type;
@@ -70,35 +80,31 @@ typedef struct tagExpressionNode {
         
         struct {
             char* type;
-            struct tagParameterList* params;
+            struct tagExpressionList* params;
         } instantiate;
         
         struct {
             char* fn_name;
-            struct tagParameterList* params;
+            struct tagExpressionList* params;
         } methodcall;
         
         struct {
             struct tagExpressionNode* object;
             char* fn_name;
-            struct tagParameterList* params;
+            struct tagExpressionList* params;
         } objectcall;
         
         struct {
             struct tagExpressionNode* callback;
-            struct tagParameterList* params;
+            struct tagExpressionList* params;
         } callbackcall;
     };
 } ExpressionNode;
 
-typedef struct tagParameterList {
+typedef struct tagExpressionList {
     struct tagExpressionNode* parameter;
-    struct tagParameterList* next;
-} ParameterList;
-
-typedef struct tagCheshireType {
-    TypeKey typeKey;
-} CheshireType;
+    struct tagExpressionList* next;
+} ExpressionList;
 
 typedef struct tagStatementNode {
     StatementType type;
@@ -132,10 +138,10 @@ ExpressionNode* createVariableAccess(char* variable);
 ExpressionNode* createStringNode(char* str);
 ExpressionNode* createNumberNode(double);
 ExpressionNode* createCastOperation(ExpressionNode*, CheshireType type);
-ExpressionNode* createInstantiationOperation(InstantiationType, char* type, ParameterList*);
-ExpressionNode* createMethodCall(char* functionName, ParameterList*);
-ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ParameterList*);
-ExpressionNode* createCallbackCall(ExpressionNode* callback, ParameterList*);
+ExpressionNode* createInstantiationOperation(InstantiationType, char* type, ExpressionList*);
+ExpressionNode* createMethodCall(char* functionName, ExpressionList*);
+ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ExpressionList*);
+ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList*);
 ExpressionNode* createIncrementOperation(IncrementPrePost, ExpressionNode*, OperationType);
 ExpressionNode* createSizeOfExpression(ExpressionNode*);
 ExpressionNode* createSizeOfTypeExpression(CheshireType);
@@ -143,15 +149,15 @@ ExpressionNode* createReservedLiteralNode(ReservedLiteral);
 ExpressionNode* createAccessNode(ExpressionNode*, char* variable);
 void deleteExpressionNode(ExpressionNode*);
 
-//defined in ParameterList.c
-ParameterList* linkParameterList(ExpressionNode* val, ParameterList* next);
-void deleteParameterList(ParameterList*);
+//defined in ExpressionList.c
+ExpressionList* linkExpressionList(ExpressionNode* val, ExpressionList* next);
+void deleteExpressionList(ExpressionList*);
 
 //defined in TypeNode.cpp
 TypeKey getReservedTypeKey(ReservedType);
 TypeKey getTypeKey(char*);
-TypeKey getLambdaTypeKey(TypeKey returnType, ParameterList* parameters);
-CheshireType getType()
+TypeKey getLambdaTypeKey(CheshireType returnType, ParameterList* parameters);
+CheshireType getType(TypeKey base, Boolean isUnsafe);
 
 
 //Defined in StatementNode.c
@@ -168,9 +174,13 @@ BlockList* linkBlockList(StatementNode*, BlockList*);
 void deleteBlockList(BlockList*);
 
 //defined in ParserTopNode.c
-ParserTopNode* createMethodDeclaration(CheshireType, char* functionName);
-ParserTopNode* createMethodDefinition(CheshireType, char* functionName, BlockList* body);
+ParserTopNode* createMethodDeclaration(CheshireType, char* functionName, ParameterList* params);
+ParserTopNode* createMethodDefinition(CheshireType, char* functionName, ParameterList* params, BlockList* body);
 void deleteParserTopNode(ParserTopNode*);
+
+//defined in ParameterList.c
+ParameterList* linkParameterList(CheshireType type, char* name, ParameterList* next);
+void deleteParameterList(ParameterList*);
 
 
 #ifdef	__cplusplus

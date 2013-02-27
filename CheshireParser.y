@@ -1,7 +1,6 @@
 %{
 
 #include "ParserEnums.h"
-#include "ParserNodes.h"
 #include "CheshireParser.yy.h"
 #include "CheshireLexer.yy.h"
 
@@ -15,6 +14,8 @@ int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg);
 #define YY_TYPEDEF_YY_SCANNER_T
 typedef void* yyscan_t;
 #endif
+
+#include "ParserNodes.h"
 
 }
 
@@ -32,12 +33,12 @@ typedef void* yyscan_t;
     ReservedType reserved_type;
     ReservedLiteral reserved_literal;
     double number;
-    struct tagExpressionNode* expression;
     struct tagParameterList* parameter_list;
-    struct tagInternalTypeNode* type_node;
+    struct tagExpressionNode* expression;
+    struct tagExpressionList* expression_list;
+    CheshireType cheshire_type;
     struct tagStatementNode* statement;
     struct tagBlockList* block_list;
-    struct tagTypeList* type_list;
 }
 
 %token TOK_ASSERT
@@ -108,17 +109,27 @@ typedef void* yyscan_t;
 %type <block_list> block_or_pass
 %type <block_list> block
 %type <block_list> block_contains
+%type <expression_list> expression_list
+%type <expression_list> expression_list_contains
 %type <parameter_list> parameter_list
 %type <parameter_list> parameter_list_contains
-%type <type_node> typename
-%type <type_list> type_list
-%type <type_list> type_list_contains
+%type <cheshire_type> typename
 
 %%
 
 input
-    : TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER TOK_LN  { *output = createMethodDeclaration( $2 , $3 ); YYACCEPT; }
-    | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 ); YYACCEPT; }
+    : TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $2 , $3 , $4 ); YYACCEPT; }
+    | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
+    ;
+
+parameter_list
+    : TOK_LPAREN parameter_list_contains TOK_RPAREN  { $$ = $2 ; }
+    | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
+    ;
+
+parameter_list_contains
+    : typename TOK_IDENTIFIER  { $$ = linkParameterList( $1, $2 , NULL ); }
+    | typename TOK_IDENTIFIER TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1, $2 , $4 ); }
     ;
 
 block_or_pass
@@ -170,46 +181,36 @@ expression
     | expression TOK_MULTDIV expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
     | TOK_CAST TOK_LSQUARE typename TOK_RSQUARE expression %prec P_CAST  { $$ = createCastOperation( $5 , $3 ); }
-    | TOK_NEW TOK_IDENTIFIER parameter_list   { $$ = createInstantiationOperation( IT_GC , $2 , $3 ); }
-    | TOK_NEW_HEAP TOK_IDENTIFIER parameter_list  { $$ = createInstantiationOperation( IT_HEAP , $2 , $3 ); }
+    | TOK_NEW TOK_IDENTIFIER expression_list   { $$ = createInstantiationOperation( IT_GC , $2 , $3 ); }
+    | TOK_NEW_HEAP TOK_IDENTIFIER expression_list  { $$ = createInstantiationOperation( IT_HEAP , $2 , $3 ); }
     ;
 
 expression_statement
     : expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
     | expression TOK_INCREMENT  { $$ = createIncrementOperation( IPP_POST , $1 , $2 ); }
     | TOK_INCREMENT expression  { $$ = createIncrementOperation( IPP_PRE , $2 , $1 ); }
-    | TOK_IDENTIFIER parameter_list  { $$ = createMethodCall( $1 , $2 ); }
+    | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
     | expression TOK_ACCESSOR TOK_IDENTIFIER { $$ = createAccessNode( $1 , $3 ); }
-    | expression TOK_ACCESSOR TOK_IDENTIFIER parameter_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
-    | expression TOK_ACCESSOR parameter_list  { $$ = createCallbackCall( $1 , $3 ); }
+    | expression TOK_ACCESSOR TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
+    | expression TOK_ACCESSOR expression_list  { $$ = createCallbackCall( $1 , $3 ); }
     ;
 
-parameter_list
-    : TOK_LPAREN parameter_list_contains TOK_RPAREN  { $$ = $2 ; }
+expression_list
+    : TOK_LPAREN expression_list_contains TOK_RPAREN  { $$ = $2 ; }
     | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
     ;
 
-parameter_list_contains
-    : expression  { $$ = linkParameterList( $1 , NULL ); }
-    | expression TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , $3 ); }
+expression_list_contains
+    : expression  { $$ = linkExpressionList( $1 , NULL ); }
+    | expression TOK_COMMA expression_list_contains  { $$ = linkExpressionList( $1 , $3 ); }
     ;
 
 typename
-    : TOK_IDENTIFIER  { $$ = createTypeNode( $1 , FALSE ); }
-    | TOK_IDENTIFIER TOK_HAT  { $$ = createTypeNode( $1 , TRUE ); }
-    | TOK_RESERVED_TYPE  { $$ = createReservedTypeNode( $1 , FALSE ); }
-    | TOK_RESERVED_TYPE TOK_HAT  { $$ = createReservedTypeNode( $1 , TRUE ); }
-    | typename TOK_LAMBDA_PARAMS type_list  { }
-    ;
-
-type_list
-    : TOK_LPAREN type_list_contains TOK_RPAREN  { $$ = $2 ; }
-    | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
-    ;
-
-type_list_contains
-    : typename  { $$ = linkTypeList( $1 , NULL ); }
-    | typename TOK_COMMA type_list_contains  { $$ = linkTypeList( $1 , $3 ); }
+    : TOK_IDENTIFIER  { $$ = getType( getTypeKey( $1 ), FALSE ); }
+    | TOK_IDENTIFIER TOK_HAT  { $$ = getType( getTypeKey( $1 ), TRUE ); }
+    | TOK_RESERVED_TYPE  { $$ = getType( getReservedTypeKey( $1 ), FALSE ); }
+    | TOK_RESERVED_TYPE TOK_HAT  { $$ = getType( getReservedTypeKey( $1 ), TRUE ); }
+    | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); }
     ;
 
 %%

@@ -54,7 +54,7 @@ ExpressionNode* createBinOperation(OperationType optype, ExpressionNode* left, E
     return node;
 }
 
-ExpressionNode* createInstanceOfNode(ExpressionNode* expression, InternalTypeNode* type) {
+ExpressionNode* createInstanceOfNode(ExpressionNode* expression, CheshireType type) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -99,7 +99,7 @@ ExpressionNode* createNumberNode(double value) {
     return node;
 }
 
-ExpressionNode* createCastOperation(ExpressionNode* expression, InternalTypeNode* type) {
+ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType type) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -111,7 +111,7 @@ ExpressionNode* createCastOperation(ExpressionNode* expression, InternalTypeNode
     return node;
 }
 
-ExpressionNode* createInstantiationOperation(InstantiationType itype, char* type, ParameterList* params) {
+ExpressionNode* createInstantiationOperation(InstantiationType itype, char* type, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -139,7 +139,7 @@ ExpressionNode* createAccessNode(ExpressionNode* object, char* variable) {
     return node;
 }
 
-ExpressionNode* createMethodCall(char* fn_name, ParameterList* params) {
+ExpressionNode* createMethodCall(char* fn_name, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -151,7 +151,7 @@ ExpressionNode* createMethodCall(char* fn_name, ParameterList* params) {
     return node;
 }
 
-ExpressionNode* createObjectCall(ExpressionNode* object, char* fn_name, ParameterList* params) {
+ExpressionNode* createObjectCall(ExpressionNode* object, char* fn_name, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -164,7 +164,7 @@ ExpressionNode* createObjectCall(ExpressionNode* object, char* fn_name, Paramete
     return node;
 }
 
-ExpressionNode* createCallbackCall(ExpressionNode* callback, ParameterList* params) {
+ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -210,7 +210,7 @@ ExpressionNode* createSizeOfExpression(ExpressionNode* child) {
     return node;
 }
 
-ExpressionNode* createSizeOfTypeExpression(InternalTypeNode* typeNode) {
+ExpressionNode* createSizeOfTypeExpression(CheshireType typeNode) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -275,11 +275,9 @@ void deleteExpressionNode(ExpressionNode* node) {
             free(node->access.variable);
             break;
         case OP_SIZEOF_TYPE:
-            deleteTypeNode(node->typeNode);
             break;
         case OP_INSTANCEOF:
             deleteExpressionNode(node->instanceof.expression);
-            deleteTypeNode(node->instanceof.type);
             break;
         case OP_VARIABLE:
         case OP_STRING:
@@ -287,25 +285,24 @@ void deleteExpressionNode(ExpressionNode* node) {
             break;
         case OP_CAST:
             deleteExpressionNode(node->cast.child);
-            deleteTypeNode(node->cast.type);
             break;
         case OP_NEW_GC:
         case OP_NEW_HEAP:
-            deleteParameterList(node->instantiate.params);
+            deleteExpressionList(node->instantiate.params);
             free(node->instantiate.type);
             break;
         case OP_METHOD_CALL:
             free(node->methodcall.fn_name);
-            deleteParameterList(node->methodcall.params);
+            deleteExpressionList(node->methodcall.params);
             break;
         case OP_OBJECT_CALL:
             free(node->objectcall.fn_name);
             deleteExpressionNode(node->objectcall.object);
-            deleteParameterList(node->objectcall.params);
+            deleteExpressionList(node->objectcall.params);
             break;
         case OP_CALLBACK_CALL:
             deleteExpressionNode(node->callbackcall.callback);
-            deleteParameterList(node->callbackcall.params);
+            deleteExpressionList(node->callbackcall.params);
             break;
         case OP_NUMBER:
         case OP_SELF:

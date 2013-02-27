@@ -14,7 +14,7 @@ static ParserTopNode* allocParserTopNode(void) {
     return node;
 }
 
-ParserTopNode* createMethodDeclaration(InternalTypeNode* type, char* functionName) {
+ParserTopNode* createMethodDeclaration(CheshireType type, char* functionName, ParameterList* params) {
     ParserTopNode* node = allocParserTopNode();
     
     if (node == NULL)
@@ -23,10 +23,11 @@ ParserTopNode* createMethodDeclaration(InternalTypeNode* type, char* functionNam
     node->type = PRT_METHOD_DECLARATION;
     node->method.type = type;
     node->method.functionName = functionName;
+    node->method.params = params;
     return node;
 }
 
-ParserTopNode* createMethodDefinition(InternalTypeNode* type, char* functionName, BlockList* body) {
+ParserTopNode* createMethodDefinition(CheshireType type, char* functionName, ParameterList* params, BlockList* body) {
     ParserTopNode* node = allocParserTopNode();
     
     if (node == NULL)
@@ -35,6 +36,7 @@ ParserTopNode* createMethodDefinition(InternalTypeNode* type, char* functionName
     node->type = PRT_METHOD_DEFINITION;
     node->method.type = type;
     node->method.functionName = functionName;
+    node->method.params = params;
     node->method.body = body;
     return node;
 }
@@ -45,13 +47,14 @@ void deleteParserTopNode(ParserTopNode* node) {
             //todo: panic! I shouldn't be here.
             break;
         case PRT_METHOD_DECLARATION:
-            deleteTypeNode(node->method.type);
             free(node->method.functionName);
+            deleteParameterList(node->method.params);
             break;
         case PRT_METHOD_DEFINITION:
-            deleteTypeNode(node->method.type);
             free(node->method.functionName);
             deleteBlockList(node->method.body);
+            deleteParameterList(node->method.params);
+            break;
     }
     free(node);
 }

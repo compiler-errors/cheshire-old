@@ -75,7 +75,7 @@ StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* bl
     return node;
 }
 
-StatementNode* createVariableDefinition(InternalTypeNode* type, char* variable, ExpressionNode* value) {
+StatementNode* createVariableDefinition(CheshireType type, char* variable, ExpressionNode* value) {
     StatementNode* node = allocStatementNode();
     
     if (node == NULL)
@@ -111,7 +111,6 @@ void deleteStatementNode(StatementNode* node) {
             break;
         case S_VARIABLE_DEF:
             free(node->varDefinition.variable);
-            deleteTypeNode(node->varDefinition.type);
             deleteExpressionNode(node->varDefinition.value);
     }
     free(node);

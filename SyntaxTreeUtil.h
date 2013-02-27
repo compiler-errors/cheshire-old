@@ -17,8 +17,8 @@ extern "C" {
 #include "ParserNodes.h"
 
 void printExpression(ExpressionNode*);
-void printParameterList(ParameterList*);
-void printInternalTypeNode(InternalTypeNode*);
+void printParameterList(ExpressionList*);
+void printCheshireType(CheshireType);
 
 #ifdef	__cplusplus
 }

@@ -62,7 +62,7 @@ void printExpression(ExpressionNode* node) {
             break;
         case OP_SIZEOF_TYPE:
             printf("(sizeof ");
-            printInternalTypeNode(node->typeNode);
+            printCheshireType(node->typeNode);
             printf(")");
             break;
         case OP_EQUALS:
@@ -175,7 +175,7 @@ void printExpression(ExpressionNode* node) {
             printf("(");
             printExpression(node->instanceof.expression);
             printf(" instanceof ");
-            printInternalTypeNode(node->instanceof.type);
+            printCheshireType(node->instanceof.type);
             printf(")");
             break;
         case OP_VARIABLE:
@@ -189,7 +189,7 @@ void printExpression(ExpressionNode* node) {
             break;
         case OP_CAST:
             printf("(cast <");
-            printInternalTypeNode(node->cast.type);
+            printCheshireType(node->cast.type);
             printf("> ");
             printExpression(node->cast.child);
             printf(")");
@@ -249,7 +249,7 @@ void printExpression(ExpressionNode* node) {
     }
 }
 
-void printParameterList(ParameterList* param) {
+void printParameterList(ExpressionList* param) {
     printf("(");
     if (param == NULL) {
         printf("void");
@@ -264,34 +264,6 @@ void printParameterList(ParameterList* param) {
     printf(")");
 }
 
-void printInternalTypeNode(InternalTypeNode* node) {
-    if (node->isReservedType) {
-        switch (node->reservedType) {
-            case RT_NUMBER:
-                printf("Number");
-                break;
-            case RT_BOOLEAN:
-                printf("Boolean");
-                break;
-            case RT_INT:
-                printf("Int");
-                break;
-            case RT_DECIMAL:
-                printf("Decimal");
-                break;
-            case RT_VOID:
-                printf("void");
-                break;
-            case RT_INFER:
-                printf("infer");
-                break;
-            case RT_OBJECT:
-                printf("object");
-        }
-    } else {
-        printf("%s", node->baseType); //FIXME: ("%s", string) might be redundant?
-    }
-    
-    if (node->isUnsafeReference)
-        printf("^");
+void printCheshireType(CheshireType node) {
+    //todo: implement me!
 }

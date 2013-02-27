@@ -11,18 +11,20 @@ static ParameterList* allocParameterList(void) {
     if (node == NULL)
         PANIC_OR_RETURN_NULL;
     
+    node->type.typeKey = -1;
+    node->name = NULL;
     node->next = NULL;
-    node->parameter = NULL;
     return node;
 }
 
-ParameterList* linkParameterList(ExpressionNode* val, ParameterList* next) {
+ParameterList* linkParameterList(CheshireType type, char* name, ParameterList* next) {
     ParameterList* node = allocParameterList();
     
     if (node == NULL)
         return NULL;
     
-    node->parameter = val;
+    node->type = type;
+    node->name = name;
     node->next = next;
     return node;
 }
@@ -31,7 +33,7 @@ void deleteParameterList(ParameterList* node) {
     if (node == NULL)
         return;
     
-    deleteExpressionNode(node->parameter);
+    free(node->name);
     deleteParameterList(node->next);
     free(node);
 }
