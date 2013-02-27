@@ -21,7 +21,7 @@ LEXFLAGS=
 BISONFLAGS=-rall
 
 all: clean build todos
-	-rm *.o
+	-rm *.o *.yy.* *.tab.*
 
 clean:
 	-rm $(OUTNAME)
