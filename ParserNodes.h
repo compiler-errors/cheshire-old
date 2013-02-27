@@ -14,6 +14,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include "ParserEnums.h"
+#include "TypeSystem.h"
 
 #define PANIC_OR_RETURN_NULL { printf("Couldn't allocate anything. NULL!\n"); exit(0); return NULL; }
 
@@ -23,12 +24,6 @@ struct tagExpressionNode;
 struct tagExpressionList;
 struct tagStatementNode;
 struct tagBlockList;
-
-typedef int TypeKey;
-
-typedef struct tagCheshireType {
-    TypeKey typeKey;
-} CheshireType;
 
 typedef struct tagParserTopNode {
     ParserReturnType type;
@@ -152,13 +147,6 @@ void deleteExpressionNode(ExpressionNode*);
 //defined in ExpressionList.c
 ExpressionList* linkExpressionList(ExpressionNode* val, ExpressionList* next);
 void deleteExpressionList(ExpressionList*);
-
-//defined in TypeNode.cpp
-TypeKey getReservedTypeKey(ReservedType);
-TypeKey getTypeKey(char*);
-TypeKey getLambdaTypeKey(CheshireType returnType, ParameterList* parameters);
-CheshireType getType(TypeKey base, Boolean isUnsafe);
-
 
 //Defined in StatementNode.c
 StatementNode* createExpressionStatement(ExpressionNode*);
