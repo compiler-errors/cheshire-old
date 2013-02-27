@@ -45,7 +45,6 @@ typedef void* yyscan_t;
 %token TOK_CLASS
 %token TOK_INHERITS
 %token TOK_DEFINE_FUNCTION
-%token TOK_ALIAS
 %token TOK_IF
 %token TOK_ELSE
 %token TOK_FOR
@@ -200,7 +199,7 @@ typename
     | TOK_IDENTIFIER TOK_HAT  { $$ = createTypeNode( $1 , TRUE ); }
     | TOK_RESERVED_TYPE  { $$ = createReservedTypeNode( $1 , FALSE ); }
     | TOK_RESERVED_TYPE TOK_HAT  { $$ = createReservedTypeNode( $1 , TRUE ); }
-    | typename TOK_LAMBDA_PARAMS type_list  { //////////////////// }
+    | typename TOK_LAMBDA_PARAMS type_list  { }
     ;
 
 type_list

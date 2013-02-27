@@ -37,7 +37,6 @@ assert    return TOK_ASSERT;
 class     return TOK_CLASS;
 inherits  return TOK_INHERITS;
 def       return TOK_DEFINE_FUNCTION;
-alias     return TOK_ALIAS;
 if        return TOK_IF;
 else      return TOK_ELSE;
 for       return TOK_FOR;

@@ -20,17 +20,19 @@ extern "C" {
 struct tagParserTopNode;
 struct tagExpressionNode;
 struct tagParameterList;
-struct tagInternalTypeNode;
+struct tagCheshireType;
 struct tagStatementNode;
 struct tagBlockList;
 struct tagTypeList;
+
+typedef int TypeKey;
 
 typedef struct tagParserTopNode {
     ParserReturnType type;
     union {
         struct {
             char* functionName;
-            struct tagInternalTypeNode* type;
+            struct tagCheshireType type;
             struct tagBlockList* body;
         } method;
         
@@ -48,7 +50,7 @@ typedef struct tagExpressionNode {
         } binary;
         struct tagExpressionNode* unaryChild;
         char* string;
-        struct tagInternalTypeNode* typeNode;
+        struct tagCheshireType typeNode;
         ReservedLiteral reserved;
         /* simple types above */
         struct {
@@ -58,12 +60,12 @@ typedef struct tagExpressionNode {
         
         struct {
             struct tagExpressionNode* expression;
-            struct tagInternalTypeNode* type;
+            struct tagCheshireType type;
         } instanceof;
         
         struct {
             struct tagExpressionNode* child;
-            struct tagInternalTypeNode* type;
+            struct tagCheshireType type;
         } cast;
         
         struct {
@@ -94,20 +96,9 @@ typedef struct tagParameterList {
     struct tagParameterList* next;
 } ParameterList;
 
-
-/**
- * InternalTypeNode is not the type object used by the SA typing system, only by the
- * parser that has to have a special type of type object, thus using the InternalTypeNode
- * as that.
- */
-typedef struct tagInternalTypeNode {
-    Boolean isReservedType;
-    Boolean isUnsafeReference; //marked by the ^ (hat) symbol, such as Object^, means that it isn't GC memory.
-    union {
-        ReservedType reservedType;
-        char* baseType;
-    };
-} InternalTypeNode;
+typedef struct tagCheshireType {
+    TypeKey typeKey;
+} CheshireType;
 
 typedef struct tagStatementNode {
     StatementType type;
@@ -120,7 +111,7 @@ typedef struct tagStatementNode {
             struct tagStatementNode* elseBlock;
         } conditional;
         struct {
-            struct tagInternalTypeNode* type;
+            struct tagCheshireType type;
             char* variable;
             struct tagExpressionNode* value;
         } varDefinition;
@@ -136,18 +127,18 @@ typedef struct tagBlockList {
 ExpressionNode* createSelfNode(void);
 ExpressionNode* createUnaryOperation(OperationType, ExpressionNode*);
 ExpressionNode* createBinOperation(OperationType, ExpressionNode* left, ExpressionNode* right);
-ExpressionNode* createInstanceOfNode(ExpressionNode* expression, InternalTypeNode* type);
+ExpressionNode* createInstanceOfNode(ExpressionNode* expression, CheshireType type);
 ExpressionNode* createVariableAccess(char* variable);
 ExpressionNode* createStringNode(char* str);
 ExpressionNode* createNumberNode(double);
-ExpressionNode* createCastOperation(ExpressionNode*, InternalTypeNode* type);
+ExpressionNode* createCastOperation(ExpressionNode*, CheshireType type);
 ExpressionNode* createInstantiationOperation(InstantiationType, char* type, ParameterList*);
 ExpressionNode* createMethodCall(char* functionName, ParameterList*);
 ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ParameterList*);
 ExpressionNode* createCallbackCall(ExpressionNode* callback, ParameterList*);
 ExpressionNode* createIncrementOperation(IncrementPrePost, ExpressionNode*, OperationType);
 ExpressionNode* createSizeOfExpression(ExpressionNode*);
-ExpressionNode* createSizeOfTypeExpression(InternalTypeNode*);
+ExpressionNode* createSizeOfTypeExpression(CheshireType);
 ExpressionNode* createReservedLiteralNode(ReservedLiteral);
 ExpressionNode* createAccessNode(ExpressionNode*, char* variable);
 void deleteExpressionNode(ExpressionNode*);
@@ -156,10 +147,12 @@ void deleteExpressionNode(ExpressionNode*);
 ParameterList* linkParameterList(ExpressionNode* val, ParameterList* next);
 void deleteParameterList(ParameterList*);
 
-//defined in InternalTypeNode.c
-InternalTypeNode* createReservedTypeNode(ReservedType, Boolean isUnsafe);
-InternalTypeNode* createTypeNode(char* base_type, Boolean isUnsafe);
-void deleteTypeNode(InternalTypeNode*);
+//defined in TypeNode.cpp
+TypeKey getReservedTypeKey(ReservedType);
+TypeKey getTypeKey(char*);
+TypeKey getLambdaTypeKey(TypeKey returnType, ParameterList* parameters);
+CheshireType getType()
+
 
 //Defined in StatementNode.c
 StatementNode* createExpressionStatement(ExpressionNode*);
@@ -167,7 +160,7 @@ StatementNode* createBlockStatement(BlockList*);
 StatementNode* createIfStatement(ExpressionNode* condition, StatementNode* ifBlock);
 StatementNode* createIfElseStatement(ExpressionNode* condition, StatementNode* ifBlock, StatementNode* elseBlock);
 StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* block);
-StatementNode* createVariableDefinition(InternalTypeNode*, char* variable, ExpressionNode* value);
+StatementNode* createVariableDefinition(CheshireType, char* variable, ExpressionNode* value);
 void deleteStatementNode(StatementNode*);
 
 //defined in BlockList.c
@@ -175,8 +168,8 @@ BlockList* linkBlockList(StatementNode*, BlockList*);
 void deleteBlockList(BlockList*);
 
 //defined in ParserTopNode.c
-ParserTopNode* createMethodDeclaration(InternalTypeNode*, char* functionName);
-ParserTopNode* createMethodDefinition(InternalTypeNode*, char* functionName, BlockList* body);
+ParserTopNode* createMethodDeclaration(CheshireType, char* functionName);
+ParserTopNode* createMethodDefinition(CheshireType, char* functionName, BlockList* body);
 void deleteParserTopNode(ParserTopNode*);
 
 
