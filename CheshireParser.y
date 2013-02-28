@@ -80,7 +80,7 @@ typedef void* yyscan_t;
 %token <op_type> TOK_ADDSUB
 %token <op_type> TOK_MULTDIV
 %token <number> TOK_NUMBER
-%token <reserved_type> TOK_RESERVED_TYPE
+%token <cheshire_type> TOK_TYPE
 %token <reserved_literal> TOK_RESERVED_LITERAL
 %token <string> TOK_IDENTIFIER
 %token <string> TOK_STRING
@@ -181,8 +181,8 @@ expression
     | expression TOK_MULTDIV expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
     | TOK_CAST TOK_LSQUARE typename TOK_RSQUARE expression %prec P_CAST  { $$ = createCastOperation( $5 , $3 ); }
-    | TOK_NEW TOK_IDENTIFIER expression_list   { $$ = createInstantiationOperation( IT_GC , $2 , $3 ); }
-    | TOK_NEW_HEAP TOK_IDENTIFIER expression_list  { $$ = createInstantiationOperation( IT_HEAP , $2 , $3 ); }
+    | TOK_NEW TOK_TYPE expression_list   { $$ = createInstantiationOperation( IT_GC , $2 , $3 ); }
+    | TOK_NEW_HEAP TOK_TYPE expression_list  { $$ = createInstantiationOperation( IT_HEAP , $2 , $3 ); }
     ;
 
 expression_statement
@@ -206,11 +206,9 @@ expression_list_contains
     ;
 
 typename
-    : TOK_IDENTIFIER  { $$ = getType( getTypeKey( $1 ), FALSE ); }
-    | TOK_IDENTIFIER TOK_HAT  { $$ = getType( getTypeKey( $1 ), TRUE ); }
-    | TOK_RESERVED_TYPE  { $$ = getType( getReservedTypeKey( $1 ), FALSE ); }
-    | TOK_RESERVED_TYPE TOK_HAT  { $$ = getType( getReservedTypeKey( $1 ), TRUE ); }
+    : TOK_TYPE  { $$ = $1 ; }
     | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); }
+    | typename TOK_HAT  { $$ = getType( $1.typeKey , TRUE ); }
     ;
 
 %%

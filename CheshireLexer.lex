@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ParserEnums.h"
+#include "TypeSystem.h"
 #include "ParserNodes.h"
 #include "LexerUtil.h"
 #include "CheshireParser.yy.h"
@@ -28,7 +29,10 @@ BACKSLASH   "\\"
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
-Number|Boolean|Int|Decimal|void|infer|Object  { determineReservedType(yytext, &(yylval->reserved_type)); return TOK_RESERVED_TYPE; }
+Number|Boolean|Int|Decimal|void|Object  { 
+                                            yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
+                                            return TOK_TYPE;
+                                        } //todo: infer token
 True|False|Null                     { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
 pass      return TOK_PASS;
@@ -70,7 +74,15 @@ cast      return TOK_CAST;
 0[xX][0-9A-F]+  { int x; sscanf(yytext, "%x", &x); yylval->number = (double) x; return TOK_NUMBER; }
 0[0-7]+         { int x; sscanf(yytext, "%o", &x); yylval->number = (double) x; return TOK_NUMBER; }
 {DIGIT}+("."{DIGIT}*)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->number)); return TOK_NUMBER; }
-{ALPHA}{IDENTIFIER}*    { saveIdentifier(yytext, &(yylval->string)); return TOK_IDENTIFIER; }
+{ALPHA}{IDENTIFIER}*    {
+                            if (isType(yytext)) {
+                                yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
+                                return TOK_TYPE;
+                            } else {
+                                saveIdentifier(yytext, &(yylval->string));
+                                retrn TOK_IDENTIFIER;
+                            }
+                        }
 "."             return TOK_LN; 
 {WHITESPACE}+   {} /* whitespace */
 \n              lineno++;
