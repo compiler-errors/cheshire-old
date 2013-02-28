@@ -195,14 +195,10 @@ void printExpression(ExpressionNode* node) {
             printf(")");
             break;
         case OP_NEW_GC:
-            printf("(new %s", node->instantiate.type);
-            printParameterList(node->instantiate.params);
-            printf(")");
+            //todo: implement me!
             break;
         case OP_NEW_HEAP:
-            printf("(new^ %s", node->instantiate.type);
-            printParameterList(node->instantiate.params);
-            printf(")");
+            //todo: implement me!
             break;
         case OP_METHOD_CALL:
             printf("(%s", node->methodcall.fn_name);

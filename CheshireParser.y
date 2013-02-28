@@ -137,6 +137,7 @@ block_or_pass
     | block  { $$ = $1; }
     ;
 
+//todo: assert
 statement
     : expression_statement TOK_LN  { $$ = createExpressionStatement( $1 ); }
     | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
@@ -207,7 +208,7 @@ expression_list_contains
 
 typename
     : TOK_TYPE  { $$ = $1 ; }
-    | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); }
+    /*| typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); } todo: lambdas*/
     | typename TOK_HAT  { $$ = getType( $1.typeKey , TRUE ); }
     ;
 

@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ParserEnums.h"
-#include "TypeSystem.h"
 #include "ParserNodes.h"
 #include "LexerUtil.h"
 #include "CheshireParser.yy.h"
@@ -32,7 +31,7 @@ BACKSLASH   "\\"
 Number|Boolean|Int|Decimal|void|Object  { 
                                             yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
                                             return TOK_TYPE;
-                                        } //todo: infer token
+                                        } //todo: infer token & bison case.
 True|False|Null                     { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
 pass      return TOK_PASS;
@@ -80,7 +79,7 @@ cast      return TOK_CAST;
                                 return TOK_TYPE;
                             } else {
                                 saveIdentifier(yytext, &(yylval->string));
-                                retrn TOK_IDENTIFIER;
+                                return TOK_IDENTIFIER;
                             }
                         }
 "."             return TOK_LN; 

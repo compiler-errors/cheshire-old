@@ -111,7 +111,7 @@ ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType typ
     return node;
 }
 
-ExpressionNode* createInstantiationOperation(InstantiationType itype, char* type, ExpressionList* params) {
+ExpressionNode* createInstantiationOperation(InstantiationType itype, CheshireType type, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -289,7 +289,6 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_NEW_GC:
         case OP_NEW_HEAP:
             deleteExpressionList(node->instantiate.params);
-            free(node->instantiate.type);
             break;
         case OP_METHOD_CALL:
             free(node->methodcall.fn_name);

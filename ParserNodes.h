@@ -14,9 +14,6 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include "ParserEnums.h"
-#include "TypeSystem.h"
-
-#define PANIC_OR_RETURN_NULL { printf("Couldn't allocate anything. NULL!\n"); exit(0); return NULL; }
 
 struct tagParserTopNode;
 struct tagParameterList;
@@ -24,6 +21,15 @@ struct tagExpressionNode;
 struct tagExpressionList;
 struct tagStatementNode;
 struct tagBlockList;
+
+#define PANIC_OR_RETURN_NULL { printf("Couldn't allocate anything. NULL!\n"); exit(0); return NULL; }
+
+typedef int TypeKey;
+
+typedef struct tagCheshireType {
+    TypeKey typeKey;
+    Boolean isUnsafe;
+} CheshireType;
 
 typedef struct tagParserTopNode {
     ParserReturnType type;
@@ -74,7 +80,7 @@ typedef struct tagExpressionNode {
         } cast;
         
         struct {
-            char* type;
+            CheshireType type;
             struct tagExpressionList* params;
         } instantiate;
         
@@ -124,6 +130,19 @@ typedef struct tagBlockList {
     struct tagBlockList* next;
 } BlockList;
 
+/////////////////////// TYPE SYSTEM ///////////////////////
+void initTypeSystem(void);
+void freeTypeSystem(void); //free all of the char* references
+
+Boolean isType(const char*);
+TypeKey getTypeKey(const char*);
+//TypeKey getLambdaTypeKey(CheshireType returnType, struct tagParameterList* parameters); TODO: fixme!
+
+CheshireType getType(TypeKey base, Boolean isUnsafe);
+Boolean isValidObjectType(CheshireType);
+const char* getTypeName();
+///////////////////////////////////////////////////////////
+
 //defined in ExpessionNode.c
 ExpressionNode* createSelfNode(void);
 ExpressionNode* createUnaryOperation(OperationType, ExpressionNode*);
@@ -133,7 +152,7 @@ ExpressionNode* createVariableAccess(char* variable);
 ExpressionNode* createStringNode(char* str);
 ExpressionNode* createNumberNode(double);
 ExpressionNode* createCastOperation(ExpressionNode*, CheshireType type);
-ExpressionNode* createInstantiationOperation(InstantiationType, char* type, ExpressionList*);
+ExpressionNode* createInstantiationOperation(InstantiationType, CheshireType type, ExpressionList*);
 ExpressionNode* createMethodCall(char* functionName, ExpressionList*);
 ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ExpressionList*);
 ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList*);
