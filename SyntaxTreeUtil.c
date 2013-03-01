@@ -9,7 +9,7 @@
 
 void printExpression(ExpressionNode* node) {
     if (node == NULL) {
-        printf("NULL?!");
+        printf("NULL VALUE");
         return;
     }
     

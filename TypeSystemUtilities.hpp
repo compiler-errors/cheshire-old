@@ -11,7 +11,7 @@
 #include <stddef.h>
 
 #include "SyntaxTreeUtil.h"
-#include "ParserNodes.h"
+#include "Structures.h"
 
 class CStrHash;
 class CStrEql;

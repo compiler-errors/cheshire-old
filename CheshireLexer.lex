@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ParserEnums.h"
-#include "ParserNodes.h"
+#include "Structures.h"
+//todo: move them to TypeSystem.h
 #include "LexerUtil.h"
 #include "CheshireParser.yy.h"
 
