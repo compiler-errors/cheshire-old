@@ -18,7 +18,7 @@ typedef std::pair<CheshireType, ParameterList*> LambdaType;
 //todo: replace std::unordered_map with custom map!
 
 typedef std::unordered_map<const char*, TypeKey, CStrHash, CStrEql> TypeMap;
-//typedef std::unordered_map<LambdaType, TypeKey, LambdaHash, LambdaEql> LambdaMap;
+//typedef std::unordered_map<LambdaType, TypeKey, LambdaHash, LambdaEql> LambdaMap; todo: lambda
 typedef std::unordered_set<int> ValidObjectSet;
 
 static Boolean isInitialized = FALSE;

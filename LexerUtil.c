@@ -8,35 +8,6 @@
 #include "LexerUtil.h"
 #include "ParserEnums.h"
 
-void determineReservedType(const char* string, ReservedType* var) {
-    switch (string[0]) {
-        case 'N':
-            *var = RT_NUMBER;
-            break;
-        case 'B':
-            *var = RT_BOOLEAN;
-            break;
-        case 'I':
-            *var = RT_INT;
-            break;
-        case 'D':
-            *var = RT_DECIMAL;
-            break;
-        case 'v':
-            *var = RT_VOID;
-            break;
-        case 'i':
-            *var = RT_INFER;
-            break;
-        case 'O':
-            *var = RT_OBJECT;
-            break;
-        default:
-            *var = -1;
-            break;
-    }
-}
-
 void determineReservedLiteral(const char* string, ReservedLiteral* var) {
     switch (string[0]) {
         case 'T':

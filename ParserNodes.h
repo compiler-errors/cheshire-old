@@ -122,6 +122,10 @@ typedef struct tagStatementNode {
             char* variable;
             struct tagExpressionNode* value;
         } varDefinition;
+        struct {
+            char* variable;
+            struct tagExpressionNode* value;
+        } inferDefinition;
     };
 } StatementNode;
 
@@ -136,7 +140,7 @@ void freeTypeSystem(void); //free all of the char* references
 
 Boolean isType(const char*);
 TypeKey getTypeKey(const char*);
-//TypeKey getLambdaTypeKey(CheshireType returnType, struct tagParameterList* parameters); TODO: fixme!
+TypeKey getLambdaTypeKey(CheshireType returnType, struct tagParameterList* parameters);
 
 CheshireType getType(TypeKey base, Boolean isUnsafe);
 Boolean isValidObjectType(CheshireType);
@@ -169,6 +173,7 @@ void deleteExpressionList(ExpressionList*);
 
 //Defined in StatementNode.c
 StatementNode* createExpressionStatement(ExpressionNode*);
+StatementNode* createAssertionStatement(ExpressionNode*);
 StatementNode* createBlockStatement(BlockList*);
 StatementNode* createIfStatement(ExpressionNode* condition, StatementNode* ifBlock);
 StatementNode* createIfElseStatement(ExpressionNode* condition, StatementNode* ifBlock, StatementNode* elseBlock);

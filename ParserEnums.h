@@ -64,18 +64,14 @@ typedef enum {
     OP_ARRAY_ACCESS,
     OP_STRING,
     OP_SIZEOF_TYPE
-    //special operations
-    /*
-    OP_DOWNCAST
-    OP_UPCAST
-    OP_REINTERPRETCAST
-     */
 } OperationType;
 
 typedef enum {
     S_NOP,
     S_VARIABLE_DEF,
+    S_INFER_DEF,
     S_EXPRESSION,
+    S_ASSERT,
     S_BLOCK,
     S_IF,
     S_IF_ELSE,

@@ -44,7 +44,7 @@ ParserTopNode* createMethodDefinition(CheshireType type, char* functionName, Par
 void deleteParserTopNode(ParserTopNode* node) {
     switch (node->type) {
         case PRT_NONE:
-            //todo: panic! I shouldn't be here.
+            PANIC("No such statement as No-OP.");
             break;
         case PRT_METHOD_DECLARATION:
             free(node->method.functionName);

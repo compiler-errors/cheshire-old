@@ -31,8 +31,9 @@ BACKSLASH   "\\"
 Number|Boolean|Int|Decimal|void|Object  { 
                                             yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
                                             return TOK_TYPE;
-                                        } //todo: infer token & bison case.
-True|False|Null                     { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
+                                        }
+infer     return TOK_INFER;
+True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
 pass      return TOK_PASS;
 global    return TOK_GLOBAL_VARIABLE;

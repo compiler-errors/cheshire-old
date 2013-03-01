@@ -17,8 +17,6 @@ extern "C" {
 
 #include "ParserEnums.h"
 
-//todo: check if these methods are necessary anymore. remove both definition AND implementation
-void determineReservedType(const char*, ReservedType* var);
 void determineReservedLiteral(const char*, ReservedLiteral* var);
 void determineOpType(const char*, OperationType* var);
 void saveIdentifier(const char*, char** var);

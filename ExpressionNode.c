@@ -34,7 +34,7 @@ ExpressionNode* createUnaryOperation(OperationType optype, ExpressionNode* child
     if (optype == OP_MINUS) {
         optype = OP_UNARY_MINUS;
     } else if (optype == OP_PLUS) {
-        //todo: PANIC! I shouldn't be getting unary +.
+        PANIC("No such operation as \"unary +\"");
     }
     
     node->type = optype;
@@ -240,7 +240,7 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_NOP:
         case OP_INCREMENT:
         case OP_DECREMENT:
-            //TODO: Panic, since I'm not supposed to be here.
+            PANIC("No such operation as No-OP or Increment/Decrement without \"Post-\" or \"Pre-\"");
             break;
         case OP_NOT:
         case OP_COMPL:

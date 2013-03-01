@@ -17,8 +17,7 @@ void printExpression(ExpressionNode* node) {
         case OP_NOP:
         case OP_INCREMENT:
         case OP_DECREMENT:
-            printf("This shouldn't be here!");
-            exit(0);
+            PANIC("No such operation as No-OP or Increment/Decrement without \"Post-\" or \"Pre-\"");
             break;
         case OP_INCREMENT_PRE:
             printf("(++");
@@ -195,7 +194,9 @@ void printExpression(ExpressionNode* node) {
             printf(")");
             break;
         case OP_NEW_GC:
-            //todo: implement me!
+            printf("(new %s", );
+            printParameterList();
+            printf(")");
             break;
         case OP_NEW_HEAP:
             //todo: implement me!

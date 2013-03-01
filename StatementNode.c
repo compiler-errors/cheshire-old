@@ -25,6 +25,17 @@ StatementNode* createExpressionStatement(ExpressionNode* expression) {
     return node;
 }
 
+StatementNode* createAssertionStatement(ExpressionNode* expression) {
+    StatementNode* node = allocStatementNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = S_ASSERT;
+    node->expression = expression;
+    return node;
+}
+
 StatementNode* createBlockStatement(BlockList* block) {
     StatementNode* node = allocStatementNode();
     
@@ -91,9 +102,12 @@ StatementNode* createVariableDefinition(CheshireType type, char* variable, Expre
 void deleteStatementNode(StatementNode* node) {
     switch (node->type) {
         case S_NOP:
-            //TODO: Panic, since I'm not supposed to be here.
+            PANIC("No such operation as No-OP");
             break;
         case S_EXPRESSION:
+            deleteExpressionNode(node->expression);
+            break;
+        case S_ASSERT:
             deleteExpressionNode(node->expression);
             break;
         case S_BLOCK:

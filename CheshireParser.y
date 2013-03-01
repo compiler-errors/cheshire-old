@@ -72,6 +72,7 @@ typedef void* yyscan_t;
 %token TOK_NEW_HEAP
 %token TOK_CAST
 %token TOK_LN
+%token TOK_INFER
 %token <op_type> TOK_NOT
 /* Note: TOK_NOT is used for "not" and "compl" operations, like TOK_ADDSUB, etc.*/
 %token <op_type> TOK_INCREMENT
@@ -128,8 +129,8 @@ parameter_list
     ;
 
 parameter_list_contains
-    : typename TOK_IDENTIFIER  { $$ = linkParameterList( $1, $2 , NULL ); }
-    | typename TOK_IDENTIFIER TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1, $2 , $4 ); }
+    : typename TOK_IDENTIFIER  { $$ = linkParameterList( $1 , $2 , NULL ); }
+    | typename TOK_IDENTIFIER TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , $2 , $4 ); }
     ;
 
 block_or_pass
@@ -137,10 +138,11 @@ block_or_pass
     | block  { $$ = $1; }
     ;
 
-//todo: assert
 statement
     : expression_statement TOK_LN  { $$ = createExpressionStatement( $1 ); }
-    | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
+    | TOK_ASSERT expression TOK_LN  { $$ = createAssertionStatement( $1 ); }
+    | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createInferDefinition( $1 , $2 , $4 ); }
+    | TOK_INFER TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
     | block  { $$ = createBlockStatement( $1 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
