@@ -21,6 +21,7 @@ void determineReservedLiteral(const char*, ReservedLiteral* var);
 void determineOpType(const char*, OperationType* var);
 void saveIdentifier(const char*, char** var);
 void saveStringLiteral(const char*, char** var);
+char* saveStringLiteralReturn(const char*);
 
 #ifdef	__cplusplus
 }

@@ -93,9 +93,35 @@ StatementNode* createVariableDefinition(CheshireType type, char* variable, Expre
         return NULL;
     
     node->type = S_VARIABLE_DEF;
-    node->varDefinition.type = type;
+    node->varDefinition.type.typeKey = (TypeKey) -1;
+    node->varDefinition.type.isInfer = FALSE;
     node->varDefinition.variable = variable;
     node->varDefinition.value = value;
+    return node;
+}
+
+StatementNode* createInferDefinition(char* variable, ExpressionNode* value) {
+    StatementNode* node = allocStatementNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = S_INFER_DEF;
+    node->varDefinition.type.typeKey = (TypeKey) -1;
+    node->varDefinition.type.isInfer = TRUE;
+    node->varDefinition.variable = variable;
+    node->varDefinition.value = value;
+    return node;
+}
+
+StatementNode* createDeleteHeapStatement(ExpressionNode* expression) {
+    StatementNode* node = allocStatementNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = S_DELETE_HEAP;
+    node->expression = expression;
     return node;
 }
 
@@ -105,9 +131,8 @@ void deleteStatementNode(StatementNode* node) {
             PANIC("No such operation as No-OP");
             break;
         case S_EXPRESSION:
-            deleteExpressionNode(node->expression);
-            break;
         case S_ASSERT:
+        case S_DELETE_HEAP:
             deleteExpressionNode(node->expression);
             break;
         case S_BLOCK:
@@ -124,8 +149,10 @@ void deleteStatementNode(StatementNode* node) {
             deleteStatementNode(node->conditional.block);
             break;
         case S_VARIABLE_DEF:
+        case S_INFER_DEF:
             free(node->varDefinition.variable);
             deleteExpressionNode(node->varDefinition.value);
+            break;
     }
     free(node);
 }

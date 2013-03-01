@@ -22,6 +22,7 @@ struct tagExpressionList;
 struct tagStatementNode;
 struct tagBlockList;
 
+#define PANIC(format, args...) { printf(format , ##args); printf("\n"); exit(0); }
 #define PANIC_OR_RETURN_NULL { printf("Couldn't allocate anything. NULL!\n"); exit(0); return NULL; }
 
 typedef int TypeKey;
@@ -29,6 +30,7 @@ typedef int TypeKey;
 typedef struct tagCheshireType {
     TypeKey typeKey;
     Boolean isUnsafe;
+    Boolean isInfer;
 } CheshireType;
 
 typedef struct tagParserTopNode {
@@ -136,15 +138,15 @@ typedef struct tagBlockList {
 
 /////////////////////// TYPE SYSTEM ///////////////////////
 void initTypeSystem(void);
-void freeTypeSystem(void); //free all of the char* references
+void freeTypeSystem(void); //frees all of the char* references
 
 Boolean isType(const char*);
 TypeKey getTypeKey(const char*);
 TypeKey getLambdaTypeKey(CheshireType returnType, struct tagParameterList* parameters);
-
 CheshireType getType(TypeKey base, Boolean isUnsafe);
+
 Boolean isValidObjectType(CheshireType);
-const char* getTypeName();
+Boolean isValiLambdaType(CheshireType);
 ///////////////////////////////////////////////////////////
 
 //defined in ExpessionNode.c
@@ -179,6 +181,8 @@ StatementNode* createIfStatement(ExpressionNode* condition, StatementNode* ifBlo
 StatementNode* createIfElseStatement(ExpressionNode* condition, StatementNode* ifBlock, StatementNode* elseBlock);
 StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* block);
 StatementNode* createVariableDefinition(CheshireType, char* variable, ExpressionNode* value);
+StatementNode* createInferDefinition(char* variable, ExpressionNode* value);
+StatementNode* createDeleteHeapStatement(ExpressionNode*);
 void deleteStatementNode(StatementNode*);
 
 //defined in BlockList.c
@@ -200,4 +204,3 @@ void deleteParameterList(ParameterList*);
 #endif
 
 #endif	/* NODES_H */
-

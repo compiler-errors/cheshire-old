@@ -30,7 +30,6 @@ typedef void* yyscan_t;
 %union {
     char* string;
     OperationType op_type;
-    ReservedType reserved_type;
     ReservedLiteral reserved_literal;
     double number;
     struct tagParameterList* parameter_list;
@@ -70,6 +69,7 @@ typedef void* yyscan_t;
 %token TOK_INSTANCEOF
 %token TOK_NEW
 %token TOK_NEW_HEAP
+%token TOK_DELETE_HEAP
 %token TOK_CAST
 %token TOK_LN
 %token TOK_INFER
@@ -140,13 +140,14 @@ block_or_pass
 
 statement
     : expression_statement TOK_LN  { $$ = createExpressionStatement( $1 ); }
-    | TOK_ASSERT expression TOK_LN  { $$ = createAssertionStatement( $1 ); }
-    | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createInferDefinition( $1 , $2 , $4 ); }
-    | TOK_INFER TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
+    | TOK_ASSERT expression TOK_LN  { $$ = createAssertionStatement( $2 ); }
+    | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
+    | TOK_INFER TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createInferDefinition( $2 , $4 ); }
     | block  { $$ = createBlockStatement( $1 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
+    | TOK_DELETE_HEAP expression  { $$ = createDeleteHeapStatement( $2 ); }
     ;
 
 statement_or_pass
@@ -210,8 +211,11 @@ expression_list_contains
 
 typename
     : TOK_TYPE  { $$ = $1 ; }
-    /*| typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); } todo: lambdas*/
-    | typename TOK_HAT  { $$ = getType( $1.typeKey , TRUE ); }
+    | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); deleteParameterList( $3 ); }
+    | typename TOK_HAT  {  if ( $1.isUnsafe ) 
+                               PANIC("Cannot apply ^ to a typename more than one time!");
+                           $$ = getType( $1.typeKey , TRUE ); 
+                        }
     ;
 
 %%

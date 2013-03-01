@@ -193,15 +193,23 @@ void printExpression(ExpressionNode* node) {
             printExpression(node->cast.child);
             printf(")");
             break;
-        case OP_NEW_GC:
-            printf("(new %s", );
-            printParameterList();
+        case OP_NEW_GC: {
+            CheshireType t = node->instantiate.type;
+            t.isInfer = t.isUnsafe = FALSE;
+            printf("(new ");
+            printCheshireType(t);
+            printParameterList(node->instantiate.params);
             printf(")");
             break;
-        case OP_NEW_HEAP:
-            //todo: implement me!
+        } case OP_NEW_HEAP: {
+            CheshireType t = node->instantiate.type;
+            t.isInfer = t.isUnsafe = FALSE;
+            printf("(new^ ");
+            printCheshireType(t);
+            printParameterList(node->instantiate.params);
+            printf(")");
             break;
-        case OP_METHOD_CALL:
+        } case OP_METHOD_CALL:
             printf("(%s", node->methodcall.fn_name);
             printParameterList(node->methodcall.params);
             printf(")");
@@ -259,8 +267,4 @@ void printParameterList(ExpressionList* param) {
         }
     }
     printf(")");
-}
-
-void printCheshireType(CheshireType node) {
-    //todo: implement me!
 }

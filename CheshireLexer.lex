@@ -28,8 +28,7 @@ BACKSLASH   "\\"
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
-Number|Boolean|Int|Decimal|void|Object  { 
-                                            yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
+Number|Boolean|Int|Decimal|void|Object  {   yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
                                             return TOK_TYPE;
                                         }
 infer     return TOK_INFER;
@@ -71,11 +70,11 @@ cast      return TOK_CAST;
 "instanceof"    return TOK_INSTANCEOF;
 "new"           return TOK_NEW;
 "new"[" "]*"^"  return TOK_NEW_HEAP;
+"delete"[" "]*"^"   return TOK_DELETE_HEAP;
 0[xX][0-9A-F]+  { int x; sscanf(yytext, "%x", &x); yylval->number = (double) x; return TOK_NUMBER; }
 0[0-7]+         { int x; sscanf(yytext, "%o", &x); yylval->number = (double) x; return TOK_NUMBER; }
 {DIGIT}+("."{DIGIT}*)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->number)); return TOK_NUMBER; }
-{ALPHA}{IDENTIFIER}*    {
-                            if (isType(yytext)) {
+{ALPHA}{IDENTIFIER}*    {   if (isType(yytext)) {
                                 yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
                                 return TOK_TYPE;
                             } else {

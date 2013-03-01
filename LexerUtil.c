@@ -102,3 +102,9 @@ void saveStringLiteral(const char* string, char** var) {
     substring[substringlen-1] = '\0';
     *var = substring;
 }
+
+char* saveStringLiteralReturn(const char* string) {
+    char* ret;
+    saveStringLiteral(string, &ret);
+    return ret;
+}
