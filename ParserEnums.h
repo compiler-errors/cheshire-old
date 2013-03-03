@@ -22,12 +22,12 @@ typedef enum { IPP_PRE, IPP_POST } IncrementPrePost;
 typedef enum { FALSE = 0, TRUE = 1 } Boolean;
 
 typedef enum {
-    OP_NOP,
+    OP_NOP,             //placeholder type -- not used - hopefully - anywhere.
     OP_NOT,
     OP_COMPL,
     OP_UNARY_MINUS,
-    OP_INCREMENT,
-    OP_DECREMENT,
+    OP_INCREMENT,       //"transient" type -- not used during typechecking or code-gen phases
+    OP_DECREMENT,       //"transient" type -- not used during typechecking or code-gen phases
     OP_INCREMENT_PRE,
     OP_DECREMENT_PRE,
     OP_INCREMENT_POST,
@@ -51,7 +51,7 @@ typedef enum {
     OP_INSTANCEOF,
     OP_VARIABLE,
     OP_NUMBER,
-    OP_CAST,
+    OP_CAST,        //"transient" type -- not used during code-gen phase
     OP_NEW_GC,
     OP_NEW_HEAP,
     OP_ACCESS,

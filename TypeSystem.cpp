@@ -7,9 +7,10 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include "ParserNodes.h"
-#include "LexerUtil.h"
+#include "Structures.h"
+#include "TypeSystem.h"
 #include "TypeSystemUtilities.hpp"
+#include "LexerUtilities.h"
 
 #define insertBaseType(type) { typeID = typeKeys++; saveIdentifier(type, &string); typeMap[string] = typeID; printf("Initializing type '%s' with key %d\n", string, typeID); }
 
@@ -19,8 +20,9 @@ static TypeMap typeMap;
 static LambdaMap lambdaMap;
 static ValidObjectSet validObjectSet;
 static ValidLambdaSet validLambdaSet;
+static MethodMappings methodMappings;
 static TypeKey typeKeys = 0;
-
+//////////////////////////////////////////
 static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* parameters) {
     LambdaType ret;
     ret.first = returnType;
@@ -65,15 +67,66 @@ void freeTypeSystem() {
     lambdaMap.clear();
     validObjectSet.clear();
     validLambdaSet.clear();
+    methodMappings.clear();
     typeKeys = 0;
 }
 
-Boolean isType(const char* str) {
+CheshireScope* allocateCheshireScope() {
+    CheshireScope* scope = new CheshireScope;
+    scope->highestScope = NULL;
+    return scope;
+}
+
+void deleteCheshireScope(CheshireScope* scope) {
+    if (scope->highestScope != NULL)
+        PANIC("Scope tracking has not exited from a higher scope!"); //todo: weird wording.
+    delete scope;
+}
+
+void raiseScope(CheshireScope* scope) {
+    VariableScope* old = scope->highestScope;
+    scope->highestScope = new VariableScope;
+    scope->highestScope->parentScope = old;
+}
+
+void fallScope(CheshireScope* scope) {
+    VariableScope* old = scope->highestScope;
+    if (old == NULL)
+        PANIC("Trying to fall to a non-existent scope!");
+    scope->highestScope = scope->highestScope->parentScope;
+    delete old;
+}
+
+void addMethodDeclaration(CheshireScope* scope, const char* name, CheshireType returnType, struct tagParameterList* params) {
+    if (methodMappings.find(name) != methodMappings.end())
+        PANIC("Redeclaration of method %s!", name);
+    methodMappings[name] = prepareLambdaType(returnType, params);
+}
+
+CheshireType getVariableType(CheshireScope* scope, const char* name) {
+    for (VariableScope* variableScope = scope->highestScope; variableScope != NULL; variableScope = variableScope->parentScope) {
+        auto iterator = variableScope->variables.find(name);
+        if (iterator != variableScope->variables.end()) {
+            return iterator->second;
+        }
+    }
+    PANIC("No such variable defined as %s", name);
+}
+
+void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
+    if (isVoid(type))
+        PANIC("Cannot define variable of type VOID.");
+    if (scope->highestScope->variables.find(name) != scope->highestScope->variables.end())
+        PANIC("Redeclaration of variable %s!", name);
+    scope->highestScope->variables[name] = type;
+}
+
+Boolean isTypeName(const char* str) {
     return (Boolean) (typeMap.find(str) != typeMap.end());
 }
 
 TypeKey getTypeKey(const char* str) {
-    if (isType(str)) {
+    if (isTypeName(str)) {
         return typeMap[str];
     } else {
         //otherwise, make it into a new type.
@@ -105,11 +158,19 @@ CheshireType getType(TypeKey base, Boolean isUnsafe) {
         printf("Error in type: \"");
         printCheshireType(c);
         printf("\". ");
-        PANIC("Cannot apply unsafe-type to a non-object type!"); //using 'c' because it has the key, but no ^ applied yet.
+        PANIC("Cannot apply \"unsafe\" to a non-object type!"); //using 'c' because it has the key, but no ^ applied yet.
     }
     c.isInfer = FALSE;
     c.isUnsafe = isUnsafe;
     return c;
+}
+
+Boolean isVoid(CheshireType t) {
+    return (Boolean) (t.typeKey == 0);
+}
+
+Boolean isNumericalType(CheshireType t) {
+    return (Boolean) (t.typeKey >= 1 && t.typeKey <= 3); //between Int and Double
 }
 
 Boolean isValidObjectType(CheshireType t) {
@@ -156,5 +217,143 @@ void printCheshireType(CheshireType node) {
                 PANIC("No such recognized type as: %d", t);
                 break;
         }
+    }
+}
+
+//CheshireType getSupertype(CheshireScope* scope, CheshireType type) {
+//    //todo: assume that "type" is a valid type...
+//}
+
+void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
+    switch (node->type) {
+        case PRT_NONE:
+            PANIC("Type system received PRT_NONE.");
+            break;
+        case PRT_METHOD_DECLARATION:
+            addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
+            break;
+        case PRT_METHOD_DEFINITION:
+            addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
+            typeCheckBlockList(scope, node->method.body);
+            break;
+    }
+}
+
+void typeCheckParameterList(CheshireScope*, ParserTopNode*) {
+    //todo
+    //include null case.
+}
+
+CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node) {
+    switch (node->type) {
+        case OP_NOP:
+        case OP_INCREMENT:
+        case OP_DECREMENT:
+            PANIC("No such operation as No-OP or Increment/Decrement without \"Post-\" or \"Pre-\"");
+            return TYPE_VOID;
+        case OP_NOT: {
+            CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
+            if (isBoolean(childType)) {
+                return TYPE_BOOLEAN;
+            } else {
+                PANIC("Expected type boolean for operation NOT");
+            }
+            return TYPE_BOOLEAN;
+        }
+        case OP_COMPL:
+        case OP_INCREMENT_PRE:
+        case OP_DECREMENT_PRE:
+        case OP_INCREMENT_POST:
+        case OP_DECREMENT_POST:
+        case OP_UNARY_MINUS: {
+            CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
+            if (!isNumericalType(childType))
+                PANIC("Expected a numerical type for operations COMPL, ++, --, and UNARY -");
+            return childType;
+        } 
+        case OP_SIZEOF: {
+            CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
+            if (childType.isUnsafe)
+                PANIC("Cannot find the size of an expression of type Object^");
+            return TYPE_INT;
+        }
+        case OP_EQUALS:
+        case OP_NOT_EQUALS: {
+            CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
+            CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
+            if (!areEqualTypes(left, right))
+                PANIC("left and right types must be equal for operations == and !=");
+            return TYPE_BOOLEAN;
+        }
+        case OP_GRE_EQUALS:
+        case OP_LES_EQUALS:
+        case OP_GREATER:
+        case OP_LESS:
+        case OP_PLUS:
+        case OP_MINUS:
+        case OP_MULT:
+        case OP_DIV:
+        case OP_MOD:
+            //expect two numerals, typecast them, etc.
+        case OP_AND:
+        case OP_OR:
+            //expect two booleans.
+        case OP_SET:
+            //expect two booleans
+        case OP_ARRAY_ACCESS:
+            //expect left.arrayType > 1, right == int; returns type of left w/ arrayType-1
+            break;
+        case OP_INSTANCEOF:
+            //expect that left is an object expression (not ^), and right is a type of object (not ^)
+            break;
+        case OP_VARIABLE:
+            //return type, or panic if no such name.
+        case OP_STRING:
+            //return string type (idk, todo: later?)
+            break;
+        case OP_CAST:
+            //expect: object to object type, number to number, and object^ to object^
+            break;
+        case OP_METHOD_CALL:
+            //check params, return type that the method returns.
+            break;
+        case OP_CALLBACK_CALL:
+            break;
+        case OP_NUMBER:
+            //return type of the smallest fitting numerical type.
+        case OP_RESERVED_LITERAL:
+            //return type of literal.
+            break;
+        case OP_NEW_GC:
+        case OP_NEW_HEAP:
+            //todo: implement later w/ classes, return type of the object (or w/ heap, the object and ^). check params
+            break;
+        case OP_OBJECT_CALL:
+            //todo: implement later w/ classes.
+            break;
+        case OP_ACCESS:
+            //todo: implement later w/ classes
+            break;
+        case OP_SIZEOF_TYPE:
+            //todo: implement later w/ classes
+            break;
+        case OP_SELF:
+            //todo: implement later w/ classes. store self type in scope obj?
+    }
+    return TYPE_VOID;
+}
+
+void typeCheckExpressionList(CheshireScope*, ExpressionList*) {
+    //todo
+    //include null case.
+}
+
+void typeCheckStatementNode(CheshireScope*, StatementNode*) {
+    //todo
+}
+
+void typeCheckBlockList(CheshireScope*, BlockList* list) {
+    if (list == NULL) {
+        
     }
 }

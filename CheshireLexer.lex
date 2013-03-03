@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include "ParserEnums.h"
 #include "Structures.h"
-//todo: move them to TypeSystem.h
-#include "LexerUtil.h"
+#include "LexerUtilities.h"
 #include "CheshireParser.yy.h"
 
 static int lineno = 0;
@@ -75,7 +74,7 @@ cast      return TOK_CAST;
 0[xX][0-9A-F]+  { int x; sscanf(yytext, "%x", &x); yylval->number = (double) x; return TOK_NUMBER; }
 0[0-7]+         { int x; sscanf(yytext, "%o", &x); yylval->number = (double) x; return TOK_NUMBER; }
 {DIGIT}+("."{DIGIT}*)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->number)); return TOK_NUMBER; }
-{ALPHA}{IDENTIFIER}*    {   if (isType(yytext)) {
+{ALPHA}{IDENTIFIER}*    {   if (isTypeName(yytext)) {
                                 yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
                                 return TOK_TYPE;
                             } else {

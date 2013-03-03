@@ -92,6 +92,7 @@ typedef std::unordered_map<const char*, TypeKey, CStrHash, CStrEql> TypeMap;
 typedef std::unordered_map<LambdaType, TypeKey, LambdaHash, LambdaEql> LambdaMap;
 typedef std::unordered_map<TypeKey, const char*> ValidObjectSet;
 typedef std::unordered_map<TypeKey, LambdaType> ValidLambdaSet;
+typedef std::unordered_map<const char*, LambdaType, CStrHash, CStrEql> MethodMappings;
 
 class CStrHash {
 public:

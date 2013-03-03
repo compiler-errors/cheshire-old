@@ -15,7 +15,9 @@ int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg);
 typedef void* yyscan_t;
 #endif
 
+#include "Structures.h"
 #include "ParserNodes.h"
+#include "TypeSystem.h"
 
 }
 
@@ -214,7 +216,7 @@ typename
     | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); deleteParameterList( $3 ); }
     | typename TOK_HAT  {  if ( $1.isUnsafe ) 
                                PANIC("Cannot apply ^ to a typename more than one time!");
-                           $$ = getType( $1.typeKey , TRUE ); 
+                           $$ = getType( $1.typeKey , TRUE );
                         }
     ;
 

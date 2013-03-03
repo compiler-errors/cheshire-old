@@ -5,7 +5,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "LexerUtil.h"
+#include "LexerUtilities.h"
 #include "ParserEnums.h"
 
 void determineReservedLiteral(const char* string, ReservedLiteral* var) {

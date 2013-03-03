@@ -38,6 +38,7 @@ sizeof and cast<T>:
 sizeof is used to determine the size of any class, or any GC-allocated piece of memory.
     - sizeof<T>, where T is any class -- NOT T^.
     - sizeof o, where o is any object that is not unmanaged (T^).
+    - sizeof returns type Int.
 definition of cast<T>(o), where T is a type to cast to, T(O) is the type of original object:
     - reinterpretation: T is unmanaged and T(o) is also unmanaged, thus type-agnostic.
     - upcast: T extends T(o), no modification. (like "cast<superclass>(subclass)")

@@ -2,21 +2,16 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
-struct tagParserTopNode;
-struct tagParameterList;
-struct tagExpressionNode;
-struct tagExpressionList;
-struct tagStatementNode;
-struct tagBlockList;
-
-#define PANIC(format, args...) { printf(format , ##args); printf("\n"); exit(0); }
-#define PANIC_OR_RETURN_NULL { printf("Couldn't allocate anything. NULL!\n"); exit(0); return NULL; }
+#define PANIC(format, args...) { printf("Error: "); printf(format , ##args); printf("\n"); exit(0); }
+#define PANIC_OR_RETURN_NULL { PANIC("Memory allocation error: ran out of memory!"); return NULL; }
 
 #ifdef    __cplusplus
 extern "C" {
 #endif
 
 #include "ParserEnums.h"
+
+// -------------------------------------------- //
 
 typedef int TypeKey;
 
@@ -26,6 +21,14 @@ typedef struct tagCheshireType {
     Boolean isInfer;
 } CheshireType;
 
+// -------------------------------------------- //
+
+struct tagParserTopNode;
+struct tagParameterList;
+struct tagExpressionNode;
+struct tagExpressionList;
+struct tagStatementNode;
+struct tagBlockList;
 typedef struct tagParserTopNode {
     ParserReturnType type;
     union {
