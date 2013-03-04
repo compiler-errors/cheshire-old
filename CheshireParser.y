@@ -66,7 +66,6 @@ typedef void* yyscan_t;
 %token TOK_PASS
 %token TOK_LAMBDA_PARAMS
 %token TOK_ACCESSOR
-%token TOK_SIZEOF
 %token TOK_SET
 %token TOK_INSTANCEOF
 %token TOK_NEW
@@ -176,8 +175,6 @@ expression
     | TOK_NUMBER  { $$ = createNumberNode( $1 ); }
     | TOK_SELF  { $$ = createSelfNode(); }
     | TOK_NOT expression  { $$ = createUnaryOperation( $1 , $2 ); }
-    | TOK_SIZEOF expression  { $$ = createSizeOfExpression( $2 ); }
-    | TOK_SIZEOF TOK_LSQUARE typename TOK_RSQUARE  { $$ = createSizeOfTypeExpression( $3 ); }
     | TOK_ADDSUB expression  %prec P_UMINUS { $$ = createUnaryOperation( $1 , $2 ); }
     | expression TOK_COMPARE expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_LSQUARE expression  { $$ = createBinOperation( OP_LESS , $1 , $3 ); }

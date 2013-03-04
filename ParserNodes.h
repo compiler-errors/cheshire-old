@@ -24,15 +24,11 @@ ExpressionNode* createMethodCall(char* functionName, ExpressionList*);
 ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ExpressionList*);
 ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList*);
 ExpressionNode* createIncrementOperation(IncrementPrePost, ExpressionNode*, OperationType);
-ExpressionNode* createSizeOfExpression(ExpressionNode*);
-ExpressionNode* createSizeOfTypeExpression(CheshireType);
 ExpressionNode* createReservedLiteralNode(ReservedLiteral);
 ExpressionNode* createAccessNode(ExpressionNode*, char* variable);
-void deleteExpressionNode(ExpressionNode*);
 
 //defined in ExpressionList.c
 ExpressionList* linkExpressionList(ExpressionNode* val, ExpressionList* next);
-void deleteExpressionList(ExpressionList*);
 
 //Defined in StatementNode.c
 StatementNode* createExpressionStatement(ExpressionNode*);
@@ -44,20 +40,16 @@ StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* bl
 StatementNode* createVariableDefinition(CheshireType, char* variable, ExpressionNode* value);
 StatementNode* createInferDefinition(char* variable, ExpressionNode* value);
 StatementNode* createDeleteHeapStatement(ExpressionNode*);
-void deleteStatementNode(StatementNode*);
 
 //defined in BlockList.c
 BlockList* linkBlockList(StatementNode*, BlockList*);
-void deleteBlockList(BlockList*);
 
 //defined in ParserTopNode.c
 ParserTopNode* createMethodDeclaration(CheshireType, char* functionName, ParameterList* params);
 ParserTopNode* createMethodDefinition(CheshireType, char* functionName, ParameterList* params, BlockList* body);
-void deleteParserTopNode(ParserTopNode*);
 
 //defined in ParameterList.c
 ParameterList* linkParameterList(CheshireType type, char* name, ParameterList* next);
-void deleteParameterList(ParameterList*);
 
 
 #ifdef __cplusplus

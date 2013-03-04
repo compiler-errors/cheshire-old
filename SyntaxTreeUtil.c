@@ -54,16 +54,6 @@ void printExpression(ExpressionNode* node) {
             printExpression(node->unaryChild);
             printf(")");
             break;
-        case OP_SIZEOF:
-            printf("(sizeof ");
-            printExpression(node->unaryChild);
-            printf(")");
-            break;
-        case OP_SIZEOF_TYPE:
-            printf("(sizeof ");
-            printCheshireType(node->typeNode);
-            printf(")");
-            break;
         case OP_EQUALS:
             printf("(");
             printExpression(node->binary.left);

@@ -24,6 +24,8 @@ GRAPHICAL   [:graph:]|{WHITESPACE}|[\r\n]
 QUOTE       "\""
 BACKSLASH   "\\"
 
+/* todo: len function for array! */
+
 %%
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
@@ -60,7 +62,6 @@ cast      return TOK_CAST;
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }
 "and"|"or"      { determineOpType(yytext, &(yylval->op_type)); return TOK_AND_OR; }
 "++"|"--"       { determineOpType(yytext, &(yylval->op_type)); return TOK_INCREMENT; }
-"sizeof"        { determineOpType(yytext, &(yylval->op_type)); return TOK_SIZEOF; }
 ["=""!"]"="|[">""<"]"="  { determineOpType(yytext, &(yylval->op_type)); return TOK_COMPARE; }
 "<"             return TOK_LSQUARE;
 ">"             return TOK_RSQUARE;

@@ -199,28 +199,6 @@ ExpressionNode* createIncrementOperation(IncrementPrePost ipp, ExpressionNode* e
     return node;
 }
 
-ExpressionNode* createSizeOfExpression(ExpressionNode* child) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_SIZEOF;
-    node->unaryChild = child;
-    return node;
-}
-
-ExpressionNode* createSizeOfTypeExpression(CheshireType typeNode) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_SIZEOF_TYPE;
-    node->typeNode = typeNode;
-    return node;
-}
-
 ExpressionNode* createReservedLiteralNode(ReservedLiteral rl) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -248,7 +226,6 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_DECREMENT_PRE:
         case OP_INCREMENT_POST:
         case OP_DECREMENT_POST:
-        case OP_SIZEOF:
         case OP_UNARY_MINUS:
             deleteExpressionNode(node->unaryChild); // Unary Operations
             break;
@@ -273,8 +250,6 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_ACCESS:
             deleteExpressionNode(node->access.expression);
             free(node->access.variable);
-            break;
-        case OP_SIZEOF_TYPE:
             break;
         case OP_INSTANCEOF:
             deleteExpressionNode(node->instanceof.expression);

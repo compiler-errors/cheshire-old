@@ -32,6 +32,8 @@ static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* para
     ret.second = Array<CheshireType>(count);
     int i = 0;
     for (ParameterList* p = parameters; p != NULL; p = p->next, i++) {
+        if (isVoid(p->type))
+            PANIC("Void type not expected in function parameter!");
         ret.second[i] = p->type;
     }
     
@@ -110,7 +112,7 @@ CheshireType getVariableType(CheshireScope* scope, const char* name) {
             return iterator->second;
         }
     }
-    PANIC("No such variable defined as %s", name);
+    PANIC("No such variable defined as %s.", name);
 }
 
 void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
@@ -170,14 +172,18 @@ Boolean isVoid(CheshireType t) {
 }
 
 Boolean isNumericalType(CheshireType t) {
-    return (Boolean) (t.typeKey >= 1 && t.typeKey <= 3); //between Int and Double
+    return (Boolean) (t.typeKey >= 1 && t.typeKey <= 3 && t.arrayNesting == 0); //between Int and Double
 }
 
 Boolean isValidObjectType(CheshireType t) {
+    if (t.arrayNesting != 0)
+        return FALSE;
     return (Boolean) (validObjectSet.find(t.typeKey) != validObjectSet.end());
 }
 
 Boolean isValidLambdaType(CheshireType t) {
+    if (t.arrayNesting != 0)
+        return FALSE;
     return (Boolean) (validLambdaSet.find(t.typeKey) != validLambdaSet.end());
 }
 
@@ -218,6 +224,8 @@ void printCheshireType(CheshireType node) {
                 break;
         }
     }
+    for (int i = 0; i < node.arrayNesting; i++)
+        printf("[]");
 }
 
 //CheshireType getSupertype(CheshireScope* scope, CheshireType type) {
@@ -270,17 +278,12 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             if (!isNumericalType(childType))
                 PANIC("Expected a numerical type for operations COMPL, ++, --, and UNARY -");
             return childType;
-        } 
-        case OP_SIZEOF: {
-            CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
-            if (childType.isUnsafe)
-                PANIC("Cannot find the size of an expression of type Object^");
-            return TYPE_INT;
         }
         case OP_EQUALS:
         case OP_NOT_EQUALS: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
+            //todo: protect against void
             if (!areEqualTypes(left, right))
                 PANIC("left and right types must be equal for operations == and !=");
             return TYPE_BOOLEAN;
@@ -300,14 +303,22 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             //expect two booleans.
         case OP_SET:
             //expect two booleans
-        case OP_ARRAY_ACCESS:
-            //expect left.arrayType > 1, right == int; returns type of left w/ arrayType-1
-            break;
+        case OP_ARRAY_ACCESS: {
+            //todo: protect against void
+            CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
+            CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
+            if (left.arrayNesting == 0)
+                PANIC("Cannot dereference a non-array type!");
+            if (!isInt(right))
+                PANIC("Index of array must be an integer!");
+            left.arrayNesting--;
+            return left;
+        } 
         case OP_INSTANCEOF:
             //expect that left is an object expression (not ^), and right is a type of object (not ^)
             break;
         case OP_VARIABLE:
-            //return type, or panic if no such name.
+            return getVariableType(scope, node->string);
         case OP_STRING:
             //return string type (idk, todo: later?)
             break;
@@ -334,11 +345,9 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_ACCESS:
             //todo: implement later w/ classes
             break;
-        case OP_SIZEOF_TYPE:
-            //todo: implement later w/ classes
-            break;
         case OP_SELF:
             //todo: implement later w/ classes. store self type in scope obj?
+            break;
     }
     return TYPE_VOID;
 }

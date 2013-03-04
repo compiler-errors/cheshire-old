@@ -19,6 +19,7 @@ typedef struct tagCheshireType {
     TypeKey typeKey;
     Boolean isUnsafe;
     Boolean isInfer;
+    int arrayNesting;
 } CheshireType;
 
 // -------------------------------------------- //

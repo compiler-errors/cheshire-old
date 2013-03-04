@@ -32,7 +32,6 @@ typedef enum {
     OP_DECREMENT_PRE,
     OP_INCREMENT_POST,
     OP_DECREMENT_POST,
-    OP_SIZEOF,
     OP_EQUALS,
     OP_NOT_EQUALS,
     OP_GRE_EQUALS,
@@ -60,8 +59,7 @@ typedef enum {
     OP_CALLBACK_CALL,
     OP_RESERVED_LITERAL,
     OP_ARRAY_ACCESS,
-    OP_STRING,
-    OP_SIZEOF_TYPE
+    OP_STRING
 } OperationType;
 
 typedef enum {

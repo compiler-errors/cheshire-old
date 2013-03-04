@@ -39,9 +39,6 @@ void determineOpType(const char* string, OperationType* var) {
         case 'o':
             *var = OP_OR;
             break;
-        case 's':
-            *var = OP_SIZEOF;
-            break;
         case '*':
             *var = OP_MULT;
             break;
