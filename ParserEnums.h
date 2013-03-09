@@ -23,6 +23,7 @@ typedef enum { FALSE = 0, TRUE = 1 } Boolean;
 
 typedef enum {
     OP_NOP,             //placeholder type -- not used - hopefully - anywhere.
+    OP_DEREFERENCE,
     OP_NOT,
     OP_COMPL,
     OP_UNARY_MINUS,
@@ -59,7 +60,8 @@ typedef enum {
     OP_CALLBACK_CALL,
     OP_RESERVED_LITERAL,
     OP_ARRAY_ACCESS,
-    OP_STRING
+    OP_STRING,
+    OP_LENGTH
 } OperationType;
 
 typedef enum {

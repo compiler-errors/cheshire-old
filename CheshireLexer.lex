@@ -24,15 +24,13 @@ GRAPHICAL   [:graph:]|{WHITESPACE}|[\r\n]
 QUOTE       "\""
 BACKSLASH   "\\"
 
-/* todo: len function for array! */
-
 %%
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
-Number|Boolean|Int|Decimal|void|Object  {   yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
-                                            return TOK_TYPE;
-                                        }
+Number|Boolean|Int|Decimal|void|Object|String  {   yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
+                                                   return TOK_TYPE;
+                                               }
 infer     return TOK_INFER;
 True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
@@ -49,6 +47,7 @@ return    return TOK_RETURN;
 self      return TOK_SELF;
 while     return TOK_WHILE;
 cast      return TOK_CAST;
+len       return TOK_LEN;
 "("  return TOK_LPAREN;
 ")"  return TOK_RPAREN;
 "{"  return TOK_LBRACE;

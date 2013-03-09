@@ -74,6 +74,7 @@ typedef void* yyscan_t;
 %token TOK_CAST
 %token TOK_LN
 %token TOK_INFER
+%token TOK_LEN
 %token <op_type> TOK_NOT
 /* Note: TOK_NOT is used for "not" and "compl" operations, like TOK_ADDSUB, etc.*/
 %token <op_type> TOK_INCREMENT
@@ -167,11 +168,10 @@ block_contains
 
 expression
     : expression_statement  { $$ = $1 ; }
+    | lval_expression  { $$ = createDereferenceExpression( $1 ); }
     | TOK_RESERVED_LITERAL  { $$ = createReservedLiteralNode( $1 ); }
     | TOK_STRING  { $$ = createStringNode( $1 ); }
     | TOK_LPAREN expression TOK_RPAREN { $$ = $2 ; }
-    | expression TOK_LBRACKET expression TOK_RBRACKET  { $$ = createBinOperation( OP_ARRAY_ACCESS , $1 , $3 ); }
-    | TOK_IDENTIFIER  { $$ = createVariableAccess( $1 ); }
     | TOK_NUMBER  { $$ = createNumberNode( $1 ); }
     | TOK_SELF  { $$ = createSelfNode(); }
     | TOK_NOT expression  { $$ = createUnaryOperation( $1 , $2 ); }
@@ -186,12 +186,18 @@ expression
     | TOK_CAST TOK_LSQUARE typename TOK_RSQUARE expression %prec P_CAST  { $$ = createCastOperation( $5 , $3 ); }
     | TOK_NEW TOK_TYPE expression_list   { $$ = createInstantiationOperation( IT_GC , $2 , $3 ); }
     | TOK_NEW_HEAP TOK_TYPE expression_list  { $$ = createInstantiationOperation( IT_HEAP , $2 , $3 ); }
+    | TOK_LEN expression  { $$ = createLengthOperation( $2 ); }
+    ;
+
+lval_expression
+    : TOK_IDENTIFIER  { $$ = createVariableAccess( $1 ); }
+    | expression TOK_LBRACKET expression TOK_RBRACKET  { $$ = createBinOperation( OP_ARRAY_ACCESS , $1 , $3 ); }
     ;
 
 expression_statement
-    : expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
-    | expression TOK_INCREMENT  { $$ = createIncrementOperation( IPP_POST , $1 , $2 ); }
-    | TOK_INCREMENT expression  { $$ = createIncrementOperation( IPP_PRE , $2 , $1 ); }
+    : lval_expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
+    | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( IPP_POST , $1 , $2 ); }
+    | TOK_INCREMENT lval_expression  { $$ = createIncrementOperation( IPP_PRE , $2 , $1 ); }
     | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
     | expression TOK_ACCESSOR TOK_IDENTIFIER { $$ = createAccessNode( $1 , $3 ); }
     | expression TOK_ACCESSOR TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }

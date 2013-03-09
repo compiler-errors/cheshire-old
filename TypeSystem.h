@@ -15,12 +15,12 @@ extern "C" {
 #define TYPE_BOOLEAN    getType(4, FALSE)
 #define TYPE_OBJECT     getType(5, FALSE)
 #define TYPE_OBJECT_HAT getType(5, TRUE)
+#define TYPE_STRING     getType(6, FALSE)
     
 void initTypeSystem(void);
 void freeTypeSystem(void); //frees all of the char* references
 CheshireScope* allocateCheshireScope(void);
 void deleteCheshireScope(CheshireScope*);
-
 
 void raiseScope(CheshireScope*);
 void fallScope(CheshireScope*);
@@ -34,10 +34,14 @@ TypeKey getLambdaTypeKey(CheshireType returnType, struct tagParameterList* param
 CheshireType getType(TypeKey base, Boolean isUnsafe);
 void printCheshireType(CheshireType);
 
+Boolean areEqualTypes(CheshireType left, CheshireType right);
 Boolean isVoid(CheshireType);
+Boolean isBoolean(CheshireType);
+Boolean isInt(CheshireType);
 Boolean isValidObjectType(CheshireType);
 Boolean isValidLambdaType(CheshireType);
 Boolean isNumericalType(CheshireType);
+CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
 
 //CheshireType getSupertype(CheshireScope*, CheshireType); todo: classes
 
@@ -46,7 +50,6 @@ Boolean isNumericalType(CheshireType);
 void typeCheckTopNode(CheshireScope*, ParserTopNode*);
 void typeCheckParameterList(CheshireScope*, ParserTopNode*);
 CheshireType typeCheckExpressionNode(CheshireScope*, ExpressionNode*);
-void typeCheckExpressionList(CheshireScope*, ExpressionList*);
 void typeCheckStatementNode(CheshireScope*, StatementNode*);
 void typeCheckBlockList(CheshireScope*, BlockList*);
 
