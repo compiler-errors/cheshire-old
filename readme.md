@@ -3,7 +3,7 @@ Cheshire
 
 Why Cheshire?
 -------------
-Cheshire is a programming language designed by Michael Goulet, as a programming project to learn more about the design of compilers in general.
+Cheshire is a programming language designed by Michael Goulet as a programming project to learn more about the design of compilers.
 It is statically-typed and multi-paradigmatic (Object-Oriented and Imperative).
 
 It is designed in three phases:
@@ -19,9 +19,9 @@ To build the project, you may use the Makefile provided. There are a few differe
 
 cleangen -- Removes generated Bison and Lex files.
 
-generate -- Generate Bison and Lex files from "CheshireLexer.lex" and "CheshireParser.y".
+generate -- Generates Bison and Lex files from "CheshireLexer.lex" and "CheshireParser.y".
 
-todos -- Print out any "todo" or "fixme" comments in the files within the project.
+todos -- Prints out any "todo" or "fixme" comments in the files within the project.
 
 Lexer/Parser
 ------------
