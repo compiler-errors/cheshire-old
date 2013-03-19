@@ -217,10 +217,13 @@ expression_list_contains
 typename
     : TOK_TYPE  { $$ = $1 ; }
     | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); deleteParameterList( $3 ); }
-    | typename TOK_HAT  {  if ( $1.isUnsafe ) 
+    | typename TOK_HAT  {  if ( $1.arrayNesting > 0 )
+                               PANIC("Cannot apply ^ to an array typename!");
+                           if ( $1.isUnsafe ) 
                                PANIC("Cannot apply ^ to a typename more than one time!");
                            $$ = getType( $1.typeKey , TRUE );
                         }
+    | typename TOK_LBRACKET TOK_RBRACKET  { $$ = $1; $$.arrayNesting++; }
     ;
 
 %%

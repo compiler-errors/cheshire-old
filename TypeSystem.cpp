@@ -176,7 +176,7 @@ TypeKey getLambdaTypeKey(CheshireType returnType, ParameterList* parameters) {
 CheshireType getType(TypeKey base, Boolean isUnsafe) {
     CheshireType c;
     c.typeKey = base;
-    if (isUnsafe && (validObjectSet.find(base) == validObjectSet.end())) {
+    if (isUnsafe && !isValidObjectType(c)) {
         printf("Error in type: \"");
         printCheshireType(c);
         printf("\". ");
@@ -204,6 +204,28 @@ Boolean isInt(CheshireType t) {
 
 Boolean isNumericalType(CheshireType t) {
     return (Boolean) (t.typeKey >= 1 && t.typeKey <= 3 && t.arrayNesting == 0); //between Int and Double
+}
+
+CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
+    if (areEqualTypes(left, TYPE_NUMBER)) {
+        if (areEqualTypes(right, TYPE_DECIMAL))
+            PANIC("Cannot coerce types Number and Decimal together!");
+        return TYPE_NUMBER;
+    }
+    if (areEqualTypes(left, TYPE_DECIMAL)) {
+        if (areEqualTypes(right, TYPE_NUMBER))
+            PANIC("Cannot coerce types Number and Decimal together!");
+        return TYPE_DECIMAL;
+    }
+    if (areEqualTypes(left, TYPE_INT)) {
+        if (areEqualTypes(right, TYPE_DECIMAL))
+            return TYPE_DECIMAL;
+        if (areEqualTypes(right, TYPE_NUMBER))
+            return TYPE_NUMBER;
+        return TYPE_INT;
+    }
+    PANIC("Reached unknown sequence of types in getWidestNumericalType()");
+    return TYPE_VOID;
 }
 
 Boolean isValidObjectType(CheshireType t) {
