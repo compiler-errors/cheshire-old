@@ -71,13 +71,13 @@ void determineOpType(const char* string, OperationType* var) {
             break;
         case '+':
             if (string[1] == '+')
-                *var = OP_INCREMENT;
+                *var = OP_PLUSONE;
             else
                 *var = OP_PLUS;
             break;
         case '-':
             if (string[1] == '-')
-                *var = OP_DECREMENT;
+                *var = OP_MINUSONE;
             else
                 *var = OP_MINUS;
             break;

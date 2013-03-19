@@ -96,16 +96,17 @@ typedef void* yyscan_t;
 %left TOK_ADDSUB
 %left TOK_MULTDIV
 %left P_UMINUS
-%left TOK_NEW TOK_NEW_HEAP TOK_SIZEOF
+%nonassoc TOK_NEW TOK_NEW_HEAP TOK_LEN
 %left TOK_NOT
 %nonassoc P_CAST
-%nonassoc TOK_INCREMENT
+%left TOK_INCREMENT
 %left TOK_ACCESSOR TOK_LBRACKET TOK_RBRACKET
 %nonassoc P_IF
 %nonassoc TOK_ELSE
 %nonassoc TOK_LPAREN TOK_RPAREN
 
 %type <expression> expression
+%type <expression> lval_expression
 %type <expression> expression_statement
 %type <statement> statement
 %type <statement> statement_or_pass
@@ -168,7 +169,7 @@ block_contains
 
 expression
     : expression_statement  { $$ = $1 ; }
-    | lval_expression  { $$ = createDereferenceExpression( $1 ); }
+    | lval_expression  { $$ = dereferenceExpression( $1 ); }
     | TOK_RESERVED_LITERAL  { $$ = createReservedLiteralNode( $1 ); }
     | TOK_STRING  { $$ = createStringNode( $1 ); }
     | TOK_LPAREN expression TOK_RPAREN { $$ = $2 ; }
@@ -192,14 +193,13 @@ expression
 lval_expression
     : TOK_IDENTIFIER  { $$ = createVariableAccess( $1 ); }
     | expression TOK_LBRACKET expression TOK_RBRACKET  { $$ = createBinOperation( OP_ARRAY_ACCESS , $1 , $3 ); }
+    | expression TOK_ACCESSOR TOK_IDENTIFIER { $$ = createAccessNode( $1 , $3 ); }
     ;
 
 expression_statement
     : lval_expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
-    | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( IPP_POST , $1 , $2 ); }
-    | TOK_INCREMENT lval_expression  { $$ = createIncrementOperation( IPP_PRE , $2 , $1 ); }
+    | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( $1 , $2 ); }
     | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
-    | expression TOK_ACCESSOR TOK_IDENTIFIER { $$ = createAccessNode( $1 , $3 ); }
     | expression TOK_ACCESSOR TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
     | expression TOK_ACCESSOR expression_list  { $$ = createCallbackCall( $1 , $3 ); }
     ;

@@ -139,7 +139,7 @@ public:
     }
     
     bool typeEql(const CheshireType& a, const CheshireType& b) const {
-        return (a.typeKey == b.typeKey) && (a.isUnsafe == b.isUnsafe) && (a.isInfer == b.isInfer);
+        return (a.typeKey == b.typeKey) && (a.isUnsafe == b.isUnsafe);
     }
 };
 

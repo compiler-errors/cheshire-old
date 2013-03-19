@@ -176,20 +176,8 @@ ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList* par
     return node;
 }
 
-ExpressionNode* createIncrementOperation(IncrementPrePost ipp, ExpressionNode* expression, OperationType optype) {
+ExpressionNode* createIncrementOperation(ExpressionNode* expression, OperationType optype) {
     ExpressionNode* node = allocExpressionNode();
-    
-    if (ipp == IPP_PRE) {
-        if (optype == OP_INCREMENT)
-            optype = OP_INCREMENT_PRE;
-        else
-            optype = OP_DECREMENT_PRE;
-    } else {
-        if (optype == OP_INCREMENT)
-            optype = OP_INCREMENT_POST;
-        else
-            optype = OP_DECREMENT_POST;
-    }
     
     if (node == NULL)
         return NULL;
@@ -216,17 +204,15 @@ void deleteExpressionNode(ExpressionNode* node) {
     
     switch (node->type) {
         case OP_NOP:
-        case OP_INCREMENT:
-        case OP_DECREMENT:
             PANIC("No such operation as No-OP or Increment/Decrement without \"Post-\" or \"Pre-\"");
             break;
         case OP_NOT:
         case OP_COMPL:
-        case OP_INCREMENT_PRE:
-        case OP_DECREMENT_PRE:
-        case OP_INCREMENT_POST:
-        case OP_DECREMENT_POST:
         case OP_UNARY_MINUS:
+        case OP_PLUSONE:
+        case OP_MINUSONE:
+        case OP_LENGTH:
+        case OP_DEREFERENCE:
             deleteExpressionNode(node->unaryChild); // Unary Operations
             break;
         case OP_EQUALS:

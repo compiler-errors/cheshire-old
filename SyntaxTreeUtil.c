@@ -15,29 +15,25 @@ void printExpression(ExpressionNode* node) {
     
     switch (node->type) {
         case OP_NOP:
-        case OP_INCREMENT:
-        case OP_DECREMENT:
-            PANIC("No such operation as No-OP or Increment/Decrement without \"Post-\" or \"Pre-\"");
+            PANIC("No such operation as No-OP");
             break;
-        case OP_INCREMENT_PRE:
-            printf("(++");
+        case OP_DEREFERENCE:
             printExpression(node->unaryChild);
-            printf(")");
             break;
-        case OP_INCREMENT_POST:
+        case OP_PLUSONE:
             printf("(");
             printExpression(node->unaryChild);
             printf("++)");
             break;
-        case OP_DECREMENT_PRE:
-            printf("(--");
-            printExpression(node->unaryChild);
-            printf(")");
-            break;
-        case OP_DECREMENT_POST:
+        case OP_MINUSONE:
             printf("(");
             printExpression(node->unaryChild);
             printf("--)");
+            break;
+        case OP_LENGTH:
+            printf("(len ");
+            printExpression(node->unaryChild);
+            printf(")");
             break;
         case OP_NOT:
             printf("(not ");
@@ -185,7 +181,6 @@ void printExpression(ExpressionNode* node) {
             break;
         case OP_NEW_GC: {
             CheshireType t = node->instantiate.type;
-            t.isInfer = t.isUnsafe = FALSE;
             printf("(new ");
             printCheshireType(t);
             printParameterList(node->instantiate.params);
@@ -193,7 +188,6 @@ void printExpression(ExpressionNode* node) {
             break;
         } case OP_NEW_HEAP: {
             CheshireType t = node->instantiate.type;
-            t.isInfer = t.isUnsafe = FALSE;
             printf("(new^ ");
             printCheshireType(t);
             printParameterList(node->instantiate.params);

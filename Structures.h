@@ -18,8 +18,6 @@ typedef int TypeKey;
 typedef struct tagCheshireType {
     TypeKey typeKey;
     Boolean isUnsafe;
-    Boolean isInfer;
-    Boolean isLVal;
     int arrayNesting;
 } CheshireType;
 

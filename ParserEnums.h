@@ -18,7 +18,6 @@ extern "C" {
 typedef enum { PRT_NONE, PRT_METHOD_DECLARATION, PRT_METHOD_DEFINITION } ParserReturnType;
 typedef enum { RL_TRUE, RL_FALSE, RL_NULL } ReservedLiteral;
 typedef enum { IT_GC, IT_HEAP } InstantiationType;
-typedef enum { IPP_PRE, IPP_POST } IncrementPrePost;
 typedef enum { FALSE = 0, TRUE = 1 } Boolean;
 
 typedef enum {
@@ -27,12 +26,8 @@ typedef enum {
     OP_NOT,
     OP_COMPL,
     OP_UNARY_MINUS,
-    OP_INCREMENT,       //"transient" type -- not used during typechecking or code-gen phases
-    OP_DECREMENT,       //"transient" type -- not used during typechecking or code-gen phases
-    OP_INCREMENT_PRE,
-    OP_DECREMENT_PRE,
-    OP_INCREMENT_POST,
-    OP_DECREMENT_POST,
+    OP_PLUSONE,
+    OP_MINUSONE,
     OP_EQUALS,
     OP_NOT_EQUALS,
     OP_GRE_EQUALS,

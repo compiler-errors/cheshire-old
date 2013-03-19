@@ -23,9 +23,11 @@ ExpressionNode* createInstantiationOperation(InstantiationType, CheshireType typ
 ExpressionNode* createMethodCall(char* functionName, ExpressionList*);
 ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ExpressionList*);
 ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList*);
-ExpressionNode* createIncrementOperation(IncrementPrePost, ExpressionNode*, OperationType);
+ExpressionNode* createIncrementOperation(ExpressionNode*, OperationType);
 ExpressionNode* createReservedLiteralNode(ReservedLiteral);
 ExpressionNode* createAccessNode(ExpressionNode*, char* variable);
+ExpressionNode* createLengthOperation(ExpressionNode*);
+ExpressionNode* dereferenceExpression(ExpressionNode*);
 
 //defined in ExpressionList.c
 ExpressionList* linkExpressionList(ExpressionNode* val, ExpressionList* next);

@@ -24,6 +24,7 @@ void deleteCheshireScope(CheshireScope*);
 
 void raiseScope(CheshireScope*);
 void fallScope(CheshireScope*);
+TypeKey getMethodSignature(CheshireScope*, const char* name);
 void addMethodDeclaration(CheshireScope*, const char* name, CheshireType returnType, struct tagParameterList*);
 CheshireType getVariableType(CheshireScope*, const char* name);
 void defineVariable(CheshireScope*, const char* name, CheshireType type);

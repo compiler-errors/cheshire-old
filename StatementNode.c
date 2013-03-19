@@ -94,7 +94,6 @@ StatementNode* createVariableDefinition(CheshireType type, char* variable, Expre
     
     node->type = S_VARIABLE_DEF;
     node->varDefinition.type.typeKey = (TypeKey) -1;
-    node->varDefinition.type.isInfer = FALSE;
     node->varDefinition.variable = variable;
     node->varDefinition.value = value;
     return node;
@@ -108,7 +107,6 @@ StatementNode* createInferDefinition(char* variable, ExpressionNode* value) {
     
     node->type = S_INFER_DEF;
     node->varDefinition.type.typeKey = (TypeKey) -1;
-    node->varDefinition.type.isInfer = TRUE;
     node->varDefinition.variable = variable;
     node->varDefinition.value = value;
     return node;
