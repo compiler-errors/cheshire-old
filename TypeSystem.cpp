@@ -6,6 +6,8 @@
 
 #define __GXX_EXPERIMENTAL_CXX0X__ 1
 
+#include <unordered_map>
+#include <unordered_set>
 #include "Structures.h"
 #include "TypeSystem.h"
 #include "LexerUtilities.h"

@@ -12,13 +12,13 @@ EXISTINGYYC=$(shell find -name '*.yy.c')
 
 OUTNAME=cheshirec
 
-LD=gcc
+LD=g++
 CC=gcc
 CPP=g++
 LEX=flex
 BISON=bison
 
-LDFLAGS=-lm -lstdc++
+LDFLAGS=-lm
 CFLAGS=-Wall -Wextra -Werror -g -Wno-unused
 CPPFLAGS=-Wall -Wextra -Werror -g -Wno-unused -std=c++0x
 LEXFLAGS=
