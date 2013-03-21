@@ -15,7 +15,8 @@ using std::floor;
 
 #define WIDEN_NODE(type, node) node = createCastOperation(node, type)
 
-/* This "method" is defined to 
+/* This "method" is defined to implement the common "store-into-variable-and-widen-if-necessary"
+ * method that is used for parameters, storing things into lval's, and also variable definitions.
  */
 #define STORE_EXPRESSION_INTO_LVAL(ltype, rtype, node, reason) \
             if (!areEqualTypes(ltype, rtype)) { \
@@ -90,7 +91,8 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_NOT_EQUALS: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
-            //todo: protect against void
+            if (isVoid(left) || isVoid(right))
+                PANIC("Cannot compare void type in operations >=, <=, >, <, !=, or ==");
             if (!areEqualTypes(left, right)) {
                 if (isNumericalType(left) && isNumericalType(right)) {
                     CheshireType widetype = getWidestNumericalType(left, right);

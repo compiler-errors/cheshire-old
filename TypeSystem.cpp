@@ -17,7 +17,7 @@ static Boolean isInitialized = FALSE;
 static TypeMap typeMap;
 static LambdaMap lambdaMap;
 static ValidObjectSet validObjectSet;
-ValidLambdaSet validLambdaSet; //accessible to 
+ValidLambdaSet validLambdaSet; //accessible to extern'ed reference in TypeCheckNodes.cpp
 static MethodMappings methodMappings;
 static TypeKey typeKeys = 0;
 //////////////////////////////////////////
@@ -226,6 +226,8 @@ CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
 Boolean isValidObjectType(CheshireType t) {
     if (t.arrayNesting != 0)
         return FALSE;
+    if (t.typeKey == -2) //if null
+        return TRUE;
     return (Boolean) (validObjectSet.find(t.typeKey) != validObjectSet.end());
 }
 
@@ -277,6 +279,12 @@ void printCheshireType(CheshireType node) {
         printf("[]");
 }
 
+CheshireType isSupertype(CheshireScope* type, CheshireType super, CheshireType sub) {
+    //todo: assume types are valid objects
+    //TYPE_NULL is a always a subtype.
+}
+
 //CheshireType getSupertype(CheshireScope* scope, CheshireType type) {
-//    //todo: assume that "type" is a valid type...
+    //    //todo: assume that "type" is a valid type...
+    //    
 //}
