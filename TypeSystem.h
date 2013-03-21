@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+#define TYPE_NULL       getType(-2, FALSE)
 #define TYPE_VOID       getType(0, FALSE)
 #define TYPE_NUMBER     getType(1, FALSE)
 #define TYPE_INT        getType(2, FALSE)

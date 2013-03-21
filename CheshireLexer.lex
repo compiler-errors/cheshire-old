@@ -74,6 +74,7 @@ len       return TOK_LEN;
 0[xX][0-9A-F]+  { int x; sscanf(yytext, "%x", &x); yylval->number = (double) x; return TOK_NUMBER; }
 0[0-7]+         { int x; sscanf(yytext, "%o", &x); yylval->number = (double) x; return TOK_NUMBER; }
 {DIGIT}+("."{DIGIT}*)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->number)); return TOK_NUMBER; }
+"."             return TOK_LN;
 {ALPHA}{IDENTIFIER}*    {   if (isTypeName(yytext)) {
                                 yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
                                 return TOK_TYPE;
@@ -82,7 +83,6 @@ len       return TOK_LEN;
                                 return TOK_IDENTIFIER;
                             }
                         }
-"."             return TOK_LN; 
 {WHITESPACE}+   {} /* whitespace */
 \n              lineno++;
 .               { fprintf(stderr, "No such character as \'%s\' at line %d.\n", yytext, lineno); exit(0); }
