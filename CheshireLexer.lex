@@ -90,6 +90,6 @@ len       return TOK_LEN;
 %%
 
 int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg) {
-    fprintf(stderr, "Error: %s\n", msg);
+    fprintf(stderr, "Error: %s at line %d\n", msg, lineno);
     return 0;
 }

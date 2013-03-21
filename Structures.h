@@ -120,10 +120,6 @@ typedef struct tagStatementNode {
             char* variable;
             struct tagExpressionNode* value;
         } varDefinition;
-        struct {
-            char* variable;
-            struct tagExpressionNode* value;
-        } inferDefinition;
     };
 } StatementNode;
 

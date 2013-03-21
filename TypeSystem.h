@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #define TYPE_VOID       getType(0, FALSE)
-#define TYPE_INT        getType(1, FALSE)
-#define TYPE_NUMBER     getType(2, FALSE)
+#define TYPE_NUMBER     getType(1, FALSE)
+#define TYPE_INT        getType(2, FALSE)
 #define TYPE_DECIMAL    getType(3, FALSE)
 #define TYPE_BOOLEAN    getType(4, FALSE)
 #define TYPE_OBJECT     getType(5, FALSE)

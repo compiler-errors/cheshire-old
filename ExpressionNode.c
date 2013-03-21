@@ -198,6 +198,28 @@ ExpressionNode* createReservedLiteralNode(ReservedLiteral rl) {
     return node;
 }
 
+ExpressionNode* createLengthOperation(ExpressionNode* expression) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_LENGTH;
+    node->unaryChild = expression;
+    return node;
+}
+
+ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_DEREFERENCE;
+    node->unaryChild = expression;
+    return node;
+}
+
 void deleteExpressionNode(ExpressionNode* node) {
     if (node == NULL)
         return;

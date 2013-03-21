@@ -150,7 +150,7 @@ statement
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
-    | TOK_DELETE_HEAP expression  { $$ = createDeleteHeapStatement( $2 ); }
+    | TOK_DELETE_HEAP expression TOK_LN  { $$ = createDeleteHeapStatement( $2 ); }
     ;
 
 statement_or_pass
@@ -163,7 +163,7 @@ block
     ;
 
 block_contains
-    : statement block  { $$ = linkBlockList( $1 , $2 );  }
+    : statement block_contains  { $$ = linkBlockList( $1 , $2 );  }
     | TOK_RBRACE  { $$ = NULL; }
     ;
 

@@ -7,70 +7,60 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include "LexerUtilities.h"
-#include "ParserNodes.h"
-#include "SyntaxTreeUtil.h"
+#include <list>
+#include <fstream>
+#include "Structures.h"
 #include "TypeSystem.h"
 
+extern "C" {
+#include "CheshireParser.yy.h"
+#include "CheshireLexer.yy.h"
+int yyparse(ParserTopNode**, yyscan_t);
+}
+
 using namespace std;
+
 
 /*
  * 
  */
 int main(int argc, char** argv) {
-    initTypeSystem();
-    ParameterList* p = linkParameterList(
-            getType(1, FALSE), 
-            saveStringLiteralReturn("num"), 
-            linkParameterList(
-                getType(1, FALSE), 
-                saveStringLiteralReturn("boo"), 
-                NULL));
-    CheshireType ret = getType(5, TRUE);
-    CheshireType ct = getType(getLambdaTypeKey(ret, p), FALSE);
-    CheshireType ct2 = getType(getLambdaTypeKey(ret, p), FALSE);
-    CheshireType ct3 = getType(getLambdaTypeKey(getType(2, FALSE), p), FALSE); //different!!
-    printf("Types are %d == %d != %d\n", ct.typeKey, ct2.typeKey, ct3.typeKey);
-    printCheshireType(ct);
-    printf("\n");
-    printCheshireType(ct2);
-    printf("\n");
-    printCheshireType(ct3);
-    printf("\n");
-    freeTypeSystem();
+    char* source;
+    
     
     initTypeSystem();
-    p = linkParameterList(
-            getType(1, FALSE), 
-            saveStringLiteralReturn("num"), 
-            linkParameterList(
-                getType(1, FALSE), 
-                saveStringLiteralReturn("boo"), 
-                NULL));
-    ret = getType(5, TRUE);
-    ct = getType(getLambdaTypeKey(getType(4, FALSE), p), FALSE);
-    ct2 = getType(getLambdaTypeKey(ret, p), FALSE);
-    ct3 = getType(getLambdaTypeKey(ret, linkParameterList(getType(3, FALSE), saveStringLiteralReturn("poo"), p)), FALSE); //different!!
-    printf("Types are %d != %d != %d\n", ct.typeKey, ct2.typeKey, ct3.typeKey);
-    printCheshireType(ct);
-    printf("\n");
-    printCheshireType(ct2);
-    printf("\n");
-    printCheshireType(ct3);
-    printf("\n");
-    freeTypeSystem();
-    
-    initTypeSystem();
+    list<ParserTopNode*> topNodes;
     CheshireScope* scope = allocateCheshireScope();
-    raiseScope(scope);
-    defineVariable(scope, "a", TYPE_INT);
-    printf("Variable a has type: "); printCheshireType(getVariableType(scope, "a")); printf("\n");
-    raiseScope(scope);
-    defineVariable(scope, "a", TYPE_OBJECT_HAT);
-    printf("Variable a has type: "); printCheshireType(getVariableType(scope, "a")); printf("\n");
-    fallScope(scope);
-    printf("Variable a has type: "); printCheshireType(getVariableType(scope, "a")); printf("\n");
-    fallScope(scope);
+    yyscan_t scanner;
+    YY_BUFFER_STATE state;
+    ParserTopNode* node = NULL;
+    
+    if (yylex_init(&scanner)) {
+        PANIC("Could not initialize lexer");
+    }
+    printf("Initialized lex, now I'm going to initialize the buffer.\n");
+    
+    state = yy_create_buffer(stdin, YY_BUF_SIZE, scanner);
+    yy_switch_to_buffer(state, scanner);
+    
+    int ret = 0;
+    printf("Initialized, waiting for input!\n");
+    while (!(ret = yyparse(&node, scanner))) {
+        typeCheckTopNode(scope, node);
+        printf("Read a node!\n");
+        topNodes.push_front(node);
+    }
+    printf("Broken.\n");
+    
+    //todo: analyze return of "ret" for errors, or just EOL.
+    
+    yy_delete_buffer(state, scanner);
+    yylex_destroy(scanner);
+    
+    //todo: emit llvm here.
+    
+    deleteCheshireScope(scope);
+    freeTypeSystem();
     return 0;
 }
 

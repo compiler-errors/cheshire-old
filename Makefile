@@ -30,6 +30,7 @@ all: clean build todos
 clean:
 	-rm $(OUTNAME)
 	-rm *.yy.* *.o *.tab.*
+	-rm *.gch
 
 cleangen:
 	-rm *.yy.* *.o *.tab.*

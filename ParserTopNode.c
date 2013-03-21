@@ -51,7 +51,7 @@ void deleteParserTopNode(ParserTopNode* node) {
             deleteParameterList(node->method.params);
             break;
         case PRT_METHOD_DEFINITION:
-            free(node->method.functionName);
+            free(node->method.functionName); //don't forget to free all of the ParserTopNode(s) -AFTER- code has been emitted from all of the things that depend on it.
             deleteBlockList(node->method.body);
             deleteParameterList(node->method.params);
             break;
