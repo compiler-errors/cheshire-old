@@ -150,6 +150,8 @@ statement
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
     | TOK_DELETE_HEAP expression TOK_LN  { $$ = createDeleteHeapStatement( $2 ); }
+    | TOK_RETURN expression TOK_LN  { $$ = createReturnStatement( $2 ); }
+    | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createNullReference() ); }
     ;
 
 statement_or_pass
@@ -158,7 +160,7 @@ statement_or_pass
     ;
 
 block
-    : TOK_LBRACE block_contains  { $$ = $2 ; } 
+    : TOK_LBRACE block_contains  { $$ = $2 ; }
     ;
 
 block_contains

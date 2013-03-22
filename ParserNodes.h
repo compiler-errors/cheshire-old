@@ -42,6 +42,7 @@ StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* bl
 StatementNode* createVariableDefinition(CheshireType, char* variable, ExpressionNode* value);
 StatementNode* createInferDefinition(char* variable, ExpressionNode* value);
 StatementNode* createDeleteHeapStatement(ExpressionNode*);
+StatementNode* createReturnStatement(ExpressionNode*);
 
 //defined in BlockList.c
 BlockList* linkBlockList(StatementNode*, BlockList*);

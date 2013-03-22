@@ -11,6 +11,7 @@
 
 #include <list>
 #include <unordered_map>
+#include "Structures.h"
 #include "TypeSystemUtilities.hpp"
 
 using std::unordered_map;
@@ -22,6 +23,7 @@ struct tagCheshireScope;
 struct tagVariableScope;
 
 typedef struct tagCheshireScope {
+    CheshireType expectedType;
     struct tagVariableScope* highestScope;
 } CheshireScope;
 

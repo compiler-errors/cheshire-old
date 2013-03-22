@@ -46,7 +46,7 @@ typedef enum {
     OP_INSTANCEOF,
     OP_VARIABLE,
     OP_NUMBER,
-    OP_CAST,        //"transient" type -- not used during code-gen phase
+    OP_CAST,
     OP_NEW_GC,
     OP_NEW_HEAP,
     OP_ACCESS,
@@ -69,7 +69,8 @@ typedef enum {
     S_IF,
     S_IF_ELSE,
     S_WHILE,
-    S_DELETE_HEAP
+    S_DELETE_HEAP,
+    S_RETURN
 } StatementType;
 
 #ifdef	__cplusplus

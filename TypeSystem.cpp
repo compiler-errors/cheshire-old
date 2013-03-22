@@ -108,6 +108,14 @@ void fallScope(CheshireScope* scope) {
     delete old;
 }
 
+void setExpectedMethodType(CheshireScope* scope, CheshireType type) {
+    scope->expectedType = type;
+}
+
+CheshireType getExpectedMethodType(CheshireScope* scope) {
+    return scope->expectedType;
+}
+
 TypeKey getMethodSignature(CheshireScope* scope, const char* name) {
     if (methodMappings.find(name) == methodMappings.end())
         PANIC("No such method as %s", name);

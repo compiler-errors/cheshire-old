@@ -44,6 +44,7 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
             break;
         case PRT_METHOD_DEFINITION:
+            setExpectedMethodType(scope, node->method.type);
             addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
             raiseScope(scope);
             typeCheckBlockList(scope, node->method.body);
@@ -331,6 +332,16 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             CheshireType type = typeCheckExpressionNode(scope, node->expression);
             if (!type.isUnsafe)
                 PANIC("Expected unsafe type in operator delete^");
+        } break;
+        case S_RETURN: {
+            CheshireType type = typeCheckExpressionNode(scope, node->expression);
+            CheshireType expected = getExpectedMethodType(scope);
+            if (areEqualTypes(type, TYPE_VOID)) {
+                if (!areEqualTypes(expected, TYPE_VOID))
+                    PANIC("Cannot return void from a non-void method!");
+            } else {
+                STORE_EXPRESSION_INTO_LVAL(expected, type, node->expression, "return statement");
+            }
         } break;
     }
 }

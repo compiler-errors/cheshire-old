@@ -123,6 +123,17 @@ StatementNode* createDeleteHeapStatement(ExpressionNode* expression) {
     return node;
 }
 
+StatementNode* createReturnStatement(ExpressionNode* expression) {
+    StatementNode* node = allocStatementNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = S_RETURN;
+    node->expression = expression;
+    return node;
+}
+
 void deleteStatementNode(StatementNode* node) {
     switch (node->type) {
         case S_NOP:
@@ -131,6 +142,7 @@ void deleteStatementNode(StatementNode* node) {
         case S_EXPRESSION:
         case S_ASSERT:
         case S_DELETE_HEAP:
+        case S_RETURN:
             deleteExpressionNode(node->expression);
             break;
         case S_BLOCK:
