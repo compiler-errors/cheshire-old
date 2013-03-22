@@ -4,6 +4,7 @@
  * Implements: TypeSystem.h
  */
 
+//I need to define this manually, or else that 
 #define __GXX_EXPERIMENTAL_CXX0X__ 1
 
 #include <unordered_map>
@@ -253,7 +254,10 @@ void printCheshireType(CheshireType node) {
         }
         printf(")");
     } else if (isValidObjectType(raw)) {
-        printf("%s%s", validObjectSet[t], node.isUnsafe ? "^" : "");
+        if (raw.typeKey == -2)
+            printf("NULL_TYPE");
+        else
+            printf("%s%s", validObjectSet[t], node.isUnsafe ? "^" : "");
     } else {
         //literal type.
         switch (t) {
@@ -281,11 +285,7 @@ void printCheshireType(CheshireType node) {
         printf("[]");
 }
 
-CheshireType isSupertype(CheshireScope* type, CheshireType super, CheshireType sub) {
-    //todo: assume types are valid objects
-    //TYPE_NULL is a always a subtype.
-}
-
-//CheshireType getSupertype(CheshireScope* scope, CheshireType type) {
-//    //todo: assume that "type" is a valid type...
+//CheshireType isSupertype(CheshireScope* type, CheshireType super, CheshireType sub) {
+//    //todo: assume types are valid objects
+//    //TYPE_NULL is a always a subtype.
 //}

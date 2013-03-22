@@ -92,7 +92,6 @@ typedef void* yyscan_t;
 %right TOK_SET
 %left TOK_AND_OR
 %left TOK_COMPARE TOK_INSTANCEOF TOK_LSQUARE TOK_RSQUARE
-%left TOK_BITSHIFT
 %left TOK_ADDSUB
 %left TOK_MULTDIV
 %left P_UMINUS

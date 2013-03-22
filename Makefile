@@ -24,8 +24,7 @@ CPPFLAGS=-Wall -Wextra -Werror -g -Wno-unused -std=c++0x
 LEXFLAGS=
 BISONFLAGS=-rall
 
-all: clean build todos
-	-rm *.o *.yy.* *.tab.*
+all: build todos
 
 clean:
 	-rm $(OUTNAME)

@@ -239,10 +239,22 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType child = typeCheckExpressionNode(scope, node->unaryChild);
             return child;
         }
-        case OP_NEW_GC:
-        case OP_NEW_HEAP:
-            //todo: implement later w/ classes, return type of the object (or w/ heap, the object and ^). check params
-            break;
+        case OP_NEW_GC: {
+            CheshireType object = node->instantiate.type;
+            if (!isValidObjectType(object))
+                PANIC("Impossible to instantate a non-object type!");
+            object.isUnsafe = FALSE;
+            //todo: implement later w/ classes, check params
+            return object;
+        }
+        case OP_NEW_HEAP: {
+            CheshireType object = node->instantiate.type;
+            if (!isValidObjectType(object))
+                PANIC("Impossible to instantate a non-object type!");
+            object.isUnsafe = TRUE;
+            //todo: implement later w/ classes, check params
+            return object;
+        }
         case OP_OBJECT_CALL:
             //todo: implement later w/ classes.
             break;

@@ -45,7 +45,7 @@ Boolean isValidLambdaType(CheshireType);
 Boolean isNumericalType(CheshireType);
 CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
 
-//CheshireType getSupertype(CheshireScope*, CheshireType); todo: classes
+//CheshireType isSupertype(CheshireScope*, CheshireType, CheshireType); todo: classes
 
 // TYPE CHECKING FUNCTIONS //
 
