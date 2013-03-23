@@ -231,7 +231,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 case RL_FALSE:
                     return TYPE_BOOLEAN;
                 case RL_NULL:
-                    return TYPE_OBJECT;
+                    return TYPE_NULL;
             }
         }
         case OP_LENGTH:
@@ -336,8 +336,8 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_RETURN: {
             CheshireType type = typeCheckExpressionNode(scope, node->expression);
             CheshireType expected = getExpectedMethodType(scope);
-            if (areEqualTypes(type, TYPE_VOID)) {
-                if (!areEqualTypes(expected, TYPE_VOID))
+            if (areEqualTypes(expected, TYPE_VOID)) {
+                if (!areEqualTypes(type, TYPE_NULL))
                     PANIC("Cannot return void from a non-void method!");
             } else {
                 STORE_EXPRESSION_INTO_LVAL(expected, type, node->expression, "return statement");

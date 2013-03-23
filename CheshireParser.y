@@ -123,7 +123,13 @@ typedef void* yyscan_t;
 input
     : TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $2 , $3 , $4 ); YYACCEPT; }
     | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
+/*    | TOK_CLASS TOK_IDENTIFIER class_list  { *output = createClassDefinition( $2 , $3 , TYPE_OBJECT ); } */
     ;
+
+/*
+class_list
+    : 
+*/
 
 parameter_list
     : TOK_LPAREN parameter_list_contains TOK_RPAREN  { $$ = $2 ; }
@@ -151,7 +157,7 @@ statement
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
     | TOK_DELETE_HEAP expression TOK_LN  { $$ = createDeleteHeapStatement( $2 ); }
     | TOK_RETURN expression TOK_LN  { $$ = createReturnStatement( $2 ); }
-    | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createNullReference() ); }
+    | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createReservedLiteral(RL_NULL) ); }
     ;
 
 statement_or_pass
