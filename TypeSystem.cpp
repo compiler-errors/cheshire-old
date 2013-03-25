@@ -13,14 +13,14 @@
 #include "TypeSystem.h"
 #include "LexerUtilities.h"
 
-#define insertBaseType(type) { typeID = typeKeys++; saveIdentifier(type, &string); typeMap[string] = typeID; printf("Initializing type '%s' with key %d\n", string, typeID); }
+#define insertBaseType(type) { typeID = typeKeys++; saveIdentifier(type, &string); namedObjects[string] = typeID; printf("Initializing type '%s' with key %d\n", string, typeID); }
 
 //////////////// STATICS /////////////////
 static Boolean isInitialized = FALSE;
-static TypeMap typeMap;
-static LambdaMap lambdaMap;
-static ValidObjectSet validObjectSet;
-ValidLambdaSet validLambdaSet; //accessible to extern'ed reference in TypeCheckNodes.cpp
+static NamedObjects namedObjects;
+static LambdaTypes lambdaTypes;
+static ObjectNamings objectNamings;
+KeyedLambdas keyedLambdas; //externalized for TypeCheckNodes.cpp, todo: find another way to do this: It's ugly.
 static MethodMappings methodMappings;
 static TypeKey typeKeys = 0;
 //////////////////////////////////////////
@@ -56,28 +56,28 @@ void initTypeSystem() {
         //object
         typeID = typeKeys++;
         saveIdentifier("Object", &string); //type 5
-        typeMap[string] = typeID;
+        namedObjects[string] = typeID;
         printf("Initializing type '%s' with key %d\n", string, typeID);
-        validObjectSet[typeID] = string;
+        objectNamings[typeID] = string;
         
         //string
         typeID = typeKeys++;
         saveIdentifier("String", &string); //type 6
-        typeMap[string] = typeID;
+        namedObjects[string] = typeID;
         printf("Initializing type '%s' with key %d\n", string, typeID);
-        validObjectSet[typeID] = string;
+        objectNamings[typeID] = string;
     }
     isInitialized = TRUE;
 }
 
 void freeTypeSystem() {
     isInitialized = FALSE;
-    for (auto iterator = typeMap.begin(); iterator != typeMap.end(); ++iterator)
+    for (auto iterator = namedObjects.begin(); iterator != namedObjects.end(); ++iterator)
         free((char*) (iterator->first));
-    typeMap.clear();
-    lambdaMap.clear();
-    validObjectSet.clear();
-    validLambdaSet.clear();
+    namedObjects.clear();
+    lambdaTypes.clear();
+    objectNamings.clear();
+    keyedLambdas.clear();
     methodMappings.clear();
     typeKeys = 0;
 }
@@ -116,17 +116,17 @@ CheshireType getExpectedMethodType(CheshireScope* scope) {
     return scope->expectedType;
 }
 
-TypeKey getMethodSignature(CheshireScope* scope, const char* name) {
+CheshireType getMethodSignature(CheshireScope* scope, const char* name) {
     if (methodMappings.find(name) == methodMappings.end())
         PANIC("No such method as %s", name);
-    return lambdaMap[methodMappings[name]];
+    return methodMappings[name];
 }
 
 void addMethodDeclaration(CheshireScope* scope, const char* name, CheshireType returnType, struct tagParameterList* params) {
     if (methodMappings.find(name) != methodMappings.end())
         PANIC("Redeclaration of method %s!", name);
-    getLambdaTypeKey(returnType, params); //allocate it as a type.
-    methodMappings[name] = prepareLambdaType(returnType, params);
+    getLambdaType(returnType, params); //todo: this method isn't pretty, but I need to make sure the lambda is a type.
+    methodMappings[name] = getLambdaType(returnType, params);
 }
 
 CheshireType getVariableType(CheshireScope* scope, const char* name) {
@@ -148,51 +148,48 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
 }
 
 Boolean isTypeName(const char* str) {
-    return (Boolean) (typeMap.find(str) != typeMap.end());
+    return (Boolean) (namedObjects.find(str) != namedObjects.end());
 }
 
-TypeKey getTypeKey(const char* str) {
+CheshireType getNamedType(const char* str, Boolean isUnsafe) {
+    CheshireType ret;
+    
     if (isTypeName(str)) {
-        return typeMap[str];
+        ret.typeKey = namedObjects[str];
     } else {
         //otherwise, make it into a new type.
         char* string_copy;
         TypeKey typeID = typeKeys++;
         saveIdentifier(str, &string_copy);
-        typeMap[string_copy] = typeID;
-        validObjectSet[typeID] = string_copy;
-        return typeID;
+        namedObjects[string_copy] = typeID;
+        objectNamings[typeID] = string_copy;
+        ret.typeKey = typeID;
     }
-}
-
-TypeKey getLambdaTypeKey(CheshireType returnType, ParameterList* parameters) {
-    LambdaType l = prepareLambdaType(returnType, parameters);
-    if (lambdaMap.find(l) != lambdaMap.end()) {
-        return lambdaMap[l];
-    } else {
-        TypeKey typeID = typeKeys++;
-        lambdaMap[l] = typeID;
-        validLambdaSet[typeID] = l;
-        return typeID;
-    }
-}
-
-CheshireType getType(TypeKey base, Boolean isUnsafe) {
-    CheshireType c;
-    c.typeKey = base;
-    c.arrayNesting = 0;
-    c.isUnsafe = FALSE;
-    if (isUnsafe && !isValidObjectType(c)) {
+    
+    if (isUnsafe && !isObjectType(ret)) {
         printf("Error in type: \"");
-        printCheshireType(c);
+        printCheshireType(ret);
         printf("\". ");
         PANIC("Cannot apply \"unsafe\" to a non-object type!"); //using 'c' because it has the key, but no ^ applied yet.
     }
-    c.isUnsafe = isUnsafe;
-    return c;
+    ret.isUnsafe = isUnsafe;
+    return ret;
 }
 
-Boolean areEqualTypes(CheshireType left, CheshireType right) {
+CheshireType getLambdaType(CheshireType returnType, ParameterList* parameters) {
+    LambdaType l = prepareLambdaType(returnType, parameters);
+    if (lambdaTypes.find(l) != lambdaTypes.end()) {
+        return lambdaTypes[l];
+    } else {
+        TypeKey typeID = typeKeys++;
+        CheshireType t = {typeID, FALSE, 0};
+        lambdaTypes[l] = t;
+        keyedLambdas[t] = l;
+        return t;
+    }
+}
+
+Boolean equalTypes(CheshireType left, CheshireType right) {
     return (Boolean) (left.typeKey == right.typeKey && left.isUnsafe == right.isUnsafe && left.arrayNesting == right.arrayNesting);
 }
 
@@ -213,20 +210,20 @@ Boolean isNumericalType(CheshireType t) {
 }
 
 CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
-    if (areEqualTypes(left, TYPE_NUMBER)) {
-        if (areEqualTypes(right, TYPE_DECIMAL))
+    if (equalTypes(left, TYPE_NUMBER)) {
+        if (equalTypes(right, TYPE_DECIMAL))
             PANIC("Cannot coerce types Number and Decimal together!");
         return TYPE_NUMBER;
     }
-    if (areEqualTypes(left, TYPE_DECIMAL)) {
-        if (areEqualTypes(right, TYPE_NUMBER))
+    if (equalTypes(left, TYPE_DECIMAL)) {
+        if (equalTypes(right, TYPE_NUMBER))
             PANIC("Cannot coerce types Number and Decimal together!");
         return TYPE_DECIMAL;
     }
-    if (areEqualTypes(left, TYPE_INT)) {
-        if (areEqualTypes(right, TYPE_DECIMAL))
+    if (equalTypes(left, TYPE_INT)) {
+        if (equalTypes(right, TYPE_DECIMAL))
             return TYPE_DECIMAL;
-        if (areEqualTypes(right, TYPE_NUMBER))
+        if (equalTypes(right, TYPE_NUMBER))
             return TYPE_NUMBER;
         return TYPE_INT;
     }
@@ -234,25 +231,25 @@ CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
     return TYPE_VOID;
 }
 
-Boolean isValidObjectType(CheshireType t) {
+Boolean isObjectType(CheshireType t) {
     if (t.arrayNesting != 0)
         return FALSE;
     if (t.typeKey == -2) //if null
         return TRUE;
-    return (Boolean) (validObjectSet.find(t.typeKey) != validObjectSet.end());
+    return (Boolean) (objectNamings.find(t.typeKey) != objectNamings.end());
 }
 
-Boolean isValidLambdaType(CheshireType t) {
+Boolean isLambdaType(CheshireType t) {
     if (t.arrayNesting != 0)
         return FALSE;
-    return (Boolean) (validLambdaSet.find(t.typeKey) != validLambdaSet.end());
+    return (Boolean) (keyedLambdas.find(t) != keyedLambdas.end());
 }
 
 void printCheshireType(CheshireType node) {
     TypeKey t = node.typeKey;
     CheshireType raw = {node.typeKey, FALSE, 0};
-    if (isValidLambdaType(raw)) {
-        LambdaType l = validLambdaSet[t];
+    if (isLambdaType(raw)) {
+        LambdaType l = keyedLambdas[raw];
         printCheshireType(l.first);
         printf("::(");
         for (size_t i = 0; i < l.second.size(); i++) {
@@ -261,11 +258,11 @@ void printCheshireType(CheshireType node) {
             printCheshireType(l.second[i]);
         }
         printf(")");
-    } else if (isValidObjectType(raw)) {
+    } else if (isObjectType(raw)) {
         if (raw.typeKey == -2)
             printf("NULL_TYPE");
         else
-            printf("%s%s", validObjectSet[t], node.isUnsafe ? "^" : "");
+            printf("%s%s", objectNamings[t], node.isUnsafe ? "^" : "");
     } else {
         //literal type.
         switch (t) {
