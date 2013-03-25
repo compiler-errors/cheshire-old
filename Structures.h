@@ -4,6 +4,7 @@
 
 #define PANIC(format, args...) { printf("Error: "); printf(format , ##args); printf("\n"); exit(0); }
 #define PANIC_OR_RETURN_NULL { PANIC("Memory allocation error: ran out of memory!"); return NULL; }
+#define ERROR_IF(case, format, args...) { if (case) PANIC(format , ##args); }
 
 #ifdef    __cplusplus
 extern "C" {
