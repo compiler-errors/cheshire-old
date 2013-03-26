@@ -1,6 +1,6 @@
 /* File: SyntaxTreeUtil.c
  * Author: Michael Goulet
- * Implements: SyntaxTreeUtil.h 
+ * Implements: SyntaxTreeUtil.h
  */
 
 #include <stdlib.h>
@@ -12,7 +12,7 @@ void printExpression(ExpressionNode* node) {
         printf("NULL VALUE");
         return;
     }
-    
+
     switch (node->type) {
         case OP_NOP:
             PANIC("No such operation as No-OP");
@@ -186,14 +186,16 @@ void printExpression(ExpressionNode* node) {
             printParameterList(node->instantiate.params);
             printf(")");
             break;
-        } case OP_NEW_HEAP: {
+        }
+        case OP_NEW_HEAP: {
             CheshireType t = node->instantiate.type;
             printf("(new^ ");
             printCheshireType(t);
             printParameterList(node->instantiate.params);
             printf(")");
             break;
-        } case OP_METHOD_CALL:
+        }
+        case OP_METHOD_CALL:
             printf("(%s", node->methodcall.fn_name);
             printParameterList(node->methodcall.params);
             printf(")");
@@ -214,6 +216,7 @@ void printExpression(ExpressionNode* node) {
             break;
         case OP_RESERVED_LITERAL:
             printf("(");
+
             switch (node->reserved) {
                 case RL_TRUE:
                     printf("True!");
@@ -225,6 +228,7 @@ void printExpression(ExpressionNode* node) {
                     printf("Null!");
                     break;
             }
+
             printf(")");
             break;
         case OP_ARRAY_ACCESS:
@@ -240,15 +244,17 @@ void printExpression(ExpressionNode* node) {
 
 void printParameterList(ExpressionList* param) {
     printf("(");
+
     if (param == NULL) {
         printf("void");
     } else {
-        for ( ; param != NULL; param = param->next ) {
+        for (; param != NULL; param = param->next) {
             printExpression(param->parameter);
 
             if (param->next != NULL)
                 printf(", ");
         }
     }
+
     printf(")");
 }

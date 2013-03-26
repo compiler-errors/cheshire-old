@@ -7,19 +7,20 @@
 
 static ParserTopNode* allocParserTopNode(void) {
     ParserTopNode* node = (ParserTopNode*) malloc(sizeof(ParserTopNode));
+
     if (node == NULL)
         PANIC_OR_RETURN_NULL;
-    
+
     node->type = PRT_NONE;
     return node;
 }
 
 ParserTopNode* createMethodDeclaration(CheshireType type, char* functionName, ParameterList* params) {
     ParserTopNode* node = allocParserTopNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = PRT_METHOD_DECLARATION;
     node->method.type = type;
     node->method.functionName = functionName;
@@ -29,10 +30,10 @@ ParserTopNode* createMethodDeclaration(CheshireType type, char* functionName, Pa
 
 ParserTopNode* createMethodDefinition(CheshireType type, char* functionName, ParameterList* params, BlockList* body) {
     ParserTopNode* node = allocParserTopNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = PRT_METHOD_DEFINITION;
     node->method.type = type;
     node->method.functionName = functionName;
@@ -56,5 +57,6 @@ void deleteParserTopNode(ParserTopNode* node) {
             deleteParameterList(node->method.params);
             break;
     }
+
     free(node);
 }

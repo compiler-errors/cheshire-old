@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   CheshireScope.hpp
  * Author: Michael Goulet
- * Implementation: 
+ * Implementation:
  */
 
 #ifndef CHESHIRESCOPE_HPP
@@ -19,18 +19,18 @@ using std::list;
 
 extern "C" {
 
-struct tagCheshireScope;
-struct tagVariableScope;
+    struct tagCheshireScope;
+    struct tagVariableScope;
 
-typedef struct tagCheshireScope {
-    CheshireType expectedType;
-    struct tagVariableScope* highestScope;
-} CheshireScope;
+    typedef struct tagCheshireScope {
+        CheshireType expectedType;
+        struct tagVariableScope* highestScope;
+    } CheshireScope;
 
-typedef struct tagVariableScope {
-    unordered_map<const char*, CheshireType, CStrHash, CStrEql> variables;
-    struct tagVariableScope* parentScope;
-} VariableScope;
+    typedef struct tagVariableScope {
+        unordered_map<const char*, CheshireType, CStrHash, CStrEql> variables;
+        struct tagVariableScope* parentScope;
+    } VariableScope;
 
 }
 

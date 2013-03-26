@@ -17,46 +17,46 @@ extern "C" {
 #define TYPE_OBJECT     {5, FALSE, 0}
 #define TYPE_OBJECT_HAT {5, TRUE, 0}
 #define TYPE_STRING     {6, FALSE, 0}
-    
-void initTypeSystem(void);
-void freeTypeSystem(void); //frees all of the char* references
-CheshireScope* allocateCheshireScope(void);
-void deleteCheshireScope(CheshireScope*);
 
-void raiseScope(CheshireScope*);
-void fallScope(CheshireScope*);
-void setExpectedMethodType(CheshireScope*, CheshireType);
-CheshireType getExpectedMethodType(CheshireScope*);
-CheshireType getMethodSignature(CheshireScope*, const char* name);
-void addMethodDeclaration(CheshireScope*, const char* name, CheshireType returnType, struct tagParameterList*);
-CheshireType getVariableType(CheshireScope*, const char* name);
-void defineVariable(CheshireScope*, const char* name, CheshireType type);
+    void initTypeSystem(void);
+    void freeTypeSystem(void); //frees all of the char* references
+    CheshireScope* allocateCheshireScope(void);
+    void deleteCheshireScope(CheshireScope*);
 
-Boolean isTypeName(const char*);
-CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);
-CheshireType getNamedType(const char* name, Boolean isUnsafe);
-void printCheshireType(CheshireType);
+    void raiseScope(CheshireScope*);
+    void fallScope(CheshireScope*);
+    void setExpectedMethodType(CheshireScope*, CheshireType);
+    CheshireType getExpectedMethodType(CheshireScope*);
+    CheshireType getMethodSignature(CheshireScope*, const char* name);
+    void addMethodDeclaration(CheshireScope*, const char* name, CheshireType returnType, struct tagParameterList*);
+    CheshireType getVariableType(CheshireScope*, const char* name);
+    void defineVariable(CheshireScope*, const char* name, CheshireType type);
 
-Boolean equalTypes(CheshireType left, CheshireType right);
-Boolean isVoid(CheshireType);
-Boolean isUnsafe(CheshireType);
-Boolean isBoolean(CheshireType);
-Boolean isInt(CheshireType);
-Boolean isObjectType(CheshireType);
-Boolean isLambdaType(CheshireType);
-Boolean isNumericalType(CheshireType);
-int getArrayNesting(CheshireType);
-CheshireType getArrayDereference(CheshireType);
-CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
+    Boolean isTypeName(const char*);
+    CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);
+    CheshireType getNamedType(const char* name, Boolean isUnsafe);
+    void printCheshireType(CheshireType);
 
-Boolean isSuper(CheshireType parent, CheshireType child); //todo: classes
+    Boolean equalTypes(CheshireType left, CheshireType right);
+    Boolean isVoid(CheshireType);
+    Boolean isUnsafe(CheshireType);
+    Boolean isBoolean(CheshireType);
+    Boolean isInt(CheshireType);
+    Boolean isObjectType(CheshireType);
+    Boolean isLambdaType(CheshireType);
+    Boolean isNumericalType(CheshireType);
+    int getArrayNesting(CheshireType);
+    CheshireType getArrayDereference(CheshireType);
+    CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
+
+    Boolean isSuper(CheshireType parent, CheshireType child); //todo: classes
 
 // TYPE CHECKING FUNCTIONS //
 
-void typeCheckTopNode(CheshireScope*, ParserTopNode*);
-CheshireType typeCheckExpressionNode(CheshireScope*, ExpressionNode*);
-void typeCheckStatementNode(CheshireScope*, StatementNode*);
-void typeCheckBlockList(CheshireScope*, BlockList*);
+    void typeCheckTopNode(CheshireScope*, ParserTopNode*);
+    CheshireType typeCheckExpressionNode(CheshireScope*, ExpressionNode*);
+    void typeCheckStatementNode(CheshireScope*, StatementNode*);
+    void typeCheckBlockList(CheshireScope*, BlockList*);
 
 #ifdef __cplusplus
 }
