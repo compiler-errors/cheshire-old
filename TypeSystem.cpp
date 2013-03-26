@@ -197,6 +197,10 @@ Boolean isVoid(CheshireType t) {
     return (Boolean) (t.typeKey == 0);
 }
 
+Boolean isUnsafe(CheshireType t) {
+    return t.isUnsafe;
+}
+
 Boolean isBoolean(CheshireType t) {
     return (Boolean) (t.typeKey == 4 && t.arrayNesting == 0);
 }
@@ -207,6 +211,15 @@ Boolean isInt(CheshireType t) {
 
 Boolean isNumericalType(CheshireType t) {
     return (Boolean) (t.typeKey >= 1 && t.typeKey <= 3 && t.arrayNesting == 0); //between Int and Double
+}
+
+int getArrayNesting(CheshireType t) {
+    return t.arrayNesting;
+}
+
+CheshireType getArrayDereference(CheshireType t) {
+    t.arrayNesting--;
+    return t;
 }
 
 CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
@@ -290,7 +303,6 @@ void printCheshireType(CheshireType node) {
         printf("[]");
 }
 
-//CheshireType isSupertype(CheshireScope* type, CheshireType super, CheshireType sub) {
-//    //todo: assume types are valid objects
-//    //TYPE_NULL is a always a subtype.
-//}
+Boolean isSuper(CheshireType super, CheshireType sub) {
+    return FALSE;
+}

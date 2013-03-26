@@ -1,16 +1,15 @@
-
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
 #define PANIC(format, args...) { printf("Error: "); printf(format , ##args); printf("\n"); exit(0); }
 #define PANIC_OR_RETURN_NULL { PANIC("Memory allocation error: ran out of memory!"); return NULL; }
-#define ERROR_IF(case, format, args...) { if (case) PANIC(format , ##args); }
+#define ERROR_IF(_case, format, args...) { if (_case) { PANIC(format , ##args) } }
+
+#include "ParserEnums.h"
 
 #ifdef    __cplusplus
 extern "C" {
 #endif
-
-#include "ParserEnums.h"
 
 // -------------------------------------------- //
 

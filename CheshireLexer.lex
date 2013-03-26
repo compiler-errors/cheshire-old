@@ -59,7 +59,7 @@ len       return TOK_LEN;
 "]"  return TOK_RBRACKET;
 ","  return TOK_COMMA;
 "::" return TOK_LAMBDA_PARAMS;
-":"  return TOK_ACCESSOR;
+":"  return TOK_COLON;
 {QUOTE}([^"\"""\n"]|{BACKSLASH}[abfnrtv"'"{QUOTE}{BACKSLASH}"?"])*{QUOTE}   { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }
 "and"|"or"      { determineOpType(yytext, &(yylval->op_type)); return TOK_AND_OR; }

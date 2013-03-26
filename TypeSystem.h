@@ -39,14 +39,17 @@ void printCheshireType(CheshireType);
 
 Boolean equalTypes(CheshireType left, CheshireType right);
 Boolean isVoid(CheshireType);
+Boolean isUnsafe(CheshireType);
 Boolean isBoolean(CheshireType);
 Boolean isInt(CheshireType);
 Boolean isObjectType(CheshireType);
 Boolean isLambdaType(CheshireType);
 Boolean isNumericalType(CheshireType);
+int getArrayNesting(CheshireType);
+CheshireType getArrayDereference(CheshireType);
 CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
 
-//CheshireType isSupertype(CheshireScope*, CheshireType, CheshireType); todo: classes
+Boolean isSuper(CheshireType parent, CheshireType child); //todo: classes
 
 // TYPE CHECKING FUNCTIONS //
 
