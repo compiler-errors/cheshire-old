@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     int ret = 0;
     printf("Initialized, waiting for input!\n");
     while (!(ret = yyparse(&node, scanner))) {
-        typeCheckTopNode(scope, node);
+        typeCheckTopNode(scope, node); //todo: don't just read it, instead take any method/classes and save it for lookahead, then check @ end!
         printf("Read a node!\n");
         topNodes.push_front(node);
     }
