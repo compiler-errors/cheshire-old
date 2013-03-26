@@ -1,14 +1,14 @@
 #ifndef NODES_H
 #define NODES_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "ParserEnums.h"
 #include "Structures.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //defined in ExpessionNode.c
 ExpressionNode* createSelfNode(void);

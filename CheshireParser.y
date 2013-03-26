@@ -65,7 +65,7 @@ typedef void* yyscan_t;
 %token TOK_HAT
 %token TOK_PASS
 %token TOK_LAMBDA_PARAMS
-%token TOK_ACCESSOR
+%token TOK_COLON
 %token TOK_SET
 %token TOK_INSTANCEOF
 %token TOK_NEW
@@ -99,7 +99,7 @@ typedef void* yyscan_t;
 %left TOK_NOT
 %nonassoc P_CAST
 %left TOK_INCREMENT
-%left TOK_ACCESSOR TOK_LBRACKET TOK_RBRACKET
+%left TOK_COLON TOK_LBRACKET TOK_RBRACKET
 %nonassoc P_IF
 %nonassoc TOK_ELSE
 %nonassoc TOK_LPAREN TOK_RPAREN
@@ -157,7 +157,7 @@ statement
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
     | TOK_DELETE_HEAP expression TOK_LN  { $$ = createDeleteHeapStatement( $2 ); }
     | TOK_RETURN expression TOK_LN  { $$ = createReturnStatement( $2 ); }
-    | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createReservedLiteral(RL_NULL) ); }
+    | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createReservedLiteralNode(RL_NULL) ); }
     ;
 
 statement_or_pass
@@ -200,15 +200,15 @@ expression
 lval_expression
     : TOK_IDENTIFIER  { $$ = createVariableAccess( $1 ); }
     | expression TOK_LBRACKET expression TOK_RBRACKET  { $$ = createBinOperation( OP_ARRAY_ACCESS , $1 , $3 ); }
-    | expression TOK_ACCESSOR TOK_IDENTIFIER { $$ = createAccessNode( $1 , $3 ); }
+    | expression TOK_COLON TOK_IDENTIFIER { $$ = createAccessNode( $1 , $3 ); }
     ;
 
 expression_statement
     : lval_expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
     | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( $1 , $2 ); }
     | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
-    | expression TOK_ACCESSOR TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
-    | expression TOK_ACCESSOR expression_list  { $$ = createCallbackCall( $1 , $3 ); }
+    | expression TOK_COLON TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
+    | expression TOK_COLON expression_list  { $$ = createCallbackCall( $1 , $3 ); }
     ;
 
 expression_list
@@ -223,12 +223,13 @@ expression_list_contains
 
 typename
     : TOK_TYPE  { $$ = $1 ; }
-    | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getType( getLambdaTypeKey( $1 , $3 ), FALSE ); deleteParameterList( $3 ); }
+    | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getLambdaType( $1 , $3 ); deleteParameterList( $3 ); }
     | typename TOK_HAT  {  if ( $1.arrayNesting > 0 )
                                PANIC("Cannot apply ^ to an array typename!");
                            if ( $1.isUnsafe ) 
                                PANIC("Cannot apply ^ to a typename more than one time!");
-                           $$ = getType( $1.typeKey , TRUE );
+                           $1.isUnsafe = TRUE;
+                           $$ = $1;
                         }
     | typename TOK_LBRACKET TOK_RBRACKET  { $$ = $1; $$.arrayNesting++; }
     ;

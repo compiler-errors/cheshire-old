@@ -17,6 +17,8 @@ class CStrHash;
 class CStrEql;
 class LambdaHash;
 class LambdaEql;
+class CheshireTypeHash;
+class CheshireTypeEql;
 
 template<typename T>
 class Array {
@@ -88,11 +90,11 @@ public:
 
 typedef std::pair<CheshireType, Array<CheshireType> > LambdaType;
 
-typedef std::unordered_map<const char*, TypeKey, CStrHash, CStrEql> TypeMap;
-typedef std::unordered_map<LambdaType, TypeKey, LambdaHash, LambdaEql> LambdaMap;
-typedef std::unordered_map<TypeKey, const char*> ValidObjectSet;
-typedef std::unordered_map<TypeKey, LambdaType> ValidLambdaSet;
-typedef std::unordered_map<const char*, LambdaType, CStrHash, CStrEql> MethodMappings;
+typedef std::unordered_map<const char*, TypeKey, CStrHash, CStrEql> NamedObjects;
+typedef std::unordered_map<LambdaType, CheshireType, LambdaHash, LambdaEql> LambdaTypes;
+typedef std::unordered_map<TypeKey, const char*> ObjectNamings;
+typedef std::unordered_map<CheshireType, LambdaType, CheshireTypeHash, CheshireTypeEql> KeyedLambdas; //todo: name?
+typedef std::unordered_map<const char*, CheshireType, CStrHash, CStrEql> MethodMappings;
 
 class CStrHash {
 public:
@@ -108,7 +110,10 @@ class CStrEql {
 public:
     bool operator()(const char* const& a, const char* const& b) const {
         int i;
-        for (i = 0; a[i] != '\0' && b[i] != '\0'; i++) { } //find the first one
+        for (i = 0; a[i] != '\0' && b[i] != '\0'; i++) {
+            if (a[i] != b[i])
+                return false;
+        } //find the first one
         return (a[i] == '\0') && (b[i] == '\0');
     }
 };
@@ -140,6 +145,20 @@ public:
     
     bool typeEql(const CheshireType& a, const CheshireType& b) const {
         return (a.typeKey == b.typeKey) && (a.isUnsafe == b.isUnsafe);
+    }
+};
+
+class CheshireTypeHash {
+public:
+    int operator()(const CheshireType& type) const {
+        return (type.arrayNesting << 3) ^ (type.typeKey << 2) ^ (type.arrayNesting);
+    }
+};
+
+class CheshireTypeEql {
+public:
+    bool operator()(const CheshireType& a, const CheshireType& b) const {
+        return a.typeKey == b.typeKey && a.isUnsafe == b.isUnsafe && a.arrayNesting == b.arrayNesting;
     }
 };
 

@@ -13,26 +13,31 @@
 
 using std::floor;
 
-#define WIDEN_NODE(type, node) node = createCastOperation(node, type)
+#define WIDEN_NODE(newtype, oldtype, node) if (!equalTypes(newtype, oldtype)) { node = createCastOperation(node, newtype); }
 
 /* This "method" is defined to implement the common "store-into-variable-and-widen-if-necessary"
  * method that is used for parameters, storing things into lval's, and also variable definitions.
  */
 #define STORE_EXPRESSION_INTO_LVAL(ltype, rtype, node, reason) \
-            if (!areEqualTypes(ltype, rtype)) { \
+            if (!equalTypes(ltype, rtype)) { \
                 if (isNumericalType(ltype) && isNumericalType(rtype)) { \
                     CheshireType widetype = getWidestNumericalType(ltype, rtype); \
-                    if (!areEqualTypes(ltype, widetype)) \
-                        PANIC("Not possible to store widened type into lvalue for %s", reason); \
-                    WIDEN_NODE(widetype, node); \
-                } else if (isValidObjectType(ltype) && isValidObjectType(rtype)) { \
-                    /*todo: check for ancestry. null case too; if it's null, you don't have to cast.*/ \
+                    WIDEN_NODE(widetype, ltype, node); \
+                } else if (isObjectType(ltype) && isObjectType(rtype)) { \
+                    if (equalTypes(TYPE_NULL, rtype)) { \
+                        WIDEN_NODE(ltype, TYPE_NULL, node); \
+                        /* The null type can be converted to any object type. */ \
+                    } else if (ltype.isUnsafe ^ rtype.isUnsafe) { \
+                        PANIC("Mixing safe and unsafe references!"); \
+                    } else { \
+                        /* todo: make sure ltype >= rtype (up-cast), AND NULL CASE! */ \
+                    } \
                 } else \
-                    PANIC("left and right types must both be numerical or objects for %s", reason); \
+                    PANIC("left and right types must be both numerical, object or the same exact type for %s", reason); \
             }
 
 //////////////// STATICS /////////////////
-extern ValidLambdaSet validLambdaSet;
+extern KeyedLambdas keyedLambdas;
 //////////////////////////////////////////
 
 void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
@@ -47,15 +52,14 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             setExpectedMethodType(scope, node->method.type);
             addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
             raiseScope(scope);
+            
+            for (ParameterList* p = node->method.params; p != NULL; p = p->next)
+                defineVariable(scope, p->name, p->type);
+            
             typeCheckBlockList(scope, node->method.body);
             fallScope(scope);
             break;
     }
-}
-
-void typeCheckParameterList(CheshireScope*, ParserTopNode*) {
-    //todo
-    //include null case.
 }
 
 CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node) {
@@ -80,8 +84,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_COMPL:
         case OP_UNARY_MINUS: {
             CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
-            if (!isNumericalType(childType))
-                PANIC("Expected a numerical type for operations COMPL and UNARY -");
+            ERROR_IF(!isNumericalType(childType), "Expected a numerical type for operations COMPL and UNARY -");
             return childType;
         }
         case OP_GRE_EQUALS:
@@ -92,15 +95,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_NOT_EQUALS: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
-            if (isVoid(left) || isVoid(right))
-                PANIC("Cannot compare void type in operations >=, <=, >, <, !=, or ==");
-            if (!areEqualTypes(left, right)) {
+            ERROR_IF(isVoid(left) || isVoid(right), "Cannot compare void type in operations >=, <=, >, <, !=, or ==");
+            if (!equalTypes(left, right)) {
                 if (isNumericalType(left) && isNumericalType(right)) {
                     CheshireType widetype = getWidestNumericalType(left, right);
-                    if (!areEqualTypes(widetype, left)) WIDEN_NODE(widetype, node->binary.left);
-                    if (!areEqualTypes(widetype, right)) WIDEN_NODE(widetype, node->binary.right);
-                } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isValidObjectType(left) && isValidObjectType(right)) {
-                    //todo: check for ancestry, null case too.
+                    WIDEN_NODE(widetype, left, node->binary.left);
+                    WIDEN_NODE(widetype, right, node->binary.right);
+                } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
+                    ERROR_IF(isUnsafe(left) ^ isUnsafe(right), "Mixing safe and unsafe references!");
+                    //todo: make sure they are direct linege, AND NULL CASE!
                 } else
                     PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
             }
@@ -113,22 +116,19 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_MOD: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
-            if (!areEqualTypes(left, right)) {
-                if (isNumericalType(left) && isNumericalType(right)) {
-                    CheshireType widetype = getWidestNumericalType(left, right);
-                    WIDEN_NODE(widetype, node->binary.left);
-                    WIDEN_NODE(widetype, node->binary.right);
-                } else
-                    PANIC("left and right types must be numerical for operations +, -, *, /, and %%");
-            }
+            if (isNumericalType(left) && isNumericalType(right)) {
+                CheshireType widetype = getWidestNumericalType(left, right);
+                WIDEN_NODE(widetype, left, node->binary.left);
+                WIDEN_NODE(widetype, right, node->binary.right);
+            } else
+                PANIC("left and right types must be numerical for operations +, -, *, /, and %%");
             return left;
         }
         case OP_AND:
         case OP_OR: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
-            if (!isBoolean(left) || !isBoolean(right))
-                PANIC("Expected type Boolean in expression \"and\" or \"or\"");
+            ERROR_IF(!isBoolean(left) || !isBoolean(right), "Expected type Boolean in expression \"and\" or \"or\"");
             return TYPE_BOOLEAN;
         }
         case OP_SET: {
@@ -140,21 +140,20 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_ARRAY_ACCESS: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
-            if (left.arrayNesting == 0)
-                PANIC("Cannot dereference a non-array type!");
-            if (isVoid(left))
-                PANIC("No such dereference of type void[]!");
-            if (!isInt(right))
-                PANIC("Index of array must be an integer!");
-            left.arrayNesting--;
-            return left;
+            
+            ERROR_IF(getArrayNesting(left) == 0, "Cannot dereference a non-array type!");
+            ERROR_IF(isVoid(left), "No such dereference of type void[]!");
+            ERROR_IF(!isInt(right), "Index of array must be an integer!");
+            
+            return getArrayDereference(left);
         }
         case OP_INSTANCEOF: {
             CheshireType child = typeCheckExpressionNode(scope, node->instanceof.expression);
-            if (!isValidObjectType(child) || !isValidObjectType(node->instanceof.type))
-                PANIC("Expected object types for operation instanceof");
-            //todo: check ancestry.
-            return child;
+            
+            ERROR_IF(!isObjectType(child) || !isObjectType(node->instanceof.type), "Expected object types for operation instanceof");
+            ERROR_IF(!isSuper(child, node->instanceof.type) || !isSuper(node->instanceof.type, child), "Instanceof may only compare type relationships that are possible!");
+            
+            return TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
             CheshireType ret = getVariableType(scope, node->string);
@@ -165,65 +164,69 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_CAST: {
             CheshireType cast = node->cast.type;
             CheshireType child = typeCheckExpressionNode(scope, node->cast.child);
-            if (isNumericalType(cast) && isNumericalType(child)) {
+            
+            if (isObjectType(cast) && equalTypes(TYPE_NULL, child)) //null case!
                 return cast;
-            } else if (isValidObjectType(cast) && isValidObjectType(child)) {
-                if (cast.isUnsafe && child.isUnsafe) {
-                    return child;
-                } else if (!cast.isUnsafe && !cast.isUnsafe) {
-                    //todo: check if they're ancestral, null case
-                    return child;
-                } else
-                    PANIC("Received a mix of unsafe and managed types in cast!");
-            } else
-                PANIC("Recieved invalid types for cast operation");
+            
+            ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
+            ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
+            ERROR_IF(isUnsafe(cast) ^ isUnsafe(child), "Received a mix of unsafe and managed objects in cast!");
+            ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
+            
+            return cast;
         }
         case OP_METHOD_CALL: {
             ExpressionList* expressions = node->methodcall.params;
-            LambdaType method_signature = validLambdaSet[getMethodSignature(scope, node->methodcall.fn_name)];
+            LambdaType method_signature = keyedLambdas[getMethodSignature(scope, node->methodcall.fn_name)];
+            
             unsigned int index = 0;
             for (ExpressionList* paramNode = expressions; paramNode != NULL; paramNode = paramNode->next, index++) {
-                if (index >= method_signature.second.size())
-                    PANIC("Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", method_signature.second.size(), index);
+                
+                ERROR_IF(index >= method_signature.second.size(), "Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", method_signature.second.size(), index);
+                
                 CheshireType parameterExpectedType = method_signature.second[index];
                 CheshireType parameterGivenType = typeCheckExpressionNode(scope, paramNode->parameter);
                 STORE_EXPRESSION_INTO_LVAL(parameterExpectedType, parameterGivenType, paramNode->parameter, "parameter");
             }
-            if (index != method_signature.second.size())
-                PANIC("Not enough parameters for method call!");
+            
+            ERROR_IF(index != method_signature.second.size(), "Not enough parameters for method call!");
+            
             return method_signature.first;
         }
         case OP_CALLBACK_CALL: {
             ExpressionList* expressions = node->callbackcall.params;
             CheshireType callbackType = typeCheckExpressionNode(scope, node->callbackcall.callback);
-            if (!isValidLambdaType(callbackType) || callbackType.arrayNesting != 0)
+            
+            if (!isLambdaType(callbackType) || getArrayNesting(callbackType) != 0)
                 PANIC("Type is not invocable!");
-            LambdaType method_signature = validLambdaSet[callbackType.typeKey];
+            
+            LambdaType method_signature = keyedLambdas[callbackType];
+            
             unsigned int index = 0;
             for (ExpressionList* paramNode = expressions; paramNode != NULL; paramNode = paramNode->next, index++) {
-                if (index >= method_signature.second.size())
-                    PANIC("Too many parameters for method call!");
+                
+                ERROR_IF(index >= method_signature.second.size(), "Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", method_signature.second.size(), index);
+                
                 CheshireType parameterExpectedType = method_signature.second[index];
                 CheshireType parameterGivenType = typeCheckExpressionNode(scope, paramNode->parameter);
                 STORE_EXPRESSION_INTO_LVAL(parameterExpectedType, parameterGivenType, paramNode->parameter, "parameter");
             }
-            if (index != method_signature.second.size())
-                PANIC("Not enough parameters for method call!");
+            
+            ERROR_IF(index != method_signature.second.size(), "Not enough parameters for method call!");
+            
             return method_signature.first;
         }
         case OP_NUMBER: {
             double number = node->numberValue;
             if (number == floor(number)) {
                 if (number >= INT_MIN && number <= INT_MAX) {
-                    printf("%f interpreted as int\n", number);
                     return TYPE_INT;
                 }
-                printf("%f interpreted as number\n", number);
                 return TYPE_NUMBER;
             } else {
-                printf("%f interpreted as decimal\n", number);
                 return TYPE_DECIMAL;
             }
+            return TYPE_VOID;
         }
         case OP_RESERVED_LITERAL: {
             switch (node->reserved) {
@@ -242,7 +245,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         }
         case OP_NEW_GC: {
             CheshireType object = node->instantiate.type;
-            if (!isValidObjectType(object))
+            if (!isObjectType(object))
                 PANIC("Impossible to instantate a non-object type!");
             object.isUnsafe = FALSE;
             //todo: implement later w/ classes, check params
@@ -250,7 +253,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         }
         case OP_NEW_HEAP: {
             CheshireType object = node->instantiate.type;
-            if (!isValidObjectType(object))
+            if (!isObjectType(object))
                 PANIC("Impossible to instantate a non-object type!");
             object.isUnsafe = TRUE;
             //todo: implement later w/ classes, check params
@@ -277,8 +280,6 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_VARIABLE_DEF: {
             CheshireType expectedType = node->varDefinition.type;
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            printCheshireType(expectedType);
-            printCheshireType(givenType);
             STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
             defineVariable(scope, node->varDefinition.variable, expectedType);
         } break;
@@ -336,8 +337,8 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_RETURN: {
             CheshireType type = typeCheckExpressionNode(scope, node->expression);
             CheshireType expected = getExpectedMethodType(scope);
-            if (areEqualTypes(expected, TYPE_VOID)) {
-                if (!areEqualTypes(type, TYPE_NULL))
+            if (equalTypes(expected, TYPE_VOID)) {
+                if (!equalTypes(type, TYPE_NULL))
                     PANIC("Cannot return void from a non-void method!");
             } else {
                 STORE_EXPRESSION_INTO_LVAL(expected, type, node->expression, "return statement");
