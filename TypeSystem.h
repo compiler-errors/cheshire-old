@@ -8,15 +8,15 @@
 extern "C" {
 #endif
 
-#define TYPE_NULL       getType(-2, FALSE)
-#define TYPE_VOID       getType(0, FALSE)
-#define TYPE_NUMBER     getType(1, FALSE)
-#define TYPE_INT        getType(2, FALSE)
-#define TYPE_DECIMAL    getType(3, FALSE)
-#define TYPE_BOOLEAN    getType(4, FALSE)
-#define TYPE_OBJECT     getType(5, FALSE)
-#define TYPE_OBJECT_HAT getType(5, TRUE)
-#define TYPE_STRING     getType(6, FALSE)
+#define TYPE_NULL       {-2, FALSE, 0}
+#define TYPE_VOID       {0, FALSE, 0}
+#define TYPE_NUMBER     {1, FALSE, 0}
+#define TYPE_INT        {2, FALSE, 0}
+#define TYPE_DECIMAL    {3, FALSE, 0}
+#define TYPE_BOOLEAN    {4, FALSE, 0}
+#define TYPE_OBJECT     {5, FALSE, 0}
+#define TYPE_OBJECT_HAT {5, TRUE, 0}
+#define TYPE_STRING     {6, FALSE, 0}
     
 void initTypeSystem(void);
 void freeTypeSystem(void); //frees all of the char* references
@@ -27,32 +27,33 @@ void raiseScope(CheshireScope*);
 void fallScope(CheshireScope*);
 void setExpectedMethodType(CheshireScope*, CheshireType);
 CheshireType getExpectedMethodType(CheshireScope*);
-TypeKey getMethodSignature(CheshireScope*, const char* name);
+CheshireType getMethodSignature(CheshireScope*, const char* name);
 void addMethodDeclaration(CheshireScope*, const char* name, CheshireType returnType, struct tagParameterList*);
 CheshireType getVariableType(CheshireScope*, const char* name);
 void defineVariable(CheshireScope*, const char* name, CheshireType type);
 
 Boolean isTypeName(const char*);
-TypeKey getTypeKey(const char*); //creates a new type key if it doesn't exist.
-TypeKey getLambdaTypeKey(CheshireType returnType, struct tagParameterList* parameters);
-CheshireType getType(TypeKey base, Boolean isUnsafe);
+CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);
+CheshireType getNamedType(const char* name, Boolean isUnsafe);
 void printCheshireType(CheshireType);
 
-Boolean areEqualTypes(CheshireType left, CheshireType right);
+Boolean equalTypes(CheshireType left, CheshireType right);
 Boolean isVoid(CheshireType);
+Boolean isUnsafe(CheshireType);
 Boolean isBoolean(CheshireType);
 Boolean isInt(CheshireType);
-Boolean isValidObjectType(CheshireType);
-Boolean isValidLambdaType(CheshireType);
+Boolean isObjectType(CheshireType);
+Boolean isLambdaType(CheshireType);
 Boolean isNumericalType(CheshireType);
+int getArrayNesting(CheshireType);
+CheshireType getArrayDereference(CheshireType);
 CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
 
-//CheshireType isSupertype(CheshireScope*, CheshireType, CheshireType); todo: classes
+Boolean isSuper(CheshireType parent, CheshireType child); //todo: classes
 
 // TYPE CHECKING FUNCTIONS //
 
 void typeCheckTopNode(CheshireScope*, ParserTopNode*);
-void typeCheckParameterList(CheshireScope*, ParserTopNode*);
 CheshireType typeCheckExpressionNode(CheshireScope*, ExpressionNode*);
 void typeCheckStatementNode(CheshireScope*, StatementNode*);
 void typeCheckBlockList(CheshireScope*, BlockList*);

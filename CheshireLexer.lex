@@ -28,9 +28,12 @@ BACKSLASH   "\\"
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
-Number|Boolean|Int|Decimal|void|Object|String  {   yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
+Number|Boolean|Int|Decimal|void|Object|String  {   yylval->cheshire_type = getNamedType(yytext, FALSE);
                                                    return TOK_TYPE;
                                                }
+(Number|Boolean|Int|Decimal|void|Object|String)"^" {   yylval->cheshire_type = getNamedType(yytext, TRUE);
+                                                       return TOK_TYPE;
+                                                   }
 infer     return TOK_INFER;
 True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 "^"       return TOK_HAT;
@@ -56,7 +59,7 @@ len       return TOK_LEN;
 "]"  return TOK_RBRACKET;
 ","  return TOK_COMMA;
 "::" return TOK_LAMBDA_PARAMS;
-":"  return TOK_ACCESSOR;
+":"  return TOK_COLON;
 {QUOTE}([^"\"""\n"]|{BACKSLASH}[abfnrtv"'"{QUOTE}{BACKSLASH}"?"])*{QUOTE}   { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }
 "and"|"or"      { determineOpType(yytext, &(yylval->op_type)); return TOK_AND_OR; }
@@ -76,7 +79,15 @@ len       return TOK_LEN;
 {DIGIT}+("."{DIGIT}+)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->number)); return TOK_NUMBER; }
 "."             return TOK_LN;
 {ALPHA}{IDENTIFIER}*    {   if (isTypeName(yytext)) {
-                                yylval->cheshire_type = getType(getTypeKey(yytext), FALSE);
+                                yylval->cheshire_type = getNamedType(yytext, FALSE);
+                                return TOK_TYPE;
+                            } else {
+                                saveIdentifier(yytext, &(yylval->string));
+                                return TOK_IDENTIFIER;
+                            }
+                        }
+{ALPHA}{IDENTIFIER}*"^" {   if (isTypeName(yytext)) {
+                                yylval->cheshire_type = getNamedType(yytext, TRUE);
                                 return TOK_TYPE;
                             } else {
                                 saveIdentifier(yytext, &(yylval->string));
