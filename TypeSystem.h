@@ -27,8 +27,6 @@ extern "C" {
     void fallScope(CheshireScope*);
     void setExpectedMethodType(CheshireScope*, CheshireType);
     CheshireType getExpectedMethodType(CheshireScope*);
-    CheshireType getMethodSignature(CheshireScope*, const char* name);
-    void addMethodDeclaration(CheshireScope*, const char* name, CheshireType returnType, struct tagParameterList*);
     CheshireType getVariableType(CheshireScope*, const char* name);
     void defineVariable(CheshireScope*, const char* name, CheshireType type);
 

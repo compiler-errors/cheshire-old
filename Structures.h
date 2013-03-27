@@ -29,6 +29,7 @@ extern "C" {
     struct tagExpressionList;
     struct tagStatementNode;
     struct tagBlockList;
+    
     typedef struct tagParserTopNode {
         ParserReturnType type;
         union {
@@ -39,6 +40,12 @@ extern "C" {
                 struct tagBlockList* body;
             } method;
 
+            struct {
+                CheshireType type;
+                char* name;
+                struct tagExpressionNode* value;
+            } variable;
+            
             //todo: also classes!
         };
     } ParserTopNode;
@@ -92,11 +99,6 @@ extern "C" {
                 char* fn_name;
                 struct tagExpressionList* params;
             } objectcall;
-
-            struct {
-                struct tagExpressionNode* callback;
-                struct tagExpressionList* params;
-            } callbackcall;
         };
     } ExpressionNode;
 

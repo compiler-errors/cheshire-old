@@ -22,7 +22,6 @@ extern "C" {
     ExpressionNode* createInstantiationOperation(InstantiationType, CheshireType type, ExpressionList*);
     ExpressionNode* createMethodCall(char* functionName, ExpressionList*);
     ExpressionNode* createObjectCall(ExpressionNode* object, char* functionName, ExpressionList*);
-    ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList*);
     ExpressionNode* createIncrementOperation(ExpressionNode*, OperationType);
     ExpressionNode* createReservedLiteralNode(ReservedLiteral);
     ExpressionNode* createAccessNode(ExpressionNode*, char* variable);
@@ -50,6 +49,8 @@ extern "C" {
 //defined in ParserTopNode.c
     ParserTopNode* createMethodDeclaration(CheshireType, char* functionName, ParameterList* params);
     ParserTopNode* createMethodDefinition(CheshireType, char* functionName, ParameterList* params, BlockList* body);
+    ParserTopNode* createGlobalVariableDeclaration(CheshireType type, char* name);
+    ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name, ExpressionNode* value);
 
 //defined in ParameterList.c
     ParameterList* linkParameterList(CheshireType type, char* name, ParameterList* next);

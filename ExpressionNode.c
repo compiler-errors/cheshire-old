@@ -164,18 +164,6 @@ ExpressionNode* createObjectCall(ExpressionNode* object, char* fn_name, Expressi
     return node;
 }
 
-ExpressionNode* createCallbackCall(ExpressionNode* callback, ExpressionList* params) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_CALLBACK_CALL;
-    node->callbackcall.callback = callback;
-    node->callbackcall.params = params;
-    return node;
-}
-
 ExpressionNode* createIncrementOperation(ExpressionNode* expression, OperationType optype) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -281,10 +269,6 @@ void deleteExpressionNode(ExpressionNode* node) {
             free(node->objectcall.fn_name);
             deleteExpressionNode(node->objectcall.object);
             deleteExpressionList(node->objectcall.params);
-            break;
-        case OP_CALLBACK_CALL:
-            deleteExpressionNode(node->callbackcall.callback);
-            deleteExpressionList(node->callbackcall.params);
             break;
         case OP_NUMBER:
         case OP_SELF:

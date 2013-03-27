@@ -207,13 +207,6 @@ void printExpression(ExpressionNode* node) {
             printParameterList(node->objectcall.params);
             printf(")");
             break;
-        case OP_CALLBACK_CALL:
-            printf("(");
-            printExpression(node->callbackcall.callback);
-            printf(":");
-            printParameterList(node->callbackcall.params);
-            printf(")");
-            break;
         case OP_RESERVED_LITERAL:
             printf("(");
 

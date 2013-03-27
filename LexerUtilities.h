@@ -22,6 +22,7 @@ extern "C" {
     void saveIdentifier(const char*, char** var);
     void saveStringLiteral(const char*, char** var);
     char* saveStringLiteralReturn(const char*);
+    char* createDummyName(const char* prefix);
 
 #ifdef	__cplusplus
 }

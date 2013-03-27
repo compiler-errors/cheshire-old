@@ -21,7 +21,6 @@ static NamedObjects namedObjects;
 static LambdaTypes lambdaTypes;
 static ObjectNamings objectNamings;
 KeyedLambdas keyedLambdas; //externalized for TypeCheckNodes.cpp, todo: find another way to do this: It's ugly.
-static MethodMappings methodMappings;
 static TypeKey typeKeys = 0;
 //////////////////////////////////////////
 
@@ -82,20 +81,22 @@ void freeTypeSystem() {
     lambdaTypes.clear();
     objectNamings.clear();
     keyedLambdas.clear();
-    methodMappings.clear();
     typeKeys = 0;
 }
 
 CheshireScope* allocateCheshireScope() {
     CheshireScope* scope = new CheshireScope;
     scope->highestScope = NULL;
+    raiseScope(scope);
     return scope;
 }
 
 void deleteCheshireScope(CheshireScope* scope) {
+    fallScope(scope);
+    
     if (scope->highestScope != NULL)
         PANIC("Scope tracking has not exited from a higher scope!"); //todo: weird wording.
-
+    
     delete scope;
 }
 
@@ -121,21 +122,6 @@ void setExpectedMethodType(CheshireScope* scope, CheshireType type) {
 
 CheshireType getExpectedMethodType(CheshireScope* scope) {
     return scope->expectedType;
-}
-
-CheshireType getMethodSignature(CheshireScope* scope, const char* name) {
-    if (methodMappings.find(name) == methodMappings.end())
-        PANIC("No such method as %s", name);
-
-    return methodMappings[name];
-}
-
-void addMethodDeclaration(CheshireScope* scope, const char* name, CheshireType returnType, struct tagParameterList* params) {
-    if (methodMappings.find(name) != methodMappings.end())
-        PANIC("Redeclaration of method %s!", name);
-
-    getLambdaType(returnType, params); //todo: this method isn't pretty, but I need to make sure the lambda is a type.
-    methodMappings[name] = getLambdaType(returnType, params);
 }
 
 CheshireType getVariableType(CheshireScope* scope, const char* name) {
@@ -165,7 +151,7 @@ Boolean isTypeName(const char* str) {
 }
 
 CheshireType getNamedType(const char* str, Boolean isUnsafe) {
-    CheshireType ret;
+    CheshireType ret = {0, FALSE, 0};
 
     if (isTypeName(str)) {
         ret.typeKey = namedObjects[str];

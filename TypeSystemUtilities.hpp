@@ -100,7 +100,6 @@ typedef std::unordered_map<const char*, TypeKey, CStrHash, CStrEql> NamedObjects
 typedef std::unordered_map<LambdaType, CheshireType, LambdaHash, LambdaEql> LambdaTypes;
 typedef std::unordered_map<TypeKey, const char*> ObjectNamings;
 typedef std::unordered_map<CheshireType, LambdaType, CheshireTypeHash, CheshireTypeEql> KeyedLambdas; //todo: name?
-typedef std::unordered_map<const char*, CheshireType, CStrHash, CStrEql> MethodMappings;
 
 class CStrHash {
 public:

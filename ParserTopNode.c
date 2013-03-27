@@ -42,6 +42,31 @@ ParserTopNode* createMethodDefinition(CheshireType type, char* functionName, Par
     return node;
 }
 
+ParserTopNode* createGlobalVariableDeclaration(CheshireType type, char* name) {
+    ParserTopNode* node = allocParserTopNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = PRT_VARIABLE_DECLARATION;
+    node->variable.type = type;
+    node->variable.name = name;
+    return node;
+}
+
+ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name, ExpressionNode* value) {
+    ParserTopNode* node = allocParserTopNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = PRT_VARIABLE_DEFINITION;
+    node->variable.type = type;
+    node->variable.name = name;
+    node->variable.value = value;
+    return node;
+}
+
 void deleteParserTopNode(ParserTopNode* node) {
     switch (node->type) {
         case PRT_NONE:
@@ -55,6 +80,13 @@ void deleteParserTopNode(ParserTopNode* node) {
             free(node->method.functionName); //don't forget to free all of the ParserTopNode(s) -AFTER- code has been emitted from all of the things that depend on it.
             deleteBlockList(node->method.body);
             deleteParameterList(node->method.params);
+            break;
+        case PRT_VARIABLE_DECLARATION:
+            free(node->variable.name);
+            break;
+        case PRT_VARIABLE_DEFINITION:
+            free(node->variable.name);
+            deleteExpressionNode(node->variable.value);
             break;
     }
 

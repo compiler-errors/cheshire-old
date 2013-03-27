@@ -8,6 +8,7 @@
 
 #include "Structures.h"
 #include "TypeSystem.h"
+#include "SyntaxTreeUtil.h"
 #include <cmath>
 #include <climits>
 
@@ -26,10 +27,9 @@ using std::floor;
         } else if (isObjectType(ltype) && isObjectType(rtype)) { \
             if (equalTypes(TYPE_NULL, rtype)) { \
                 WIDEN_NODE(ltype, TYPE_NULL, node); \
-                /* The null type can be converted to any object type. */ \
-            } else if (ltype.isUnsafe ^ rtype.isUnsafe) { \
+            } else if (isUnsafe(ltype) ^ isUnsafe(rtype)) { \
                 PANIC("Mixing safe and unsafe references!"); \
-            } else { \
+            } else if (isUnsafe(ltype) /*rtype must be unsafe too...*/) { \
                 /* todo: make sure ltype >= rtype (up-cast), AND NULL CASE! */ \
             } \
         } else \
@@ -46,11 +46,11 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             PANIC("Type system received PRT_NONE.");
             break;
         case PRT_METHOD_DECLARATION:
-            addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
+            defineVariable(scope, node->method.functionName, getLambdaType(node->method.type, node->method.params));
             break;
         case PRT_METHOD_DEFINITION:
             setExpectedMethodType(scope, node->method.type);
-            addMethodDeclaration(scope, node->method.functionName, node->method.type, node->method.params);
+            defineVariable(scope, node->method.functionName, getLambdaType(node->method.type, node->method.params));
             raiseScope(scope);
 
             for (ParameterList* p = node->method.params; p != NULL; p = p->next)
@@ -58,6 +58,14 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
 
             typeCheckBlockList(scope, node->method.body);
             fallScope(scope);
+            break;
+        case PRT_VARIABLE_DECLARATION:
+            defineVariable(scope, node->variable.name, node->variable.type);
+            break;
+        case PRT_VARIABLE_DEFINITION:
+            CheshireType givenType = typeCheckExpressionNode(scope, node->variable.value);
+            STORE_EXPRESSION_INTO_LVAL(givenType, node->variable.type, node->variable.value, "global variable");
+            defineVariable(scope, node->variable.name, node->variable.type);
             break;
     }
 }
@@ -178,27 +186,9 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         }
         case OP_METHOD_CALL: {
             ExpressionList* expressions = node->methodcall.params;
-            LambdaType method_signature = keyedLambdas[getMethodSignature(scope, node->methodcall.fn_name)];
-            unsigned int index = 0;
-
-            for (ExpressionList* paramNode = expressions; paramNode != NULL; paramNode = paramNode->next, index++) {
-                ERROR_IF(index >= method_signature.second.size(), "Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", method_signature.second.size(), index);
-                CheshireType parameterExpectedType = method_signature.second[index];
-                CheshireType parameterGivenType = typeCheckExpressionNode(scope, paramNode->parameter);
-                STORE_EXPRESSION_INTO_LVAL(parameterExpectedType, parameterGivenType, paramNode->parameter, "parameter");
-            }
-
-            ERROR_IF(index != method_signature.second.size(), "Not enough parameters for method call!");
-            return method_signature.first;
-        }
-        case OP_CALLBACK_CALL: {
-            ExpressionList* expressions = node->callbackcall.params;
-            CheshireType callbackType = typeCheckExpressionNode(scope, node->callbackcall.callback);
-
-            if (!isLambdaType(callbackType) || getArrayNesting(callbackType) != 0)
-                PANIC("Type is not invocable!");
-
-            LambdaType method_signature = keyedLambdas[callbackType];
+            CheshireType functionType = getVariableType(scope, node->methodcall.fn_name);
+            ERROR_IF(!isLambdaType(functionType), "Type is not invocable!");
+            LambdaType method_signature = keyedLambdas[functionType];
             unsigned int index = 0;
 
             for (ExpressionList* paramNode = expressions; paramNode != NULL; paramNode = paramNode->next, index++) {
@@ -283,14 +273,19 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_VARIABLE_DEF: {
             CheshireType expectedType = node->varDefinition.type;
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
             defineVariable(scope, node->varDefinition.variable, expectedType);
+            STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
         }
         break;
         case S_INFER_DEF: {
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            node->varDefinition.type = givenType; //"infer" the type of the variable.
             defineVariable(scope, node->varDefinition.variable, givenType);
+            node->varDefinition.type = givenType; //"infer" the type of the variable.
+            printf("Inferred ");
+            printCheshireType(givenType);
+            printf(" for expression: ");
+            printExpression(node->varDefinition.value);
+            printf("\n");
         }
         break;
         case S_EXPRESSION: {
