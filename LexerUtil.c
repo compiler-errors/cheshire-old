@@ -26,7 +26,7 @@ void determineReservedLiteral(const char* string, ReservedLiteral* var) {
 }
 
 void determineOpType(const char* string, OperationType* var) {
-    switch(string[0]) {
+    switch (string[0]) {
         case 'a':
             *var = OP_AND;
             break;
@@ -52,34 +52,44 @@ void determineOpType(const char* string, OperationType* var) {
             *var = OP_NOT_EQUALS;
             break;
         case '>':
+
             if (string[1] == '=')
                 *var = OP_GRE_EQUALS;
             else
                 *var = OP_GREATER;
+
             break;
         case '<':
+
             if (string[1] == '=')
                 *var = OP_LES_EQUALS;
             else
                 *var = OP_LESS;
+
             break;
         case '=':
+
             if (string[1] == '=')
                 *var = OP_EQUALS;
             else
                 *var = OP_SET;
+
             break;
         case '+':
+
             if (string[1] == '+')
                 *var = OP_PLUSONE;
             else
                 *var = OP_PLUS;
+
             break;
         case '-':
+
             if (string[1] == '-')
                 *var = OP_MINUSONE;
             else
                 *var = OP_MINUS;
+
             break;
     }
 }

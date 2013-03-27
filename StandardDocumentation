@@ -14,34 +14,4 @@ There are 5 reserved types in Cheshire
     - Object is a supertype of all classes, and the understood parent class of all uninheriting classes.
     (Null is a literal with is automatically understood to be downcast-able to any type.)
 
-Classes:
-Classes are an underlying concept in Cheshire. 
-Due to the dual nature of Cheshire, designed for higher and lower-level programming, they are defined in two types:
-    - Managed memory, handled by an internal Garbage Collector, allocated by operator "new"
-    - Unmanaged memory, allocated and deleted through specific operators (new^, delete^ -- or new ^, delete ^)
-    - These pointers are NOT mix-able. Functions must be redefined to handle either of the two types.
-
-Global Variables:
-Variables can be defined as module-global with the syntax:
-        global TYPE NAME = DEFAULT_VALUE.
-(ex.)   global Int number = 100.
-
-Assertations:
-Assertations can be used in Chesire, and are of the forms:
-    assert VALUE.
-    assert VALUE then CALLBACK.
-where CALLBACK is a function of type T::(void), where T is any type, or simply void::(void).
-
-Pass keyword -- used as another name for the blank block: "{ }"
-
-sizeof and cast<T>:
-sizeof is used to determine the size of any class, or any GC-allocated piece of memory.
-    - sizeof<T>, where T is any class -- NOT T^.
-    - sizeof o, where o is any object that is not unmanaged (T^).
-    - sizeof returns type Int.
-definition of cast<T>(o), where T is a type to cast to, T(O) is the type of original object:
-    - reinterpretation: T is unmanaged and T(o) is also unmanaged, thus type-agnostic.
-    - upcast: T extends T(o), no modification. (like "cast<superclass>(subclass)")
-    - downcast: T(o) *must extend* T or else compiler error -- then it checks at runtime for proper downcast.
-
--- TODO: finish me! --
+TODO: finish me!
