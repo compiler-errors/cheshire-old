@@ -6,6 +6,21 @@
 
 int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg);
 
+static int dummyIncrement = 0;
+/* come up with an arbitrary "dummy name", such as __dummy_param_1 or __var_2 that should be unique across the file. */
+char* createDummyName(const char* prefix) {
+    int dummyID = dummyIncrement++;
+    char temp[100];
+    sprintf(temp, "__%s_%d", prefix, dummyID);
+    temp[99] = '\0';
+
+    int stringlen = strlen(temp);
+    char* cpystring = malloc(sizeof(char) * (stringlen+1));
+    memcpy(cpystring, temp, stringlen);
+    cpystring[stringlen] = '\0';
+    return cpystring;
+}
+
 %}
 
 %code requires {
@@ -43,7 +58,7 @@ typedef void* yyscan_t;
 }
 
 %token TOK_ASSERT
-%token TOK_GLOBAL_VARIABLE
+%token TOK_GLOBAL
 %token TOK_CLASS
 %token TOK_INHERITS
 %token TOK_DEFINE_FUNCTION
@@ -63,8 +78,8 @@ typedef void* yyscan_t;
 %token TOK_RSQUARE
 %token TOK_COMMA
 %token TOK_HAT
+%token TOK_EXTERNAL
 %token TOK_PASS
-%token TOK_LAMBDA_PARAMS
 %token TOK_COLON
 %token TOK_SET
 %token TOK_INSTANCEOF
@@ -121,8 +136,10 @@ typedef void* yyscan_t;
 %%
 
 input
-    : TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $2 , $3 , $4 ); YYACCEPT; }
+    : TOK_EXTERNAL TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $3 , $4 , $5 ); YYACCEPT; }
     | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
+    | TOK_EXTERNAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDeclaration( $2 , $3 ); }
+    | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); }
 /*    | TOK_CLASS TOK_IDENTIFIER class_list  { *output = createClassDefinition( $2 , $3 , TYPE_OBJECT ); } */
     ;
 
@@ -137,7 +154,9 @@ parameter_list
     ;
 
 parameter_list_contains
-    : typename TOK_IDENTIFIER  { $$ = linkParameterList( $1 , $2 , NULL ); }
+    : typename  { $$ = linkParameterList( $1 , createDummyName("param") , NULL ); }
+    | typename TOK_IDENTIFIER  { $$ = linkParameterList( $1 , $2 , NULL ); }
+    | typename TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , createDummyName("param") , $3 ); }
     | typename TOK_IDENTIFIER TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , $2 , $4 ); }
     ;
 
@@ -208,7 +227,6 @@ expression_statement
     | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( $1 , $2 ); }
     | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
     | expression TOK_COLON TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
-    | expression TOK_COLON expression_list  { $$ = createCallbackCall( $1 , $3 ); }
     ;
 
 expression_list
@@ -223,7 +241,7 @@ expression_list_contains
 
 typename
     : TOK_TYPE  { $$ = $1 ; }
-    | typename TOK_LAMBDA_PARAMS parameter_list  { $$ = getLambdaType( $1 , $3 ); deleteParameterList( $3 ); }
+    | typename TOK_COLON parameter_list  { $$ = getLambdaType( $1 , $3 ); deleteParameterList( $3 ); }
     | typename TOK_HAT  {  if ( $1.arrayNesting > 0 )
                                PANIC("Cannot apply ^ to an array typename!");
                            if ( $1.isUnsafe ) 
