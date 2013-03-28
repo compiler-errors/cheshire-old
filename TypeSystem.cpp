@@ -19,9 +19,9 @@
 static Boolean isInitialized = FALSE;
 static NamedObjects namedObjects;
 static LambdaTypes lambdaTypes;
-static ObjectNamings objectNamings;
-KeyedLambdas keyedLambdas; //externalized for TypeCheckNodes.cpp, todo: find another way to do this: It's ugly.
 static TypeKey typeKeys = 0;
+ObjectMapping objectMapping;
+KeyedLambdas keyedLambdas;
 //////////////////////////////////////////
 
 static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* parameters) {
@@ -59,13 +59,13 @@ void initTypeSystem() {
         saveIdentifier("Object", &string); //type 5
         namedObjects[string] = typeID;
         printf("Initializing type '%s' with key %d\n", string, typeID);
-        objectNamings[typeID] = string;
+        objectMapping[typeID] = NULL;
         //string
         typeID = typeKeys++;
         saveIdentifier("String", &string); //type 6
         namedObjects[string] = typeID;
         printf("Initializing type '%s' with key %d\n", string, typeID);
-        objectNamings[typeID] = string;
+        objectMapping[typeID] = NULL;
     }
 
     isInitialized = TRUE;
@@ -79,7 +79,7 @@ void freeTypeSystem() {
 
     namedObjects.clear();
     lambdaTypes.clear();
-    objectNamings.clear();
+    objectMapping.clear();
     keyedLambdas.clear();
     typeKeys = 0;
 }
@@ -146,24 +146,26 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
     scope->highestScope->variables[name] = type;
 }
 
+int defineClass(const char* name, ClassList* classlist, CheshireType parent) {
+    if (namedObjects.find(name) != namedObjects.end())
+        PANIC("Cannot re-define class of name: %s", name);
+    int typeID = typeKeys++;
+    namedObjects[name] = typeID;
+    objectMapping[typeID] = classlist;
+    //objectAncestry[classlist] = parent; todo: ancestry
+    return typeID;
+}
+
 Boolean isTypeName(const char* str) {
     return (Boolean)(namedObjects.find(str) != namedObjects.end());
 }
 
 CheshireType getNamedType(const char* str, Boolean isUnsafe) {
     CheshireType ret = {0, FALSE, 0};
-
-    if (isTypeName(str)) {
-        ret.typeKey = namedObjects[str];
-    } else {
-        //otherwise, make it into a new type.
-        char* string_copy;
-        TypeKey typeID = typeKeys++;
-        saveIdentifier(str, &string_copy);
-        namedObjects[string_copy] = typeID;
-        objectNamings[typeID] = string_copy;
-        ret.typeKey = typeID;
-    }
+    
+    ERROR_IF(!isTypeName(str), "No such named type as %s", str);
+    
+    ret.typeKey = namedObjects[str];
 
     if (isUnsafe && !isObjectType(ret)) {
         printf("Error in type: \"");
@@ -253,13 +255,13 @@ CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
 }
 
 Boolean isObjectType(CheshireType t) {
-    if (t.arrayNesting != 0)
-        return FALSE;
+    //if (t.arrayNesting != 0)
+    //    return FALSE;
 
     if (t.typeKey == -2) //if null
         return TRUE;
 
-    return (Boolean)(objectNamings.find(t.typeKey) != objectNamings.end());
+    return (Boolean)(objectMapping.find(t.typeKey) != objectMapping.end());
 }
 
 Boolean isLambdaType(CheshireType t) {
@@ -289,8 +291,10 @@ void printCheshireType(CheshireType node) {
     } else if (isObjectType(raw)) {
         if (raw.typeKey == -2)
             printf("NULL_TYPE");
-        else
-            printf("%s%s", objectNamings[t], node.isUnsafe ? "^" : "");
+        else {
+            //todo: implement me!
+            //printf("%s%s", objectMapping[t], node.isUnsafe ? "^" : "");
+        }
     } else {
         //literal type.
         switch (t) {

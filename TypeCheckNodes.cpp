@@ -38,6 +38,7 @@ using std::floor;
 
 //////////////// STATICS /////////////////
 extern KeyedLambdas keyedLambdas;
+extern ObjectMapping objectMapping;
 //////////////////////////////////////////
 
 void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
@@ -62,11 +63,25 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
         case PRT_VARIABLE_DECLARATION:
             defineVariable(scope, node->variable.name, node->variable.type);
             break;
-        case PRT_VARIABLE_DEFINITION:
+        case PRT_VARIABLE_DEFINITION: {
             CheshireType givenType = typeCheckExpressionNode(scope, node->variable.value);
-            STORE_EXPRESSION_INTO_LVAL(givenType, node->variable.type, node->variable.value, "global variable");
+            STORE_EXPRESSION_INTO_LVAL(node->variable.type, givenType, node->variable.value, "global variable");
             defineVariable(scope, node->variable.name, node->variable.type);
-            break;
+        }
+        break;
+        case PRT_CLASS_DEFINITION: {
+            ERROR_IF(!isObjectType(node->classdef.parent) && !isUnsafe(node->classdef.parent), "Invalid parent type of class %s", node->classdef.name);
+            int typekey = defineClass(node->classdef.name, node->classdef.classlist, node->classdef.parent);
+            CStrEql streql;
+            for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
+                for (ClassList* next = c->next; next != NULL; next = next->next)
+                    if (streql(c->name, next->name))
+                        PANIC("Redeclaration of variable %s", c->name);
+                if (c->type.typeKey == 0)
+                    PANIC("Cannot have type void!");
+            }
+        }
+        break;
     }
 }
 
@@ -238,7 +253,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 PANIC("Impossible to instantate a non-object type!");
 
             object.isUnsafe = FALSE;
-            //todo: implement later w/ classes, check params
             return object;
         }
         case OP_NEW_HEAP: {
@@ -248,18 +262,36 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 PANIC("Impossible to instantate a non-object type!");
 
             object.isUnsafe = TRUE;
-            //todo: implement later w/ classes, check params
             return object;
         }
-        case OP_OBJECT_CALL:
-            //todo: implement later w/ classes.
-            break;
+        case OP_CLOSURE: {
+            CheshireType currentExpectedType = getExpectedMethodType(scope);
+            setExpectedMethodType(scope, node->closure.type);
+            raiseScope(scope);
+            
+            for (ParameterList* p = node->closure.params; p != NULL; p = p->next)
+                defineVariable(scope, p->name, p->type);
+            
+            typeCheckBlockList(scope, node->closure.body);
+            fallScope(scope);
+            setExpectedMethodType(scope, currentExpectedType);
+            return getLambdaType(node->closure.type, node->closure.params);
+        }
         case OP_ACCESS:
-            //todo: implement later w/ classes
-            break;
-        case OP_SELF:
-            //todo: implement later w/ classes. store self type in scope obj?
-            break;
+            CheshireType childType = typeCheckExpressionNode(scope, node->access.expression);
+            ERROR_IF(!isObjectType(childType), "Cannot dereference a non-object type!");
+            CStrEql streql;
+            CheshireType ret = TYPE_VOID;
+            
+            for (ClassList* i = objectMapping[childType.typeKey]; i != NULL; i = i->next) {
+                if (streql(i->name, node->access.variable))
+                    ret = i->type;
+            }
+            
+            if (equalTypes(ret, TYPE_VOID))
+                PANIC("Could not find variable %s", node->access.variable);
+            
+            return ret;
     }
 
     return TYPE_VOID;

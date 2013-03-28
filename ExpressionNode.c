@@ -15,16 +15,6 @@ static ExpressionNode* allocExpressionNode(void) {
     return node;
 }
 
-ExpressionNode* createSelfNode(void) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_SELF;
-    return node;
-}
-
 ExpressionNode* createUnaryOperation(OperationType optype, ExpressionNode* child) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -111,7 +101,7 @@ ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType typ
     return node;
 }
 
-ExpressionNode* createInstantiationOperation(InstantiationType itype, CheshireType type, ExpressionList* params) {
+ExpressionNode* createInstantiationOperation(InstantiationType itype, CheshireType type) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
@@ -123,7 +113,6 @@ ExpressionNode* createInstantiationOperation(InstantiationType itype, CheshireTy
         node->type = OP_NEW_HEAP;
     
     node->instantiate.type = type;
-    node->instantiate.params = params;
     return node;
 }
 
@@ -148,19 +137,6 @@ ExpressionNode* createMethodCall(char* fn_name, ExpressionList* params) {
     node->type = OP_METHOD_CALL;
     node->methodcall.fn_name = fn_name;
     node->methodcall.params = params;
-    return node;
-}
-
-ExpressionNode* createObjectCall(ExpressionNode* object, char* fn_name, ExpressionList* params) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_OBJECT_CALL;
-    node->objectcall.object = object;
-    node->objectcall.fn_name = fn_name;
-    node->objectcall.params = params;
     return node;
 }
 
@@ -205,6 +181,19 @@ ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
     
     node->type = OP_DEREFERENCE;
     node->unaryChild = expression;
+    return node;
+}
+
+ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, BlockList* body) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_CLOSURE;
+    node->closure.type = type;
+    node->closure.params = params;
+    node->closure.body = body;
     return node;
 }
 
@@ -257,21 +246,17 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_CAST:
             deleteExpressionNode(node->cast.child);
             break;
-        case OP_NEW_GC:
-        case OP_NEW_HEAP:
-            deleteExpressionList(node->instantiate.params);
-            break;
         case OP_METHOD_CALL:
             free(node->methodcall.fn_name);
             deleteExpressionList(node->methodcall.params);
             break;
-        case OP_OBJECT_CALL:
-            free(node->objectcall.fn_name);
-            deleteExpressionNode(node->objectcall.object);
-            deleteExpressionList(node->objectcall.params);
+        case OP_CLOSURE:
+            deleteParameterList(node->closure.params);
+            deleteBlockList(node->closure.body);
             break;
+        case OP_NEW_GC:
+        case OP_NEW_HEAP:
         case OP_NUMBER:
-        case OP_SELF:
         case OP_RESERVED_LITERAL:
             //DEFAULT, NO OPERATION
             break;

@@ -153,9 +153,6 @@ void printExpression(ExpressionNode* node) {
             printExpression(node->access.expression);
             printf(":%s)", node->access.variable);
             break;
-        case OP_SELF:
-            printf("(self)");
-            break;
         case OP_INSTANCEOF:
             printf("(");
             printExpression(node->instanceof.expression);
@@ -183,7 +180,6 @@ void printExpression(ExpressionNode* node) {
             CheshireType t = node->instantiate.type;
             printf("(new ");
             printCheshireType(t);
-            printParameterList(node->instantiate.params);
             printf(")");
             break;
         }
@@ -191,20 +187,12 @@ void printExpression(ExpressionNode* node) {
             CheshireType t = node->instantiate.type;
             printf("(new^ ");
             printCheshireType(t);
-            printParameterList(node->instantiate.params);
             printf(")");
             break;
         }
         case OP_METHOD_CALL:
             printf("(%s", node->methodcall.fn_name);
             printParameterList(node->methodcall.params);
-            printf(")");
-            break;
-        case OP_OBJECT_CALL:
-            printf("(");
-            printExpression(node->objectcall.object);
-            printf(":%s", node->objectcall.fn_name);
-            printParameterList(node->objectcall.params);
             printf(")");
             break;
         case OP_RESERVED_LITERAL:
@@ -232,6 +220,9 @@ void printExpression(ExpressionNode* node) {
             printf("]");
             printf(")");
             break;
+        case OP_CLOSURE:
+            printf("<CLOSURE>");
+            break; //todo, really implement me...
     }
 }
 

@@ -29,6 +29,7 @@ extern "C" {
     CheshireType getExpectedMethodType(CheshireScope*);
     CheshireType getVariableType(CheshireScope*, const char* name);
     void defineVariable(CheshireScope*, const char* name, CheshireType type);
+    int defineClass(const char* name, ClassList*, CheshireType parent);
 
     Boolean isTypeName(const char*);
     CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);

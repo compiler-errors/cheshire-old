@@ -15,10 +15,18 @@
 extern "C" {
 #endif
 
-    typedef enum { PRT_NONE, PRT_METHOD_DECLARATION, PRT_METHOD_DEFINITION, PRT_VARIABLE_DECLARATION, PRT_VARIABLE_DEFINITION } ParserReturnType;
+    typedef enum { 
+        PRT_NONE, 
+        PRT_METHOD_DECLARATION,
+        PRT_METHOD_DEFINITION,
+        PRT_VARIABLE_DECLARATION,
+        PRT_VARIABLE_DEFINITION,
+        PRT_CLASS_DEFINITION
+    } ParserReturnType;
     typedef enum { RL_TRUE, RL_FALSE, RL_NULL } ReservedLiteral;
     typedef enum { IT_GC, IT_HEAP } InstantiationType;
     typedef enum { FALSE = 0, TRUE = 1 } Boolean;
+    typedef enum { CLT_METHOD, CLT_VARIABLE } ClassListType;
 
     typedef enum {
         OP_NOP,             //placeholder type -- not used - hopefully - anywhere.
@@ -42,7 +50,6 @@ extern "C" {
         OP_DIV,
         OP_MOD,
         OP_SET,
-        OP_SELF,
         OP_INSTANCEOF,
         OP_VARIABLE,
         OP_NUMBER,
@@ -51,11 +58,11 @@ extern "C" {
         OP_NEW_HEAP,
         OP_ACCESS,
         OP_METHOD_CALL,
-        OP_OBJECT_CALL,
         OP_RESERVED_LITERAL,
         OP_ARRAY_ACCESS,
         OP_STRING,
-        OP_LENGTH
+        OP_LENGTH,
+        OP_CLOSURE
     } OperationType;
 
     typedef enum {

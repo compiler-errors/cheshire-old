@@ -55,6 +55,7 @@ typedef void* yyscan_t;
     CheshireType cheshire_type;
     struct tagStatementNode* statement;
     struct tagBlockList* block_list;
+    struct tagClassList* class_list;
 }
 
 %token TOK_ASSERT
@@ -124,13 +125,16 @@ typedef void* yyscan_t;
 %type <expression> expression_statement
 %type <statement> statement
 %type <statement> statement_or_pass
-%type <block_list> block_or_pass
 %type <block_list> block
 %type <block_list> block_contains
+%type <block_list> block_or_pass
 %type <expression_list> expression_list
 %type <expression_list> expression_list_contains
 %type <parameter_list> parameter_list
 %type <parameter_list> parameter_list_contains
+%type <class_list> class_list
+%type <class_list> class_list_contains
+%type <class_list> class_list_or_pass
 %type <cheshire_type> typename
 
 %%
@@ -138,15 +142,25 @@ typedef void* yyscan_t;
 input
     : TOK_EXTERNAL TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $3 , $4 , $5 ); YYACCEPT; }
     | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
-    | TOK_EXTERNAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDeclaration( $2 , $3 ); }
-    | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); }
-/*    | TOK_CLASS TOK_IDENTIFIER class_list  { *output = createClassDefinition( $2 , $3 , TYPE_OBJECT ); } */
+    | TOK_EXTERNAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDeclaration( $2 , $3 ); YYACCEPT; }
+    | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); YYACCEPT; }
+    | TOK_CLASS TOK_IDENTIFIER class_list_or_pass  { CheshireType object = getNamedType("Object", FALSE); *output = createClassDefinition( $2 , $3 , object ); YYACCEPT; }
+    | TOK_CLASS TOK_IDENTIFIER TOK_INHERITS typename class_list_or_pass  { *output = createClassDefinition( $2 , $5 , $4 ); YYACCEPT; }
     ;
 
-/*
+class_list_or_pass
+    : TOK_PASS  { $$ = NULL; }
+    | class_list  { $$ = $1; }
+    ;
+
 class_list
-    : 
-*/
+    : TOK_LBRACE class_list_contains  { $$ = $2; }
+    ;
+
+class_list_contains
+    : typename TOK_IDENTIFIER TOK_LN class_list_contains  { $$ = linkClassList( $1 , $2 , $4 ); }
+    | TOK_RBRACE  { $$ = NULL; }
+    ;
 
 parameter_list
     : TOK_LPAREN parameter_list_contains TOK_RPAREN  { $$ = $2 ; }
@@ -200,7 +214,6 @@ expression
     | TOK_STRING  { $$ = createStringNode( $1 ); }
     | TOK_LPAREN expression TOK_RPAREN { $$ = $2 ; }
     | TOK_NUMBER  { $$ = createNumberNode( $1 ); }
-    | TOK_SELF  { $$ = createSelfNode(); }
     | TOK_NOT expression  { $$ = createUnaryOperation( $1 , $2 ); }
     | TOK_ADDSUB expression  %prec P_UMINUS { $$ = createUnaryOperation( $1 , $2 ); }
     | expression TOK_COMPARE expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
@@ -211,9 +224,10 @@ expression
     | expression TOK_MULTDIV expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
     | TOK_CAST TOK_LSQUARE typename TOK_RSQUARE expression %prec P_CAST  { $$ = createCastOperation( $5 , $3 ); }
-    | TOK_NEW TOK_TYPE expression_list   { $$ = createInstantiationOperation( IT_GC , $2 , $3 ); }
-    | TOK_NEW_HEAP TOK_TYPE expression_list  { $$ = createInstantiationOperation( IT_HEAP , $2 , $3 ); }
+    | TOK_NEW TOK_TYPE  { $$ = createInstantiationOperation( IT_GC , $2 ); }
+    | TOK_NEW_HEAP TOK_TYPE  { $$ = createInstantiationOperation( IT_HEAP , $2 ); }
     | TOK_LEN expression  { $$ = createLengthOperation( $2 ); }
+    | TOK_DEFINE_FUNCTION typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $5 ); }
     ;
 
 lval_expression
@@ -226,7 +240,6 @@ expression_statement
     : lval_expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
     | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( $1 , $2 ); }
     | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
-    | expression TOK_COLON TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
     ;
 
 expression_list

@@ -24,18 +24,25 @@ extern "C" {
 // -------------------------------------------- //
 
     struct tagParserTopNode;
+    struct tagClassList;
     struct tagParameterList;
     struct tagExpressionNode;
     struct tagExpressionList;
     struct tagStatementNode;
     struct tagBlockList;
     
+    typedef struct tagClassList {
+        struct tagClassList* next;
+        CheshireType type;
+        char* name;
+    } ClassList;
+    
     typedef struct tagParserTopNode {
         ParserReturnType type;
         union {
             struct {
                 char* functionName;
-                struct tagCheshireType type;
+                CheshireType type;
                 struct tagParameterList* params;
                 struct tagBlockList* body;
             } method;
@@ -46,12 +53,16 @@ extern "C" {
                 struct tagExpressionNode* value;
             } variable;
             
-            //todo: also classes!
+            struct {
+                char* name;
+                struct tagClassList* classlist;
+                CheshireType parent;
+            } classdef;
         };
     } ParserTopNode;
 
     typedef struct tagParameterList {
-        struct tagCheshireType type;
+        CheshireType type;
         char* name;
         struct tagParameterList* next;
     } ParameterList;
@@ -66,7 +77,7 @@ extern "C" {
             } binary;
             struct tagExpressionNode* unaryChild;
             char* string;
-            struct tagCheshireType typeNode;
+            CheshireType typeNode;
             ReservedLiteral reserved;
             /* simple types above */
             struct {
@@ -76,29 +87,28 @@ extern "C" {
 
             struct {
                 struct tagExpressionNode* expression;
-                struct tagCheshireType type;
+                CheshireType type;
             } instanceof;
 
             struct {
                 struct tagExpressionNode* child;
-                struct tagCheshireType type;
+                CheshireType type;
             } cast;
 
             struct {
                 CheshireType type;
-                struct tagExpressionList* params;
             } instantiate;
 
             struct {
                 char* fn_name;
                 struct tagExpressionList* params;
             } methodcall;
-
+            
             struct {
-                struct tagExpressionNode* object;
-                char* fn_name;
-                struct tagExpressionList* params;
-            } objectcall;
+                CheshireType type;
+                struct tagParameterList* params;
+                struct tagBlockList* body;
+            } closure;
         };
     } ExpressionNode;
 
@@ -118,7 +128,7 @@ extern "C" {
                 struct tagStatementNode* elseBlock;
             } conditional;
             struct {
-                struct tagCheshireType type;
+                CheshireType type;
                 char* variable;
                 struct tagExpressionNode* value;
             } varDefinition;
@@ -137,6 +147,7 @@ extern "C" {
     void deleteBlockList(BlockList*);
     void deleteParserTopNode(ParserTopNode*);
     void deleteParameterList(ParameterList*);
+    void deleteClassList(ClassList*);
 
 #ifdef    __cplusplus
 }

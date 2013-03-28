@@ -67,6 +67,19 @@ ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name, Exp
     return node;
 }
 
+ParserTopNode* createClassDefinition(char* name, ClassList* classlist, CheshireType parent) {
+    ParserTopNode* node = allocParserTopNode();
+
+    if (node == NULL)
+        return NULL;
+    
+    node->type = PRT_CLASS_DEFINITION;
+    node->classdef.name = name;
+    node->classdef.classlist = classlist;
+    node->classdef.parent = parent;
+    return node;
+}
+
 void deleteParserTopNode(ParserTopNode* node) {
     switch (node->type) {
         case PRT_NONE:
@@ -87,6 +100,10 @@ void deleteParserTopNode(ParserTopNode* node) {
         case PRT_VARIABLE_DEFINITION:
             free(node->variable.name);
             deleteExpressionNode(node->variable.value);
+            break;
+        case PRT_CLASS_DEFINITION:
+            free(node->classdef.name);
+            deleteClassList(node->classdef.classlist);
             break;
     }
 
