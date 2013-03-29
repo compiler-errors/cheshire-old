@@ -30,13 +30,13 @@ extern "C" {
     struct tagExpressionList;
     struct tagStatementNode;
     struct tagBlockList;
-    
+
     typedef struct tagClassList {
         struct tagClassList* next;
         CheshireType type;
         char* name;
     } ClassList;
-    
+
     typedef struct tagParserTopNode {
         ParserReturnType type;
         union {
@@ -52,7 +52,7 @@ extern "C" {
                 char* name;
                 struct tagExpressionNode* value;
             } variable;
-            
+
             struct {
                 char* name;
                 struct tagClassList* classlist;
@@ -71,14 +71,20 @@ extern "C" {
         OperationType type;
         union {
             double numberValue;
+
             struct {
                 struct tagExpressionNode* left;
                 struct tagExpressionNode* right;
             } binary;
+
             struct tagExpressionNode* unaryChild;
+
             char* string;
+
             CheshireType typeNode;
+
             ReservedLiteral reserved;
+
             /* simple types above */
             struct {
                 struct tagExpressionNode* expression;
@@ -103,7 +109,7 @@ extern "C" {
                 char* fn_name;
                 struct tagExpressionList* params;
             } methodcall;
-            
+
             struct {
                 CheshireType type;
                 struct tagParameterList* params;

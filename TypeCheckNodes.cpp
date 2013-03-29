@@ -23,14 +23,17 @@ using std::floor;
     if (!equalTypes(ltype, rtype)) { \
         if (isNumericalType(ltype) && isNumericalType(rtype)) { \
             CheshireType widetype = getWidestNumericalType(ltype, rtype); \
+            ERROR_IF(!equalTypes(widetype, ltype), "Cannot store widened number into ltype!") \
             WIDEN_NODE(widetype, ltype, node); \
         } else if (isObjectType(ltype) && isObjectType(rtype)) { \
             if (equalTypes(TYPE_NULL, rtype)) { \
-                WIDEN_NODE(ltype, TYPE_NULL, node); \
+                WIDEN_NODE(ltype, rtype, node); \
             } else if (isUnsafe(ltype) ^ isUnsafe(rtype)) { \
                 PANIC("Mixing safe and unsafe references!"); \
-            } else if (isUnsafe(ltype) /*rtype must be unsafe too...*/) { \
-                /* todo: make sure ltype >= rtype (up-cast), AND NULL CASE! */ \
+            } else if (!isUnsafe(ltype) /*rtype must be unsafe too...*/) { \
+                if (!isSuper(ltype, rtype)) { \
+                    PANIC("Cannot store type into non-super-type!"); \
+                } \
             } \
         } else \
             PANIC("left and right types must be both numerical, object or the same exact type for %s", reason); \
@@ -46,12 +49,8 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
         case PRT_NONE:
             PANIC("Type system received PRT_NONE.");
             break;
-        case PRT_METHOD_DECLARATION:
-            defineVariable(scope, node->method.functionName, getLambdaType(node->method.type, node->method.params));
-            break;
         case PRT_METHOD_DEFINITION:
-            setExpectedMethodType(scope, node->method.type);
-            defineVariable(scope, node->method.functionName, getLambdaType(node->method.type, node->method.params));
+            setExpectedMethodType(node->method.type);
             raiseScope(scope);
 
             for (ParameterList* p = node->method.params; p != NULL; p = p->next)
@@ -59,24 +58,43 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
 
             typeCheckBlockList(scope, node->method.body);
             fallScope(scope);
-            break;
-        case PRT_VARIABLE_DECLARATION:
-            defineVariable(scope, node->variable.name, node->variable.type);
+            setExpectedMethodType(TYPE_VOID);
             break;
         case PRT_VARIABLE_DEFINITION: {
             CheshireType givenType = typeCheckExpressionNode(scope, node->variable.value);
             STORE_EXPRESSION_INTO_LVAL(node->variable.type, givenType, node->variable.value, "global variable");
-            defineVariable(scope, node->variable.name, node->variable.type);
         }
         break;
+        case PRT_CLASS_DEFINITION:
+        case PRT_METHOD_DECLARATION:
+        case PRT_VARIABLE_DECLARATION:
+            break;
+    }
+}
+
+void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
+    switch (node->type) {
+        case PRT_NONE:
+            PANIC("Type system received PRT_NONE.");
+            break;
+        case PRT_METHOD_DECLARATION:
+        case PRT_METHOD_DEFINITION:
+            defineVariable(scope, node->method.functionName, getLambdaType(node->method.type, node->method.params));
+            break;
+        case PRT_VARIABLE_DECLARATION:
+        case PRT_VARIABLE_DEFINITION:
+            defineVariable(scope, node->variable.name, node->variable.type);
+            break;
         case PRT_CLASS_DEFINITION: {
             ERROR_IF(!isObjectType(node->classdef.parent) && !isUnsafe(node->classdef.parent), "Invalid parent type of class %s", node->classdef.name);
             int typekey = defineClass(node->classdef.name, node->classdef.classlist, node->classdef.parent);
             CStrEql streql;
+
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 for (ClassList* next = c->next; next != NULL; next = next->next)
                     if (streql(c->name, next->name))
                         PANIC("Redeclaration of variable %s", c->name);
+
                 if (c->type.typeKey == 0)
                     PANIC("Cannot have type void!");
             }
@@ -128,8 +146,10 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                     WIDEN_NODE(widetype, left, node->binary.left);
                     WIDEN_NODE(widetype, right, node->binary.right);
                 } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
-                    ERROR_IF(isUnsafe(left) ^ isUnsafe(right), "Mixing safe and unsafe references!");
-                    //todo: make sure they are direct linege, AND NULL CASE!
+                    if (!equalTypes(left, TYPE_NULL) && !equalTypes(right, TYPE_NULL)) {
+                        ERROR_IF(!isSuper(left, right) && !isSuper(right, left), "Comparison must be in a super-subtype relationship.");
+                        ERROR_IF(isUnsafe(left) ^ isUnsafe(right), "Mixing safe and unsafe references!");
+                    }
                 } else
                     PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
             }
@@ -265,16 +285,16 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return object;
         }
         case OP_CLOSURE: {
-            CheshireType currentExpectedType = getExpectedMethodType(scope);
-            setExpectedMethodType(scope, node->closure.type);
+            CheshireType currentExpectedType = getExpectedMethodType();
+            setExpectedMethodType(node->closure.type);
             raiseScope(scope);
-            
+
             for (ParameterList* p = node->closure.params; p != NULL; p = p->next)
                 defineVariable(scope, p->name, p->type);
-            
+
             typeCheckBlockList(scope, node->closure.body);
             fallScope(scope);
-            setExpectedMethodType(scope, currentExpectedType);
+            setExpectedMethodType(currentExpectedType);
             return getLambdaType(node->closure.type, node->closure.params);
         }
         case OP_ACCESS:
@@ -282,15 +302,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             ERROR_IF(!isObjectType(childType), "Cannot dereference a non-object type!");
             CStrEql streql;
             CheshireType ret = TYPE_VOID;
-            
+
             for (ClassList* i = objectMapping[childType.typeKey]; i != NULL; i = i->next) {
                 if (streql(i->name, node->access.variable))
                     ret = i->type;
             }
-            
+
             if (equalTypes(ret, TYPE_VOID))
                 PANIC("Could not find variable %s", node->access.variable);
-            
+
             return ret;
     }
 
@@ -382,7 +402,7 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         break;
         case S_RETURN: {
             CheshireType type = typeCheckExpressionNode(scope, node->expression);
-            CheshireType expected = getExpectedMethodType(scope);
+            CheshireType expected = getExpectedMethodType();
 
             if (equalTypes(expected, TYPE_VOID)) {
                 if (!equalTypes(type, TYPE_NULL))

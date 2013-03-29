@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "TypeSystem.h"
 #include "SyntaxTreeUtil.h"
 
 void printExpression(ExpressionNode* node) {
@@ -221,8 +222,10 @@ void printExpression(ExpressionNode* node) {
             printf(")");
             break;
         case OP_CLOSURE:
-            printf("<CLOSURE>");
-            break; //todo, really implement me...
+            printf("(");
+            printCheshireType(getLambdaType(node->closure.type, node->closure.params));
+            printf(" <CLOSURE>)");
+            break;
     }
 }
 

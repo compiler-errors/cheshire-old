@@ -17,10 +17,10 @@ extern "C" {
 
 #include "ParserEnums.h"
 
-    void determineReservedLiteral(const char*, ReservedLiteral* var);
-    void determineOpType(const char*, OperationType* var);
-    void saveIdentifier(const char*, char** var);
-    void saveStringLiteral(const char*, char** var);
+    void determineReservedLiteral(const char*, ReservedLiteral* store);
+    void determineOpType(const char*, OperationType* store);
+    void saveIdentifier(const char*, char** store);
+    void saveStringLiteral(const char*, char** store);
     char* saveStringLiteralReturn(const char*);
     char* createDummyName(const char* prefix);
 

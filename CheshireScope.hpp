@@ -23,7 +23,6 @@ extern "C" {
     struct tagVariableScope;
 
     typedef struct tagCheshireScope {
-        CheshireType expectedType;
         struct tagVariableScope* highestScope;
     } CheshireScope;
 

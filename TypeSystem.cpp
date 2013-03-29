@@ -16,12 +16,17 @@
 #define insertBaseType(type) { typeID = typeKeys++; saveIdentifier(type, &string); namedObjects[string] = typeID; printf("Initializing type '%s' with key %d\n", string, typeID); }
 
 //////////////// STATICS /////////////////
-static Boolean isInitialized = FALSE;
 static NamedObjects namedObjects;
 static LambdaTypes lambdaTypes;
-static TypeKey typeKeys = 0;
 ObjectMapping objectMapping;
+static AncestryMap ancestryMap;
+static ClassNames classNames;
 KeyedLambdas keyedLambdas;
+
+static CheshireType expectedType = TYPE_VOID;
+
+static Boolean isInitialized = FALSE;
+static TypeKey typeKeys = 0;
 //////////////////////////////////////////
 
 static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* parameters) {
@@ -60,12 +65,16 @@ void initTypeSystem() {
         namedObjects[string] = typeID;
         printf("Initializing type '%s' with key %d\n", string, typeID);
         objectMapping[typeID] = NULL;
+        ancestryMap[typeID] = typeID;
+        classNames[typeID] = "Object";
         //string
         typeID = typeKeys++;
         saveIdentifier("String", &string); //type 6
         namedObjects[string] = typeID;
         printf("Initializing type '%s' with key %d\n", string, typeID);
         objectMapping[typeID] = NULL;
+        ancestryMap[typeID] = TYPE_OBJECT.typeKey;
+        classNames[typeID] = "String";
     }
 
     isInitialized = TRUE;
@@ -81,6 +90,8 @@ void freeTypeSystem() {
     lambdaTypes.clear();
     objectMapping.clear();
     keyedLambdas.clear();
+    ancestryMap.clear();
+    classNames.clear();
     typeKeys = 0;
 }
 
@@ -93,10 +104,10 @@ CheshireScope* allocateCheshireScope() {
 
 void deleteCheshireScope(CheshireScope* scope) {
     fallScope(scope);
-    
+
     if (scope->highestScope != NULL)
-        PANIC("Scope tracking has not exited from a higher scope!"); //todo: weird wording.
-    
+        PANIC("Scope tracking has not exited from a higher scope!");
+
     delete scope;
 }
 
@@ -116,12 +127,12 @@ void fallScope(CheshireScope* scope) {
     delete old;
 }
 
-void setExpectedMethodType(CheshireScope* scope, CheshireType type) {
-    scope->expectedType = type;
+void setExpectedMethodType(CheshireType type) {
+    expectedType = type;
 }
 
-CheshireType getExpectedMethodType(CheshireScope* scope) {
-    return scope->expectedType;
+CheshireType getExpectedMethodType() {
+    return expectedType;
 }
 
 CheshireType getVariableType(CheshireScope* scope, const char* name) {
@@ -149,10 +160,12 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
 int defineClass(const char* name, ClassList* classlist, CheshireType parent) {
     if (namedObjects.find(name) != namedObjects.end())
         PANIC("Cannot re-define class of name: %s", name);
+
     int typeID = typeKeys++;
     namedObjects[name] = typeID;
     objectMapping[typeID] = classlist;
-    //objectAncestry[classlist] = parent; todo: ancestry
+    ancestryMap[typeID] = parent.typeKey;
+    classNames[typeID] = name;
     return typeID;
 }
 
@@ -162,9 +175,7 @@ Boolean isTypeName(const char* str) {
 
 CheshireType getNamedType(const char* str, Boolean isUnsafe) {
     CheshireType ret = {0, FALSE, 0};
-    
     ERROR_IF(!isTypeName(str), "No such named type as %s", str);
-    
     ret.typeKey = namedObjects[str];
 
     if (isUnsafe && !isObjectType(ret)) {
@@ -257,7 +268,6 @@ CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
 Boolean isObjectType(CheshireType t) {
     //if (t.arrayNesting != 0)
     //    return FALSE;
-
     if (t.typeKey == -2) //if null
         return TRUE;
 
@@ -292,8 +302,7 @@ void printCheshireType(CheshireType node) {
         if (raw.typeKey == -2)
             printf("NULL_TYPE");
         else {
-            //todo: implement me!
-            //printf("%s%s", objectMapping[t], node.isUnsafe ? "^" : "");
+            printf("%s%s", classNames[t], node.isUnsafe ? "^" : "");
         }
     } else {
         //literal type.
@@ -324,5 +333,18 @@ void printCheshireType(CheshireType node) {
 }
 
 Boolean isSuper(CheshireType super, CheshireType sub) {
+    int superID = super.typeKey;
+    int subID = sub.typeKey;
+
+    if (superID == subID)
+        return TRUE;
+
+    while (subID != TYPE_OBJECT.typeKey) {
+        subID = ancestryMap[subID];
+
+        if (superID == subID)
+            return TRUE;
+    }
+
     return FALSE;
 }

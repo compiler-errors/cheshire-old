@@ -58,6 +58,7 @@ typedef void* yyscan_t;
     struct tagClassList* class_list;
 }
 
+%token TOK_EOF
 %token TOK_ASSERT
 %token TOK_GLOBAL
 %token TOK_CLASS
@@ -146,6 +147,7 @@ input
     | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); YYACCEPT; }
     | TOK_CLASS TOK_IDENTIFIER class_list_or_pass  { CheshireType object = getNamedType("Object", FALSE); *output = createClassDefinition( $2 , $3 , object ); YYACCEPT; }
     | TOK_CLASS TOK_IDENTIFIER TOK_INHERITS typename class_list_or_pass  { *output = createClassDefinition( $2 , $5 , $4 ); YYACCEPT; }
+    | TOK_EOF  { return 2; }
     ;
 
 class_list_or_pass

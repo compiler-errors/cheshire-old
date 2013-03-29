@@ -97,6 +97,7 @@ len       return TOK_LEN;
                                    }
 {WHITESPACE}+   {} /* whitespace */
 \n              lineno++;
+<<eof>>         return TOK_EOF;
 .               { fprintf(stderr, "No such character as \'%s\' at line %d.\n", yytext, lineno); exit(0); }
 
 %%

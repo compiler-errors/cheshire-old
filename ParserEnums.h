@@ -15,14 +15,15 @@
 extern "C" {
 #endif
 
-    typedef enum { 
-        PRT_NONE, 
+    typedef enum {
+        PRT_NONE,
         PRT_METHOD_DECLARATION,
         PRT_METHOD_DEFINITION,
         PRT_VARIABLE_DECLARATION,
         PRT_VARIABLE_DEFINITION,
         PRT_CLASS_DEFINITION
-    } ParserReturnType;
+    }
+    ParserReturnType;
     typedef enum { RL_TRUE, RL_FALSE, RL_NULL } ReservedLiteral;
     typedef enum { IT_GC, IT_HEAP } InstantiationType;
     typedef enum { FALSE = 0, TRUE = 1 } Boolean;

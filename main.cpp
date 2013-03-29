@@ -18,6 +18,7 @@ extern "C" {
     int yyparse(ParserTopNode**, yyscan_t);
 }
 
+
 using namespace std;
 
 
@@ -43,14 +44,26 @@ int main(int argc, char** argv) {
     int ret = 0;
     printf("Initialized, waiting for input!\n");
 
-    while (!(ret = yyparse(&node, scanner))) {
-        typeCheckTopNode(scope, node); //todo: don't just read it, instead take any method/classes and save it for lookahead, then check @ end!
-        printf("Read a node!\n");
+    while (true) {
+        ret = yyparse(&node, scanner);
+
+        if (ret == 1)
+            PANIC("Reached a fatal error in parsing!");
+
+        if (ret == 2)
+            break;
+
+        defineTopNode(scope, node);
         topNodes.push_front(node);
     }
 
-    printf("Broken.\n");
-    //todo: analyze return of "ret" for errors, or just EOL.
+    printf("Now type checking...\n");
+
+    for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
+        typeCheckTopNode(scope, *i);
+    }
+
+    printf("Type checked successfully!\n");
     yy_delete_buffer(state, scanner);
     yylex_destroy(scanner);
     //todo: emit llvm here.
