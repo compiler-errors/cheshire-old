@@ -168,6 +168,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 CheshireType widetype = getWidestNumericalType(left, right);
                 WIDEN_NODE(widetype, left, node->binary.left);
                 WIDEN_NODE(widetype, right, node->binary.right);
+                return widetype;
             } else
                 PANIC("left and right types must be numerical for operations +, -, *, /, and %%");
 
@@ -236,21 +237,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             ERROR_IF(index != method_signature.second.size(), "Not enough parameters for method call!");
             return method_signature.first;
         }
-        case OP_NUMBER: {
-            double number = node->numberValue;
-
-            if (number == floor(number)) {
-                if (number >= INT_MIN && number <= INT_MAX) {
-                    return TYPE_INT;
-                }
-
-                return TYPE_NUMBER;
-            } else {
-                return TYPE_DECIMAL;
-            }
-
-            return TYPE_VOID;
-        }
         case OP_RESERVED_LITERAL: {
             switch (node->reserved) {
                 case RL_TRUE:
@@ -260,6 +246,12 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                     return TYPE_NULL;
             }
         }
+        case OP_LARGE_INTEGER:
+            return TYPE_NUMBER;
+        case OP_INTEGER:
+            return TYPE_INT;
+        case OP_DECIMAL:
+            return TYPE_DECIMAL;
         case OP_LENGTH:
             return TYPE_INT;
         case OP_DEREFERENCE: {

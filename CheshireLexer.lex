@@ -75,9 +75,13 @@ len       return TOK_LEN;
 "new"           return TOK_NEW;
 "new"[" "]*"^"  return TOK_NEW_HEAP;
 "delete"[" "]*"^"   return TOK_DELETE_HEAP;
-0[xX][0-9A-F]+  { int x; sscanf(yytext, "%x", &x); yylval->number = (double) x; return TOK_NUMBER; }
-0[0-7]+         { int x; sscanf(yytext, "%o", &x); yylval->number = (double) x; return TOK_NUMBER; }
-{DIGIT}+("."{DIGIT}+)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->number)); return TOK_NUMBER; }
+[1-9]{DIGIT}*N  { long x; sscanf(yytext, "%ld", &x); yylval->integer = x; return TOK_LARGE_INTEGER; /*todo: read ARBITRARY-sized integers.*/ }
+0[xX][0-9A-F]+N { long x; sscanf(yytext, "%lx", &x); yylval->integer = x; return TOK_LARGE_INTEGER; }
+0[0-7]+N        { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_LARGE_INTEGER; }
+[1-9]{DIGIT}*   { long x; sscanf(yytext, "%ld", &x); yylval->integer = x; return TOK_INTEGER; }
+0[xX][0-9A-F]+  { long x; sscanf(yytext, "%lx", &x); yylval->integer = x; return TOK_INTEGER; }
+0[0-7]+         { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_INTEGER; }
+{DIGIT}+("."{DIGIT}+)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->decimal)); return TOK_DECIMAL; }
 "."             return TOK_LN;
 {IDENTIFIER_START}{IDENTIFIER}* {   if (isTypeName(yytext)) {
                                         yylval->cheshire_type = getNamedType(yytext, FALSE);

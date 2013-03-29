@@ -31,6 +31,9 @@ extern "C" {
 
     typedef enum {
         OP_NOP,             //placeholder type -- not used - hopefully - anywhere.
+        OP_LARGE_INTEGER,
+        OP_INTEGER,
+        OP_DECIMAL,
         OP_DEREFERENCE,
         OP_NOT,
         OP_COMPL,
@@ -53,7 +56,6 @@ extern "C" {
         OP_SET,
         OP_INSTANCEOF,
         OP_VARIABLE,
-        OP_NUMBER,
         OP_CAST,
         OP_NEW_GC,
         OP_NEW_HEAP,

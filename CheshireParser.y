@@ -48,7 +48,8 @@ typedef void* yyscan_t;
     char* string;
     OperationType op_type;
     ReservedLiteral reserved_literal;
-    double number;
+    double decimal;
+    long integer;
     struct tagParameterList* parameter_list;
     struct tagExpressionNode* expression;
     struct tagExpressionList* expression_list;
@@ -99,7 +100,9 @@ typedef void* yyscan_t;
 %token <op_type> TOK_AND_OR
 %token <op_type> TOK_ADDSUB
 %token <op_type> TOK_MULTDIV
-%token <number> TOK_NUMBER
+%token <integer> TOK_INTEGER
+%token <integer> TOK_LARGE_INTEGER
+%token <decimal> TOK_DECIMAL
 %token <cheshire_type> TOK_TYPE
 %token <reserved_literal> TOK_RESERVED_LITERAL
 %token <string> TOK_IDENTIFIER
@@ -212,10 +215,12 @@ block_contains
 expression
     : expression_statement  { $$ = $1 ; }
     | lval_expression  { $$ = dereferenceExpression( $1 ); }
+    | TOK_LARGE_INTEGER  { $$ = createLargeIntegerNode( $1 ); }
+    | TOK_INTEGER  { $$ = createIntegerNode( $1 ); }
+    | TOK_DECIMAL  { $$ = createDecimalNode( $1 ); }
     | TOK_RESERVED_LITERAL  { $$ = createReservedLiteralNode( $1 ); }
     | TOK_STRING  { $$ = createStringNode( $1 ); }
     | TOK_LPAREN expression TOK_RPAREN { $$ = $2 ; }
-    | TOK_NUMBER  { $$ = createNumberNode( $1 ); }
     | TOK_NOT expression  { $$ = createUnaryOperation( $1 , $2 ); }
     | TOK_ADDSUB expression  %prec P_UMINUS { $$ = createUnaryOperation( $1 , $2 ); }
     | expression TOK_COMPARE expression  { $$ = createBinOperation( $2 , $1 , $3 ); }

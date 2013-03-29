@@ -70,7 +70,8 @@ extern "C" {
     typedef struct tagExpressionNode {
         OperationType type;
         union {
-            double numberValue;
+            long integer;
+            double decimal;
 
             struct {
                 struct tagExpressionNode* left;

@@ -16,7 +16,9 @@ extern "C" {
     ExpressionNode* createInstanceOfNode(ExpressionNode*, CheshireType instanceofType);
     ExpressionNode* createVariableAccess(char*);
     ExpressionNode* createStringNode(char*);
-    ExpressionNode* createNumberNode(double);
+    ExpressionNode* createLargeIntegerNode(long);
+    ExpressionNode* createIntegerNode(long);
+    ExpressionNode* createDecimalNode(double);
     ExpressionNode* createCastOperation(ExpressionNode*, CheshireType newType);
     ExpressionNode* createInstantiationOperation(InstantiationType, CheshireType);
     ExpressionNode* createMethodCall(char* name, ExpressionList*);

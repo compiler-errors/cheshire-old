@@ -78,14 +78,36 @@ ExpressionNode* createStringNode(char* str) {
     return node;
 }
 
-ExpressionNode* createNumberNode(double value) {
+ExpressionNode* createLargeIntegerNode(long i) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
         return NULL;
     
-    node->type = OP_NUMBER;
-    node->numberValue = value;
+    node->type = OP_LARGE_INTEGER;
+    node->integer = i;
+    return node;
+}
+
+ExpressionNode* createIntegerNode(long i) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_INTEGER;
+    node->integer = i;
+    return node;
+}
+
+ExpressionNode* createDecimalNode(double d) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_DECIMAL;
+    node->decimal = d;
     return node;
 }
 
@@ -256,7 +278,9 @@ void deleteExpressionNode(ExpressionNode* node) {
             break;
         case OP_NEW_GC:
         case OP_NEW_HEAP:
-        case OP_NUMBER:
+        case OP_LARGE_INTEGER:
+        case OP_INTEGER:
+        case OP_DECIMAL:
         case OP_RESERVED_LITERAL:
             //DEFAULT, NO OPERATION
             break;

@@ -10,7 +10,7 @@
 
 void printExpression(ExpressionNode* node) {
     if (node == NULL) {
-        printf("NULL VALUE");
+        printf("- INVALID EXPRESSION -");
         return;
     }
 
@@ -167,8 +167,14 @@ void printExpression(ExpressionNode* node) {
         case OP_STRING:
             printf("(\"%s\")", node->string);
             break;
-        case OP_NUMBER:
-            printf("(%lf)", node->numberValue);
+        case OP_LARGE_INTEGER:
+            printf("(%ldN)", node->integer);
+            break;
+        case OP_INTEGER:
+            printf("(%ld)", node->integer);
+            break;
+        case OP_DECIMAL:
+            printf("(%lf)", node->decimal);
             break;
         case OP_CAST:
             printf("(cast <");
@@ -201,13 +207,13 @@ void printExpression(ExpressionNode* node) {
 
             switch (node->reserved) {
                 case RL_TRUE:
-                    printf("True!");
+                    printf("True");
                     break;
                 case RL_FALSE:
-                    printf("False!");
+                    printf("False");
                     break;
                 case RL_NULL:
-                    printf("Null!");
+                    printf("Null");
                     break;
             }
 
