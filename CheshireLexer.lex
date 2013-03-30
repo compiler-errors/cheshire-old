@@ -80,7 +80,7 @@ len       return TOK_LEN;
 0[0-7]+N        { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_LARGE_INTEGER; }
 [1-9]{DIGIT}*   { long x; sscanf(yytext, "%ld", &x); yylval->integer = x; return TOK_INTEGER; }
 0[xX][0-9A-F]+  { long x; sscanf(yytext, "%lx", &x); yylval->integer = x; return TOK_INTEGER; }
-0[0-7]+         { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_INTEGER; }
+0[0-7]*         { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_INTEGER; }
 {DIGIT}+("."{DIGIT}+)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->decimal)); return TOK_DECIMAL; }
 "."             return TOK_LN;
 {IDENTIFIER_START}{IDENTIFIER}* {   if (isTypeName(yytext)) {

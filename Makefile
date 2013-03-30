@@ -18,9 +18,9 @@ CPP=g++
 LEX=flex
 BISON=bison
 
-LDFLAGS=-lm -v
-CFLAGS=-Wall -Wextra -Werror -g -Wno-unused -v
-CPPFLAGS=-Wall -Wextra -Werror -g -Wno-unused -std=c++0x -v
+LDFLAGS=-lm `llvm-config --ldflags`
+CFLAGS=-Wall -Wextra -Werror -g -Wno-unused
+CPPFLAGS=-Wall -Wextra -Werror -g -Wno-unused -std=c++0x `llvm-config --cxxflags`
 LEXFLAGS=
 BISONFLAGS=-rall
 

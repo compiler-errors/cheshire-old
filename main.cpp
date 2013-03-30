@@ -11,6 +11,7 @@
 #include <fstream>
 #include "Structures.h"
 #include "TypeSystem.h"
+#include "CodeEmitting.h"
 
 extern "C" {
 #include "CheshireParser.yy.h"
@@ -63,12 +64,15 @@ int main(int argc, char** argv) {
         typeCheckTopNode(scope, *i);
     }
 
-    printf("Type checked successfully!\n");
+    printf("Type checked successfully! Code emitting: \n");
     yy_delete_buffer(state, scanner);
     yylex_destroy(scanner);
-    //todo: emit llvm here.
+    
+    for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
+        emitCode(stdout, *i);
+    }
+    
     deleteCheshireScope(scope);
     freeTypeSystem();
     return 0;
 }
-

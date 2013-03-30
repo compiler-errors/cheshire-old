@@ -4,18 +4,17 @@
  * Implements: TypeSystem.h
  */
 
-//I need to define this manually, or else that
-#define __GXX_EXPERIMENTAL_CXX0X__ 1
-
 #include <unordered_map>
 #include <unordered_set>
 #include "Structures.h"
 #include "TypeSystem.h"
 #include "LexerUtilities.h"
+#include "CodeEmitting.h"
 
-#define insertBaseType(type) { typeID = typeKeys++; saveIdentifier(type, &string); namedObjects[string] = typeID; printf("Initializing type '%s' with key %d\n", string, typeID); }
+#define insertBaseType(type) { typeID = typeKeys++; namedObjects[type] = typeID; printf("Initializing type '%s' with key %d\n", type, typeID); }
 
 //////////////// STATICS /////////////////
+static AllocatedTypeStrings allocatedTypeString;
 static NamedObjects namedObjects;
 static LambdaTypes lambdaTypes;
 ObjectMapping objectMapping;
@@ -52,7 +51,6 @@ static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* para
 
 void initTypeSystem() {
     if (!isInitialized) {
-        char* string;
         int typeID = 0;
         insertBaseType("void");   //type 0
         insertBaseType("Number"); //type 1
@@ -61,17 +59,15 @@ void initTypeSystem() {
         insertBaseType("Boolean");//type 4
         //object
         typeID = typeKeys++;
-        saveIdentifier("Object", &string); //type 5
-        namedObjects[string] = typeID;
-        printf("Initializing type '%s' with key %d\n", string, typeID);
+        namedObjects["Object"] = typeID;
+        printf("Initializing type '%s' with key %d\n", "Object", typeID);
         objectMapping[typeID] = NULL;
         ancestryMap[typeID] = typeID;
         classNames[typeID] = "Object";
         //string
         typeID = typeKeys++;
-        saveIdentifier("String", &string); //type 6
-        namedObjects[string] = typeID;
-        printf("Initializing type '%s' with key %d\n", string, typeID);
+        namedObjects["String"] = typeID;
+        printf("Initializing type '%s' with key %d\n", "String", typeID);
         objectMapping[typeID] = NULL;
         ancestryMap[typeID] = TYPE_OBJECT.typeKey;
         classNames[typeID] = "String";
@@ -82,10 +78,6 @@ void initTypeSystem() {
 
 void freeTypeSystem() {
     isInitialized = FALSE;
-
-    for (auto iterator = namedObjects.begin(); iterator != namedObjects.end(); ++iterator)
-        free((char*)(iterator->first));
-
     namedObjects.clear();
     lambdaTypes.clear();
     objectMapping.clear();

@@ -69,6 +69,7 @@ extern "C" {
 
     typedef struct tagExpressionNode {
         OperationType type;
+        CheshireType determinedType;
         union {
             long integer;
             double decimal;
@@ -81,8 +82,6 @@ extern "C" {
             struct tagExpressionNode* unaryChild;
 
             char* string;
-
-            CheshireType typeNode;
 
             ReservedLiteral reserved;
 

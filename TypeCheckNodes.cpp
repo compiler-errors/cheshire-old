@@ -4,8 +4,6 @@
  * Implements: TypeSystem.h
  */
 
-#define __GXX_EXPERIMENTAL_CXX0X__ 1
-
 #include "Structures.h"
 #include "TypeSystem.h"
 #include "SyntaxTreeUtil.h"
@@ -14,7 +12,7 @@
 
 using std::floor;
 
-#define WIDEN_NODE(newtype, oldtype, node) if (!equalTypes(newtype, oldtype)) { node = createCastOperation(node, newtype); }
+#define WIDEN_NODE(newtype, oldtype, node) if (!equalTypes(newtype, oldtype)) { node = createCastOperation(node, newtype); typeCheckExpressionNode(scope, node); }
 
 /* This "method" is defined to implement the common "store-into-variable-and-widen-if-necessary"
  * method that is used for parameters, storing things into lval's, and also variable definitions.
@@ -107,28 +105,28 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
     switch (node->type) {
         case OP_NOP:
             PANIC("No such operation as No-OP");
-            return TYPE_VOID;
+            return node->determinedType = TYPE_VOID;
         case OP_NOT: {
             CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
 
             if (isBoolean(childType)) {
-                return TYPE_BOOLEAN;
+                return node->determinedType = TYPE_BOOLEAN;
             } else {
                 PANIC("Expected type \"boolean\" for operation NOT");
             }
 
-            return TYPE_BOOLEAN;
+            return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_PLUSONE:
         case OP_MINUSONE: {
             CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
-            return childType;
+            return node->determinedType = childType;
         }
         case OP_COMPL:
         case OP_UNARY_MINUS: {
             CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
             ERROR_IF(!isNumericalType(childType), "Expected a numerical type for operations COMPL and UNARY -");
-            return childType;
+            return node->determinedType = childType;
         }
         case OP_GRE_EQUALS:
         case OP_LES_EQUALS:
@@ -154,7 +152,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                     PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
             }
 
-            return TYPE_BOOLEAN;
+            return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_PLUS:
         case OP_MINUS:
@@ -168,24 +166,24 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 CheshireType widetype = getWidestNumericalType(left, right);
                 WIDEN_NODE(widetype, left, node->binary.left);
                 WIDEN_NODE(widetype, right, node->binary.right);
-                return widetype;
+                return node->determinedType = widetype;
             } else
                 PANIC("left and right types must be numerical for operations +, -, *, /, and %%");
 
-            return left;
+            return node->determinedType = left;
         }
         case OP_AND:
         case OP_OR: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
             ERROR_IF(!isBoolean(left) || !isBoolean(right), "Expected type Boolean in expression \"and\" or \"or\"");
-            return TYPE_BOOLEAN;
+            return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_SET: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
             STORE_EXPRESSION_INTO_LVAL(left, right, node->binary.right, "Operator =");
-            return left;
+            return node->determinedType = left;
         }
         case OP_ARRAY_ACCESS: {
             CheshireType left = typeCheckExpressionNode(scope, node->binary.left);
@@ -193,17 +191,17 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             ERROR_IF(getArrayNesting(left) == 0, "Cannot dereference a non-array type!");
             ERROR_IF(isVoid(left), "No such dereference of type void[]!");
             ERROR_IF(!isInt(right), "Index of array must be an integer!");
-            return getArrayDereference(left);
+            return node->determinedType = getArrayDereference(left);
         }
         case OP_INSTANCEOF: {
             CheshireType child = typeCheckExpressionNode(scope, node->instanceof.expression);
             ERROR_IF(!isObjectType(child) || !isObjectType(node->instanceof.type), "Expected object types for operation instanceof");
             ERROR_IF(!isSuper(child, node->instanceof.type) || !isSuper(node->instanceof.type, child), "Instanceof may only compare type relationships that are possible!");
-            return TYPE_BOOLEAN;
+            return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
             CheshireType ret = getVariableType(scope, node->string);
-            return ret;
+            return node->determinedType = ret;
         }
         case OP_STRING:
             return TYPE_STRING;
@@ -211,14 +209,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType cast = node->cast.type;
             CheshireType child = typeCheckExpressionNode(scope, node->cast.child);
 
-            if (isObjectType(cast) && equalTypes(TYPE_NULL, child)) //null case!
-                return cast;
+            if (isObjectType(cast) && equalTypes(TYPE_NULL, child)) {//null case!
+                return node->determinedType = cast;
+            }
 
             ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
             ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
             ERROR_IF(isUnsafe(cast) ^ isUnsafe(child), "Received a mix of unsafe and managed objects in cast!");
             ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
-            return cast;
+            return node->determinedType = cast;
         }
         case OP_METHOD_CALL: {
             ExpressionList* expressions = node->methodcall.params;
@@ -235,28 +234,28 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             }
 
             ERROR_IF(index != method_signature.second.size(), "Not enough parameters for method call!");
-            return method_signature.first;
+            return node->determinedType = method_signature.first;
         }
         case OP_RESERVED_LITERAL: {
             switch (node->reserved) {
                 case RL_TRUE:
                 case RL_FALSE:
-                    return TYPE_BOOLEAN;
+                    return node->determinedType = TYPE_BOOLEAN;
                 case RL_NULL:
-                    return TYPE_NULL;
+                    return node->determinedType = TYPE_NULL;
             }
         }
         case OP_LARGE_INTEGER:
-            return TYPE_NUMBER;
+            return node->determinedType = TYPE_NUMBER;
         case OP_INTEGER:
-            return TYPE_INT;
+            return node->determinedType = TYPE_INT;
         case OP_DECIMAL:
-            return TYPE_DECIMAL;
+            return node->determinedType = TYPE_DECIMAL;
         case OP_LENGTH:
-            return TYPE_INT;
+            return node->determinedType = TYPE_INT;
         case OP_DEREFERENCE: {
             CheshireType child = typeCheckExpressionNode(scope, node->unaryChild);
-            return child;
+            return node->determinedType = child;
         }
         case OP_NEW_GC: {
             CheshireType object = node->instantiate.type;
@@ -265,7 +264,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 PANIC("Impossible to instantate a non-object type!");
 
             object.isUnsafe = FALSE;
-            return object;
+            return node->determinedType = object;
         }
         case OP_NEW_HEAP: {
             CheshireType object = node->instantiate.type;
@@ -274,7 +273,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 PANIC("Impossible to instantate a non-object type!");
 
             object.isUnsafe = TRUE;
-            return object;
+            return node->determinedType = object;
         }
         case OP_CLOSURE: {
             CheshireType currentExpectedType = getExpectedMethodType();
@@ -287,7 +286,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             typeCheckBlockList(scope, node->closure.body);
             fallScope(scope);
             setExpectedMethodType(currentExpectedType);
-            return getLambdaType(node->closure.type, node->closure.params);
+            return node->determinedType = getLambdaType(node->closure.type, node->closure.params);
         }
         case OP_ACCESS:
             CheshireType childType = typeCheckExpressionNode(scope, node->access.expression);
@@ -303,10 +302,10 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             if (equalTypes(ret, TYPE_VOID))
                 PANIC("Could not find variable %s", node->access.variable);
 
-            return ret;
+            return node->determinedType = ret;
     }
 
-    return TYPE_VOID;
+    PANIC("FATAL ERROR IN TYPE CHECKING.");
 }
 
 void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {

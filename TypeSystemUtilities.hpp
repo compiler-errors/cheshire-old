@@ -97,6 +97,7 @@ public:
 typedef std::pair<CheshireType, Array<CheshireType> > LambdaType;
 
 typedef std::unordered_map<const char*, TypeKey, CStrHash, CStrEql> NamedObjects;
+typedef std::list<char*> AllocatedTypeStrings;
 typedef std::unordered_map<LambdaType, CheshireType, LambdaHash, LambdaEql> LambdaTypes;
 typedef std::unordered_map<TypeKey, ClassList*> ObjectMapping;
 typedef std::unordered_map<TypeKey, TypeKey> AncestryMap;
