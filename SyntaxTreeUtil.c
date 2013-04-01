@@ -167,9 +167,6 @@ void printExpression(ExpressionNode* node) {
         case OP_STRING:
             printf("(\"%s\")", node->string);
             break;
-        case OP_LARGE_INTEGER:
-            printf("(%ldN)", node->integer);
-            break;
         case OP_INTEGER:
             printf("(%ld)", node->integer);
             break;
@@ -183,22 +180,9 @@ void printExpression(ExpressionNode* node) {
             printExpression(node->cast.child);
             printf(")");
             break;
-        case OP_NEW_GC: {
-            CheshireType t = node->instantiate.type;
-            printf("(new ");
-            printCheshireType(t);
-            printf(")");
-            break;
-        }
-        case OP_NEW_HEAP: {
-            CheshireType t = node->instantiate.type;
-            printf("(new^ ");
-            printCheshireType(t);
-            printf(")");
-            break;
-        }
         case OP_METHOD_CALL:
-            printf("(%s", node->methodcall.fn_name);
+            printf("(");
+            printExpression(node->methodcall.callback);
             printParameterList(node->methodcall.params);
             printf(")");
             break;
@@ -238,9 +222,7 @@ void printExpression(ExpressionNode* node) {
 void printParameterList(ExpressionList* param) {
     printf("(");
 
-    if (param == NULL) {
-        printf("void");
-    } else {
+    if (param != NULL) {
         for (; param != NULL; param = param->next) {
             printExpression(param->parameter);
 

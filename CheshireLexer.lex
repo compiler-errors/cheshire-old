@@ -29,27 +29,19 @@ BACKSLASH   "\\"
 
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
-Number|Boolean|Int|Decimal|void|Object|String  {   yylval->cheshire_type = getNamedType(yytext, FALSE);
-                                                   return TOK_TYPE;
-                                               }
-(Number|Boolean|Int|Decimal|void|Object|String)"^" {   yylval->cheshire_type = getNamedType(yytext, TRUE);
-                                                       return TOK_TYPE;
-                                                   }
 infer     return TOK_INFER;
 True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
-"^"       return TOK_HAT;
 external  return TOK_EXTERNAL;
 pass      return TOK_PASS;
 global    return TOK_GLOBAL;
 assert    return TOK_ASSERT;
 class     return TOK_CLASS;
 inherits  return TOK_INHERITS;
-def       return TOK_DEFINE_FUNCTION;
+def       return TOK_DEFINE;
 if        return TOK_IF;
 else      return TOK_ELSE;
 for       return TOK_FOR;
 return    return TOK_RETURN;
-self      return TOK_SELF;
 while     return TOK_WHILE;
 cast      return TOK_CAST;
 len       return TOK_LEN;
@@ -61,6 +53,7 @@ len       return TOK_LEN;
 "]"  return TOK_RBRACKET;
 ","  return TOK_COMMA;
 ":"  return TOK_COLON;
+"::" return TOK_COLONCOLON;
 {QUOTE}([^"\"""\n"]|{BACKSLASH}[abfnrtv"'"{QUOTE}{BACKSLASH}"?"])*{QUOTE}   { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }
 "and"|"or"      { determineOpType(yytext, &(yylval->op_type)); return TOK_AND_OR; }
@@ -73,32 +66,20 @@ len       return TOK_LEN;
 "*"|"/"|"%"     { determineOpType(yytext, &(yylval->op_type)); return TOK_MULTDIV; }
 "instanceof"    return TOK_INSTANCEOF;
 "new"           return TOK_NEW;
-"new"[" "]*"^"  return TOK_NEW_HEAP;
-"delete"[" "]*"^"   return TOK_DELETE_HEAP;
-[1-9]{DIGIT}*N  { long x; sscanf(yytext, "%ld", &x); yylval->integer = x; return TOK_LARGE_INTEGER; /*todo: read ARBITRARY-sized integers.*/ }
-0[xX][0-9A-F]+N { long x; sscanf(yytext, "%lx", &x); yylval->integer = x; return TOK_LARGE_INTEGER; }
-0[0-7]+N        { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_LARGE_INTEGER; }
+"delete"        return TOK_DELETE;
 [1-9]{DIGIT}*   { long x; sscanf(yytext, "%ld", &x); yylval->integer = x; return TOK_INTEGER; }
 0[xX][0-9A-F]+  { long x; sscanf(yytext, "%lx", &x); yylval->integer = x; return TOK_INTEGER; }
 0[0-7]*         { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_INTEGER; }
 {DIGIT}+("."{DIGIT}+)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->decimal)); return TOK_DECIMAL; }
 "."             return TOK_LN;
 {IDENTIFIER_START}{IDENTIFIER}* {   if (isTypeName(yytext)) {
-                                        yylval->cheshire_type = getNamedType(yytext, FALSE);
+                                        yylval->cheshire_type = getNamedType(yytext);
                                         return TOK_TYPE;
                                     } else {
                                         saveIdentifier(yytext, &(yylval->string));
                                         return TOK_IDENTIFIER;
                                     }
                                 }
-{IDENTIFIER_START}{IDENTIFIER}*"^" {   if (isTypeName(yytext)) {
-                                            yylval->cheshire_type = getNamedType(yytext, FALSE);
-                                            return TOK_TYPE;
-                                       } else {
-                                            saveIdentifier(yytext, &(yylval->string));
-                                            return TOK_IDENTIFIER;
-                                       }
-                                   }
 {WHITESPACE}+   {} /* whitespace */
 \n              lineno++;
 <<eof>>         return TOK_EOF;

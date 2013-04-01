@@ -113,17 +113,6 @@ StatementNode* createInferDefinition(char* variable, ExpressionNode* value) {
     return node;
 }
 
-StatementNode* createDeleteHeapStatement(ExpressionNode* expression) {
-    StatementNode* node = allocStatementNode();
-
-    if (node == NULL)
-        return NULL;
-
-    node->type = S_DELETE_HEAP;
-    node->expression = expression;
-    return node;
-}
-
 StatementNode* createReturnStatement(ExpressionNode* expression) {
     StatementNode* node = allocStatementNode();
 
@@ -142,7 +131,6 @@ void deleteStatementNode(StatementNode* node) {
             break;
         case S_EXPRESSION:
         case S_ASSERT:
-        case S_DELETE_HEAP:
         case S_RETURN:
             deleteExpressionNode(node->expression);
             break;

@@ -1,10 +1,13 @@
 %{
 
 #include "ParserEnums.h"
+#include "LexerUtilities.h"
 #include "CheshireParser.yy.h"
 #include "CheshireLexer.yy.h"
 
 int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg);
+
+static char* classLookahead = NULL;
 
 static int dummyIncrement = 0;
 /* come up with an arbitrary "dummy name", such as __dummy_param_1 or __var_2 that should be unique across the file. */
@@ -64,12 +67,11 @@ typedef void* yyscan_t;
 %token TOK_GLOBAL
 %token TOK_CLASS
 %token TOK_INHERITS
-%token TOK_DEFINE_FUNCTION
+%token TOK_DEFINE
 %token TOK_IF
 %token TOK_ELSE
 %token TOK_FOR
 %token TOK_RETURN
-%token TOK_SELF
 %token TOK_WHILE
 %token TOK_LPAREN
 %token TOK_RPAREN
@@ -80,15 +82,15 @@ typedef void* yyscan_t;
 %token TOK_LSQUARE
 %token TOK_RSQUARE
 %token TOK_COMMA
-%token TOK_HAT
 %token TOK_EXTERNAL
 %token TOK_PASS
 %token TOK_COLON
+%token TOK_COLONCOLON
 %token TOK_SET
 %token TOK_INSTANCEOF
 %token TOK_NEW
 %token TOK_NEW_HEAP
-%token TOK_DELETE_HEAP
+%token TOK_DELETE
 %token TOK_CAST
 %token TOK_LN
 %token TOK_INFER
@@ -101,7 +103,6 @@ typedef void* yyscan_t;
 %token <op_type> TOK_ADDSUB
 %token <op_type> TOK_MULTDIV
 %token <integer> TOK_INTEGER
-%token <integer> TOK_LARGE_INTEGER
 %token <decimal> TOK_DECIMAL
 %token <cheshire_type> TOK_TYPE
 %token <reserved_literal> TOK_RESERVED_LITERAL
@@ -119,7 +120,7 @@ typedef void* yyscan_t;
 %left TOK_NOT
 %nonassoc P_CAST
 %left TOK_INCREMENT
-%left TOK_COLON TOK_LBRACKET TOK_RBRACKET
+%left TOK_COLON TOK_COLONCOLON TOK_LBRACKET TOK_RBRACKET
 %nonassoc P_IF
 %nonassoc TOK_ELSE
 %nonassoc TOK_LPAREN TOK_RPAREN
@@ -144,13 +145,16 @@ typedef void* yyscan_t;
 %%
 
 input
-    : TOK_EXTERNAL TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $3 , $4 , $5 ); YYACCEPT; }
-    | TOK_DEFINE_FUNCTION typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
+    : TOK_EXTERNAL TOK_DEFINE typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $3 , $4 , $5 ); YYACCEPT; }
+    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
     | TOK_EXTERNAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDeclaration( $2 , $3 ); YYACCEPT; }
     | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); YYACCEPT; }
-    | TOK_CLASS TOK_IDENTIFIER class_list_or_pass  { CheshireType object = getNamedType("Object", FALSE); *output = createClassDefinition( $2 , $3 , object ); YYACCEPT; }
-    | TOK_CLASS TOK_IDENTIFIER TOK_INHERITS typename class_list_or_pass  { *output = createClassDefinition( $2 , $5 , $4 ); YYACCEPT; }
-    | TOK_EOF  { return 2; }
+    | TOK_CLASS TOK_IDENTIFIER { classLookahead = $2; reserveClassNameType( $2 ); return 2; }
+    | class_list_or_pass  { if (classLookahead == NULL)
+                                PANIC("Class block provided without name!");
+                            CheshireType object = getNamedType("Object"); *output = createClassDefinition( classLookahead , $1 , object ); YYACCEPT; 
+                          }
+    | TOK_EOF  { return -2; }
     ;
 
 class_list_or_pass
@@ -163,7 +167,11 @@ class_list
     ;
 
 class_list_contains
-    : typename TOK_IDENTIFIER TOK_LN class_list_contains  { $$ = linkClassList( $1 , $2 , $4 ); }
+    : typename TOK_IDENTIFIER TOK_SET expression TOK_LN class_list_contains  { $$ = linkClassList( $1 , $2 , $4 , $6 ); }
+    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass class_list_contains  { 
+                                                                                     CheshireType lambda = getLambdaType( $2 , linkParameterList( getNamedType(classLookahead) , saveIdentifierReturn("self") , $4 ));
+                                                                                     $$ = linkClassList( lambda , $3 , createClosureNode( $2 , $4 , $5 ), $6 );
+                                                                                   }
     | TOK_RBRACE  { $$ = NULL; }
     ;
 
@@ -193,7 +201,7 @@ statement
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
-    | TOK_DELETE_HEAP expression TOK_LN  { $$ = createDeleteHeapStatement( $2 ); }
+    | TOK_DELETE expression TOK_LN  { /*todo: implement me*/ }
     | TOK_RETURN expression TOK_LN  { $$ = createReturnStatement( $2 ); }
     | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createReservedLiteralNode(RL_NULL) ); }
     ;
@@ -215,7 +223,6 @@ block_contains
 expression
     : expression_statement  { $$ = $1 ; }
     | lval_expression  { $$ = dereferenceExpression( $1 ); }
-    | TOK_LARGE_INTEGER  { $$ = createLargeIntegerNode( $1 ); }
     | TOK_INTEGER  { $$ = createIntegerNode( $1 ); }
     | TOK_DECIMAL  { $$ = createDecimalNode( $1 ); }
     | TOK_RESERVED_LITERAL  { $$ = createReservedLiteralNode( $1 ); }
@@ -230,11 +237,10 @@ expression
     | expression TOK_ADDSUB expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_MULTDIV expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
-    | TOK_CAST TOK_LSQUARE typename TOK_RSQUARE expression %prec P_CAST  { $$ = createCastOperation( $5 , $3 ); }
-    | TOK_NEW TOK_TYPE  { $$ = createInstantiationOperation( IT_GC , $2 ); }
-    | TOK_NEW_HEAP TOK_TYPE  { $$ = createInstantiationOperation( IT_HEAP , $2 ); }
-    | TOK_LEN expression  { $$ = createLengthOperation( $2 ); }
-    | TOK_DEFINE_FUNCTION typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $5 ); }
+    | typename TOK_LPAREN expression TOK_RPAREN %prec P_CAST  { $$ = createCastOperation( $3 , $1 ); }
+    | TOK_NEW TOK_TYPE  { /*todo: Implement me*/ }
+    | expression TOK_COLONCOLON parameter_list  { /*todo: Implement me*/ }
+    | TOK_DEFINE typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $5 ); }
     ;
 
 lval_expression
@@ -246,7 +252,7 @@ lval_expression
 expression_statement
     : lval_expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
     | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( $1 , $2 ); }
-    | TOK_IDENTIFIER expression_list  { $$ = createMethodCall( $1 , $2 ); }
+    | expression expression_list  { $$ = createMethodCall( $1 , $2 ); }
     ;
 
 expression_list
@@ -262,13 +268,6 @@ expression_list_contains
 typename
     : TOK_TYPE  { $$ = $1 ; }
     | typename TOK_COLON parameter_list  { $$ = getLambdaType( $1 , $3 ); deleteParameterList( $3 ); }
-    | typename TOK_HAT  {  if ( $1.arrayNesting > 0 )
-                               PANIC("Cannot apply ^ to an array typename!");
-                           if ( $1.isUnsafe ) 
-                               PANIC("Cannot apply ^ to a typename more than one time!");
-                           $1.isUnsafe = TRUE;
-                           $$ = $1;
-                        }
     | typename TOK_LBRACKET TOK_RBRACKET  { $$ = $1; $$.arrayNesting++; }
     ;
 

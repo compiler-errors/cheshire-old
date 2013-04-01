@@ -78,17 +78,6 @@ ExpressionNode* createStringNode(char* str) {
     return node;
 }
 
-ExpressionNode* createLargeIntegerNode(long i) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_LARGE_INTEGER;
-    node->integer = i;
-    return node;
-}
-
 ExpressionNode* createIntegerNode(long i) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -123,21 +112,6 @@ ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType typ
     return node;
 }
 
-ExpressionNode* createInstantiationOperation(InstantiationType itype, CheshireType type) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    if (itype == IT_GC)
-        node->type = OP_NEW_GC;
-    else
-        node->type = OP_NEW_HEAP;
-    
-    node->instantiate.type = type;
-    return node;
-}
-
 ExpressionNode* createAccessNode(ExpressionNode* object, char* variable) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -150,14 +124,14 @@ ExpressionNode* createAccessNode(ExpressionNode* object, char* variable) {
     return node;
 }
 
-ExpressionNode* createMethodCall(char* fn_name, ExpressionList* params) {
+ExpressionNode* createMethodCall(ExpressionNode* callback, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
     
     if (node == NULL)
         return NULL;
     
     node->type = OP_METHOD_CALL;
-    node->methodcall.fn_name = fn_name;
+    node->methodcall.callback = callback;
     node->methodcall.params = params;
     return node;
 }
@@ -269,16 +243,13 @@ void deleteExpressionNode(ExpressionNode* node) {
             deleteExpressionNode(node->cast.child);
             break;
         case OP_METHOD_CALL:
-            free(node->methodcall.fn_name);
+            deleteExpressionNode(node->methodcall.callback);
             deleteExpressionList(node->methodcall.params);
             break;
         case OP_CLOSURE:
             deleteParameterList(node->closure.params);
             deleteBlockList(node->closure.body);
             break;
-        case OP_NEW_GC:
-        case OP_NEW_HEAP:
-        case OP_LARGE_INTEGER:
         case OP_INTEGER:
         case OP_DECIMAL:
         case OP_RESERVED_LITERAL:

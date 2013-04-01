@@ -110,8 +110,8 @@ void saveStringLiteral(const char* string, char** var) {
     *var = substring;
 }
 
-char* saveStringLiteralReturn(const char* string) {
+char* saveIdentifierReturn(const char* string) {
     char* ret;
-    saveStringLiteral(string, &ret);
+    saveIdentifier(string, &ret);
     return ret;
 }

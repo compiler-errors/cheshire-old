@@ -4,12 +4,15 @@
  * Implements: TypeSystem.h
  */
 
+#include <cmath>
 #include <unordered_map>
 #include <unordered_set>
 #include "Structures.h"
 #include "TypeSystem.h"
 #include "LexerUtilities.h"
-#include "CodeEmitting.h"
+//#include "CodeEmitting.h"
+
+using std::max;
 
 #define insertBaseType(type) { typeID = typeKeys++; namedObjects[type] = typeID; printf("Initializing type '%s' with key %d\n", type, typeID); }
 
@@ -53,10 +56,12 @@ void initTypeSystem() {
     if (!isInitialized) {
         int typeID = 0;
         insertBaseType("void");   //type 0
-        insertBaseType("Number"); //type 1
-        insertBaseType("Int");    //type 2
-        insertBaseType("Decimal");//type 3
-        insertBaseType("Boolean");//type 4
+        insertBaseType("I8");     //type 1 C-type
+        insertBaseType("I16");    //type 2 C-type
+        insertBaseType("Int");    //type 3 
+        insertBaseType("I64");    //type 4 C-type
+        insertBaseType("Decimal");//type 5
+        insertBaseType("Boolean");//type 6
         //object
         typeID = typeKeys++;
         namedObjects["Object"] = typeID;
@@ -149,11 +154,21 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
     scope->highestScope->variables[name] = type;
 }
 
-int defineClass(const char* name, ClassList* classlist, CheshireType parent) {
+void reserveClassNameType(const char* name) {
     if (namedObjects.find(name) != namedObjects.end())
         PANIC("Cannot re-define class of name: %s", name);
-
+    
     int typeID = typeKeys++;
+    namedObjects[name] = typeID;
+    objectMapping[typeID] = NULL;
+    classNames[typeID] = name;
+}
+
+int defineClass(const char* name, ClassList* classlist, CheshireType parent) {
+    if (objectMapping[getNamedType(name).typeKey] != NULL)
+        PANIC("Cannot re-define class of name: %s", name);
+
+    int typeID = getNamedType(name).typeKey;
     namedObjects[name] = typeID;
     objectMapping[typeID] = classlist;
     ancestryMap[typeID] = parent.typeKey;
@@ -165,19 +180,11 @@ Boolean isTypeName(const char* str) {
     return (Boolean)(namedObjects.find(str) != namedObjects.end());
 }
 
-CheshireType getNamedType(const char* str, Boolean isUnsafe) {
-    CheshireType ret = {0, FALSE, 0};
+CheshireType getNamedType(const char* str) {
+    CheshireType ret = {0, 0};
     ERROR_IF(!isTypeName(str), "No such named type as %s", str);
     ret.typeKey = namedObjects[str];
-
-    if (isUnsafe && !isObjectType(ret)) {
-        printf("Error in type: \"");
-        printCheshireType(ret);
-        printf("\". ");
-        PANIC("Cannot apply \"unsafe\" to a non-object type!"); //using 'c' because it has the key, but no ^ applied yet.
-    }
-
-    ret.isUnsafe = isUnsafe;
+    
     return ret;
 }
 
@@ -188,7 +195,7 @@ CheshireType getLambdaType(CheshireType returnType, ParameterList* parameters) {
         return lambdaTypes[l];
     } else {
         TypeKey typeID = typeKeys++;
-        CheshireType t = {typeID, FALSE, 0};
+        CheshireType t = {typeID, 0};
         lambdaTypes[l] = t;
         keyedLambdas[t] = l;
         return t;
@@ -196,27 +203,23 @@ CheshireType getLambdaType(CheshireType returnType, ParameterList* parameters) {
 }
 
 Boolean equalTypes(CheshireType left, CheshireType right) {
-    return (Boolean)(left.typeKey == right.typeKey && left.isUnsafe == right.isUnsafe && left.arrayNesting == right.arrayNesting);
+    return (Boolean)(left.typeKey == right.typeKey && left.arrayNesting == right.arrayNesting);
 }
 
 Boolean isVoid(CheshireType t) {
-    return (Boolean)(t.typeKey == 0);
-}
-
-Boolean isUnsafe(CheshireType t) {
-    return t.isUnsafe;
+    return (Boolean)(t.typeKey == TYPE_VOID.typeKey);
 }
 
 Boolean isBoolean(CheshireType t) {
-    return (Boolean)(t.typeKey == 4 && t.arrayNesting == 0);
+    return (Boolean)(t.typeKey == TYPE_BOOLEAN.typeKey && t.arrayNesting == 0);
 }
 
 Boolean isInt(CheshireType t) {
-    return (Boolean)(t.typeKey == 2 && t.arrayNesting == 0);
+    return (Boolean)(t.typeKey == TYPE_INT.typeKey && t.arrayNesting == 0);
 }
 
 Boolean isNumericalType(CheshireType t) {
-    return (Boolean)(t.typeKey >= 1 && t.typeKey <= 3 && t.arrayNesting == 0);  //between Int and Double
+    return (Boolean)(t.typeKey >= TYPE_I8.typeKey && t.typeKey <= TYPE_DECIMAL.typeKey && t.arrayNesting == 0);
 }
 
 int getArrayNesting(CheshireType t) {
@@ -229,38 +232,13 @@ CheshireType getArrayDereference(CheshireType t) {
 }
 
 CheshireType getWidestNumericalType(CheshireType left, CheshireType right) {
-    if (equalTypes(left, TYPE_NUMBER)) {
-        if (equalTypes(right, TYPE_DECIMAL))
-            PANIC("Cannot coerce types Number and Decimal together!");
-
-        return TYPE_NUMBER;
-    }
-
-    if (equalTypes(left, TYPE_DECIMAL)) {
-        if (equalTypes(right, TYPE_NUMBER))
-            PANIC("Cannot coerce types Number and Decimal together!");
-
-        return TYPE_DECIMAL;
-    }
-
-    if (equalTypes(left, TYPE_INT)) {
-        if (equalTypes(right, TYPE_DECIMAL))
-            return TYPE_DECIMAL;
-
-        if (equalTypes(right, TYPE_NUMBER))
-            return TYPE_NUMBER;
-
-        return TYPE_INT;
-    }
-
-    PANIC("Reached unknown sequence of types in getWidestNumericalType()");
-    return TYPE_VOID;
+    return {max(left.typeKey, right.typeKey), 0};
 }
 
 Boolean isObjectType(CheshireType t) {
     //if (t.arrayNesting != 0)
     //    return FALSE;
-    if (t.typeKey == -2) //if null
+    if (t.typeKey == TYPE_NULL.typeKey) //if null
         return TRUE;
 
     return (Boolean)(objectMapping.find(t.typeKey) != objectMapping.end());
@@ -275,7 +253,7 @@ Boolean isLambdaType(CheshireType t) {
 
 void printCheshireType(CheshireType node) {
     TypeKey t = node.typeKey;
-    CheshireType raw = {node.typeKey, FALSE, 0};
+    CheshireType raw = {node.typeKey, 0};
 
     if (isLambdaType(raw)) {
         LambdaType l = keyedLambdas[raw];
@@ -291,31 +269,22 @@ void printCheshireType(CheshireType node) {
 
         printf(")");
     } else if (isObjectType(raw)) {
-        if (raw.typeKey == -2)
+        if (raw.typeKey == TYPE_NULL.typeKey)
             printf("NULL_TYPE");
         else {
-            printf("%s%s", classNames[t], node.isUnsafe ? "^" : "");
+            printf("%s", classNames[t]);
         }
     } else {
-        //literal type.
         switch (t) {
-            case 0:
-                printf("void");
-                break;
-            case 1:
-                printf("Number");
-                break;
-            case 2:
-                printf("Int");
-                break;
-            case 3:
-                printf("Decimal");
-                break;
-            case 4:
-                printf("Boolean");
-                break;
+            case 0: printf("void"); break;
+            case 1: printf("I8"); break;
+            case 2: printf("I16"); break;
+            case 3: printf("Int"); break;
+            case 4: printf("I64"); break;
+            case 5: printf("Decimal"); break;
+            case 6: printf("Boolean"); break;
             default:
-                PANIC("No such recognized type as: %d, isUnsafe = %s, arrayNesting = %d", t, node.isUnsafe ? "True" : "False", node.arrayNesting);
+                PANIC("No such recognized type as: %d, arrayNesting = %d", t, node.arrayNesting);
                 break;
         }
     }

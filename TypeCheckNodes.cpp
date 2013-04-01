@@ -26,9 +26,7 @@ using std::floor;
         } else if (isObjectType(ltype) && isObjectType(rtype)) { \
             if (equalTypes(TYPE_NULL, rtype)) { \
                 WIDEN_NODE(ltype, rtype, node); \
-            } else if (isUnsafe(ltype) ^ isUnsafe(rtype)) { \
-                PANIC("Mixing safe and unsafe references!"); \
-            } else if (!isUnsafe(ltype) /*rtype must be unsafe too...*/) { \
+            } else { \
                 if (!isSuper(ltype, rtype)) { \
                     PANIC("Cannot store type into non-super-type!"); \
                 } \
@@ -63,7 +61,13 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             STORE_EXPRESSION_INTO_LVAL(node->variable.type, givenType, node->variable.value, "global variable");
         }
         break;
-        case PRT_CLASS_DEFINITION:
+        case PRT_CLASS_DEFINITION: {
+            for (ClassList* classnode = node->classdef.classlist; classnode != NULL; classnode = classnode->next) {
+                CheshireType memberdefault = typeCheckExpressionNode(scope, classnode->defaultValue);
+                STORE_EXPRESSION_INTO_LVAL(classnode->type, memberdefault, classnode->defaultValue, "class variable");
+            } 
+        }
+        break;
         case PRT_METHOD_DECLARATION:
         case PRT_VARIABLE_DECLARATION:
             break;
@@ -84,7 +88,7 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
             defineVariable(scope, node->variable.name, node->variable.type);
             break;
         case PRT_CLASS_DEFINITION: {
-            ERROR_IF(!isObjectType(node->classdef.parent) && !isUnsafe(node->classdef.parent), "Invalid parent type of class %s", node->classdef.name);
+            ERROR_IF(!isObjectType(node->classdef.parent), "Invalid parent type of class %s", node->classdef.name);
             int typekey = defineClass(node->classdef.name, node->classdef.classlist, node->classdef.parent);
             CStrEql streql;
 
@@ -146,7 +150,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
                     if (!equalTypes(left, TYPE_NULL) && !equalTypes(right, TYPE_NULL)) {
                         ERROR_IF(!isSuper(left, right) && !isSuper(right, left), "Comparison must be in a super-subtype relationship.");
-                        ERROR_IF(isUnsafe(left) ^ isUnsafe(right), "Mixing safe and unsafe references!");
                     }
                 } else
                     PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
@@ -215,13 +218,12 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
 
             ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
             ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
-            ERROR_IF(isUnsafe(cast) ^ isUnsafe(child), "Received a mix of unsafe and managed objects in cast!");
             ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
             return node->determinedType = cast;
         }
         case OP_METHOD_CALL: {
             ExpressionList* expressions = node->methodcall.params;
-            CheshireType functionType = getVariableType(scope, node->methodcall.fn_name);
+            CheshireType functionType = typeCheckExpressionNode(scope, node->methodcall.callback);
             ERROR_IF(!isLambdaType(functionType), "Type is not invocable!");
             LambdaType method_signature = keyedLambdas[functionType];
             unsigned int index = 0;
@@ -245,8 +247,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                     return node->determinedType = TYPE_NULL;
             }
         }
-        case OP_LARGE_INTEGER:
-            return node->determinedType = TYPE_NUMBER;
         case OP_INTEGER:
             return node->determinedType = TYPE_INT;
         case OP_DECIMAL:
@@ -256,24 +256,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_DEREFERENCE: {
             CheshireType child = typeCheckExpressionNode(scope, node->unaryChild);
             return node->determinedType = child;
-        }
-        case OP_NEW_GC: {
-            CheshireType object = node->instantiate.type;
-
-            if (!isObjectType(object))
-                PANIC("Impossible to instantate a non-object type!");
-
-            object.isUnsafe = FALSE;
-            return node->determinedType = object;
-        }
-        case OP_NEW_HEAP: {
-            CheshireType object = node->instantiate.type;
-
-            if (!isObjectType(object))
-                PANIC("Impossible to instantate a non-object type!");
-
-            object.isUnsafe = TRUE;
-            return node->determinedType = object;
         }
         case OP_CLOSURE: {
             CheshireType currentExpectedType = getExpectedMethodType();
@@ -384,20 +366,13 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             fallScope(scope);
         }
         break;
-        case S_DELETE_HEAP: {
-            CheshireType type = typeCheckExpressionNode(scope, node->expression);
-
-            if (!type.isUnsafe)
-                PANIC("Expected unsafe type in operator delete^");
-        }
-        break;
         case S_RETURN: {
             CheshireType type = typeCheckExpressionNode(scope, node->expression);
             CheshireType expected = getExpectedMethodType();
 
             if (equalTypes(expected, TYPE_VOID)) {
                 if (!equalTypes(type, TYPE_NULL))
-                    PANIC("Cannot return void from a non-void method!");
+                    PANIC("Cannot return non-void from a void method!");
             } else {
                 STORE_EXPRESSION_INTO_LVAL(expected, type, node->expression, "return statement");
             }

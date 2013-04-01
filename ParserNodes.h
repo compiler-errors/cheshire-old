@@ -16,18 +16,17 @@ extern "C" {
     ExpressionNode* createInstanceOfNode(ExpressionNode*, CheshireType instanceofType);
     ExpressionNode* createVariableAccess(char*);
     ExpressionNode* createStringNode(char*);
-    ExpressionNode* createLargeIntegerNode(long);
     ExpressionNode* createIntegerNode(long);
     ExpressionNode* createDecimalNode(double);
     ExpressionNode* createCastOperation(ExpressionNode*, CheshireType newType);
-    ExpressionNode* createInstantiationOperation(InstantiationType, CheshireType);
-    ExpressionNode* createMethodCall(char* name, ExpressionList*);
+    ExpressionNode* createMethodCall(ExpressionNode* callback, ExpressionList*);
     ExpressionNode* createIncrementOperation(ExpressionNode*, OperationType);
     ExpressionNode* createReservedLiteralNode(ReservedLiteral);
     ExpressionNode* createAccessNode(ExpressionNode*, char* classVariable);
     ExpressionNode* createLengthOperation(ExpressionNode*);
     ExpressionNode* dereferenceExpression(ExpressionNode*);
     ExpressionNode* createClosureNode(CheshireType, ParameterList*, BlockList*);
+    ExpressionNode* createSelfNode(void);
 
 //defined in ExpressionList.c
     ExpressionList* linkExpressionList(ExpressionNode*, ExpressionList*);
@@ -41,7 +40,6 @@ extern "C" {
     StatementNode* createWhileStatement(ExpressionNode* condition, StatementNode* whileBlock);
     StatementNode* createVariableDefinition(CheshireType, char* name, ExpressionNode* value);
     StatementNode* createInferDefinition(char* name, ExpressionNode* value);
-    StatementNode* createDeleteHeapStatement(ExpressionNode*);
     StatementNode* createReturnStatement(ExpressionNode*);
 
 //defined in BlockList.c
@@ -58,7 +56,7 @@ extern "C" {
     ParameterList* linkParameterList(CheshireType type, char* name, ParameterList* next);
 
 //defined in ClassList.c
-    ClassList* linkClassList(CheshireType, char* name, ClassList* next);
+    ClassList* linkClassList(CheshireType, char* name, ExpressionNode* default_value, ClassList* next);
 
 #ifdef __cplusplus
 }

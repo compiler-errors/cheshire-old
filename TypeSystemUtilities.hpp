@@ -161,7 +161,7 @@ public:
     }
 
     bool typeEql(const CheshireType& a, const CheshireType& b) const {
-        return (a.typeKey == b.typeKey) && (a.isUnsafe == b.isUnsafe);
+        return (a.typeKey == b.typeKey);
     }
 };
 
@@ -175,7 +175,7 @@ public:
 class CheshireTypeEql {
 public:
     bool operator()(const CheshireType& a, const CheshireType& b) const {
-        return a.typeKey == b.typeKey && a.isUnsafe == b.isUnsafe && a.arrayNesting == b.arrayNesting;
+        return a.arrayNesting == b.arrayNesting;
     }
 };
 

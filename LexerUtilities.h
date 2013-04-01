@@ -21,7 +21,7 @@ extern "C" {
     void determineOpType(const char*, OperationType* store);
     void saveIdentifier(const char*, char** store);
     void saveStringLiteral(const char*, char** store);
-    char* saveStringLiteralReturn(const char*);
+    char* saveIdentifierReturn(const char*);
     char* createDummyName(const char* prefix);
 
 #ifdef	__cplusplus

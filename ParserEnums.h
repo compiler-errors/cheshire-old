@@ -25,13 +25,11 @@ extern "C" {
     }
     ParserReturnType;
     typedef enum { RL_TRUE, RL_FALSE, RL_NULL } ReservedLiteral;
-    typedef enum { IT_GC, IT_HEAP } InstantiationType;
     typedef enum { FALSE = 0, TRUE = 1 } Boolean;
     typedef enum { CLT_METHOD, CLT_VARIABLE } ClassListType;
 
     typedef enum {
-        OP_NOP,             //placeholder type -- not used - hopefully - anywhere.
-        OP_LARGE_INTEGER,
+        OP_NOP,             //placeholder type: not used - hopefully - anywhere.
         OP_INTEGER,
         OP_DECIMAL,
         OP_DEREFERENCE,
@@ -57,14 +55,12 @@ extern "C" {
         OP_INSTANCEOF,
         OP_VARIABLE,
         OP_CAST,
-        OP_NEW_GC,
-        OP_NEW_HEAP,
         OP_ACCESS,
         OP_METHOD_CALL,
         OP_RESERVED_LITERAL,
         OP_ARRAY_ACCESS,
         OP_STRING,
-        OP_LENGTH,
+        OP_LENGTH, //todo: remove.
         OP_CLOSURE
     } OperationType;
 
@@ -78,7 +74,6 @@ extern "C" {
         S_IF,
         S_IF_ELSE,
         S_WHILE,
-        S_DELETE_HEAP,
         S_RETURN
     } StatementType;
 

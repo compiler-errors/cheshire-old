@@ -14,7 +14,7 @@ static ClassList* allocClassList(void) {
     return node;
 }
 
-ClassList* linkClassList(CheshireType type, char* name, ClassList* next) {
+ClassList* linkClassList(CheshireType type, char* name, ExpressionNode* defaultValue, ClassList* next) {
     ClassList* node = allocClassList();
     
     if (node == NULL)
@@ -22,6 +22,7 @@ ClassList* linkClassList(CheshireType type, char* name, ClassList* next) {
     
     node->name = name;
     node->type = type;
+    node->defaultValue = defaultValue;
     node->next = next;
     return node;
 }
@@ -31,6 +32,7 @@ void deleteClassList(ClassList* node) {
         return;
     
     free(node->name);
-    deleteClassList(node);
+    deleteClassList(node->next);
+    deleteExpressionNode(node->defaultValue);
     free(node);
 }

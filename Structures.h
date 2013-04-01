@@ -17,7 +17,6 @@ extern "C" {
 
     typedef struct tagCheshireType {
         TypeKey typeKey;
-        Boolean isUnsafe;
         int arrayNesting;
     } CheshireType;
 
@@ -34,6 +33,7 @@ extern "C" {
     typedef struct tagClassList {
         struct tagClassList* next;
         CheshireType type;
+        struct tagExpressionNode* defaultValue;
         char* name;
     } ClassList;
 
@@ -106,7 +106,7 @@ extern "C" {
             } instantiate;
 
             struct {
-                char* fn_name;
+                struct tagExpressionNode* callback;
                 struct tagExpressionList* params;
             } methodcall;
 

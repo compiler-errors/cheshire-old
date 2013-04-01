@@ -11,7 +11,6 @@
 #include <fstream>
 #include "Structures.h"
 #include "TypeSystem.h"
-#include "CodeEmitting.h"
 
 extern "C" {
 #include "CheshireParser.yy.h"
@@ -51,8 +50,16 @@ int main(int argc, char** argv) {
         if (ret == 1)
             PANIC("Reached a fatal error in parsing!");
 
-        if (ret == 2)
+        if (ret == -2)
             break;
+        
+        if (ret == 2) {
+            ret = yyparse(&node, scanner); //I read the class name, now to read it's actual {} contents.
+            if (ret == -2 || ret == 2)
+                PANIC("Incomplete class definition!");
+            if (ret == 1)
+                PANIC("Reached a fatal error in parsing class!");
+        }
 
         defineTopNode(scope, node);
         topNodes.push_front(node);
@@ -69,7 +76,11 @@ int main(int argc, char** argv) {
     yylex_destroy(scanner);
     
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
-        emitCode(stdout, *i);
+        //emitCode(stdout, *i);
+    }
+    
+    for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
+        deleteParserTopNode(*i);
     }
     
     deleteCheshireScope(scope);

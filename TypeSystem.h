@@ -8,15 +8,17 @@
 extern "C" {
 #endif
 
-#define TYPE_NULL       ((CheshireType) {-2, FALSE, 0})
-#define TYPE_VOID       ((CheshireType) {0, FALSE, 0})
-#define TYPE_NUMBER     ((CheshireType) {1, FALSE, 0})
-#define TYPE_INT        ((CheshireType) {2, FALSE, 0})
-#define TYPE_DECIMAL    ((CheshireType) {3, FALSE, 0})
-#define TYPE_BOOLEAN    ((CheshireType) {4, FALSE, 0})
-#define TYPE_OBJECT     ((CheshireType) {5, FALSE, 0})
-#define TYPE_OBJECT_HAT ((CheshireType) {5, TRUE, 0})
-#define TYPE_STRING     ((CheshireType) {6, FALSE, 0})
+#define TYPE_SELF       ((CheshireType) {-3, 0})
+#define TYPE_NULL       ((CheshireType) {-2, 0})
+#define TYPE_VOID       ((CheshireType)  {0, 0})
+#define TYPE_I8         ((CheshireType)  {1, 0})
+#define TYPE_I16        ((CheshireType)  {2, 0})
+#define TYPE_INT        ((CheshireType)  {3, 0})
+#define TYPE_I64        ((CheshireType)  {4, 0})
+#define TYPE_DECIMAL    ((CheshireType)  {5, 0})
+#define TYPE_BOOLEAN    ((CheshireType)  {6, 0})
+#define TYPE_OBJECT     ((CheshireType)  {7, 0})
+#define TYPE_STRING     ((CheshireType)  {8, 0}) //todo: give the class an actual structure ClassList* w/ methods in initTypeSystem()
 
     void initTypeSystem(void);
     void freeTypeSystem(void); //frees all of the char* references
@@ -29,16 +31,16 @@ extern "C" {
     CheshireType getExpectedMethodType(void);
     CheshireType getVariableType(CheshireScope*, const char* name);
     void defineVariable(CheshireScope*, const char* name, CheshireType type);
+    void reserveClassNameType(const char* name); //"defines" a class so it can use its own name in its definition.
     int defineClass(const char* name, ClassList*, CheshireType parent);
 
     Boolean isTypeName(const char*);
     CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);
-    CheshireType getNamedType(const char* name, Boolean isUnsafe);
+    CheshireType getNamedType(const char* name);
     void printCheshireType(CheshireType);
 
     Boolean equalTypes(CheshireType left, CheshireType right);
     Boolean isVoid(CheshireType);
-    Boolean isUnsafe(CheshireType);
     Boolean isBoolean(CheshireType);
     Boolean isInt(CheshireType);
     Boolean isObjectType(CheshireType);
