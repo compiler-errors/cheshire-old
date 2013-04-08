@@ -54,7 +54,9 @@ len       return TOK_LEN;
 ","  return TOK_COMMA;
 ":"  return TOK_COLON;
 "::" return TOK_COLONCOLON;
-{QUOTE}([^"\"""\n"]|{BACKSLASH}[abfnrtv"'"{QUOTE}{BACKSLASH}"?"])*{QUOTE}   { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
+\"(\\[bfnrt\'\?\\\"]|[^\\\"\n])*\"  { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
+\'(\\[bfnrt\'\?\\\"]|[^\\\'\n])\'  { yylval->character = yytext[1]; return TOK_CHAR; }
+\".*\"                                { PANIC("Invalid string literal: %s", yytext); }
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }
 "and"|"or"      { determineOpType(yytext, &(yylval->op_type)); return TOK_AND_OR; }
 "++"|"--"       { determineOpType(yytext, &(yylval->op_type)); return TOK_INCREMENT; }
@@ -83,7 +85,7 @@ len       return TOK_LEN;
 {WHITESPACE}+   {} /* whitespace */
 \n              lineno++;
 <<eof>>         return TOK_EOF;
-.               { fprintf(stderr, "No such character as \'%s\' at line %d.\n", yytext, lineno); exit(0); }
+.               { fprintf(stderr, "No such character expected: \'%s\' at line %d.\n", yytext, lineno); exit(0); }
 
 %%
 

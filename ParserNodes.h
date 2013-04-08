@@ -23,10 +23,11 @@ extern "C" {
     ExpressionNode* createIncrementOperation(ExpressionNode*, OperationType);
     ExpressionNode* createReservedLiteralNode(ReservedLiteral);
     ExpressionNode* createAccessNode(ExpressionNode*, char* classVariable);
-    ExpressionNode* createLengthOperation(ExpressionNode*);
     ExpressionNode* dereferenceExpression(ExpressionNode*);
     ExpressionNode* createClosureNode(CheshireType, ParameterList*, BlockList*);
     ExpressionNode* createSelfNode(void);
+    ExpressionNode* createInstantiationOperation(CheshireType, ExpressionList*);
+    ExpressionNode* createObjectCall(ExpressionNode*, char* method, ExpressionList*);
 
 //defined in ExpressionList.c
     ExpressionList* linkExpressionList(ExpressionNode*, ExpressionList*);

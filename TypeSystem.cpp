@@ -58,7 +58,7 @@ void initTypeSystem() {
         insertBaseType("void");   //type 0
         insertBaseType("I8");     //type 1 C-type
         insertBaseType("I16");    //type 2 C-type
-        insertBaseType("Int");    //type 3 
+        insertBaseType("Int");    //type 3
         insertBaseType("I64");    //type 4 C-type
         insertBaseType("Decimal");//type 5
         insertBaseType("Boolean");//type 6
@@ -157,7 +157,7 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
 void reserveClassNameType(const char* name) {
     if (namedObjects.find(name) != namedObjects.end())
         PANIC("Cannot re-define class of name: %s", name);
-    
+
     int typeID = typeKeys++;
     namedObjects[name] = typeID;
     objectMapping[typeID] = NULL;
@@ -184,7 +184,6 @@ CheshireType getNamedType(const char* str) {
     CheshireType ret = {0, 0};
     ERROR_IF(!isTypeName(str), "No such named type as %s", str);
     ret.typeKey = namedObjects[str];
-    
     return ret;
 }
 
@@ -251,20 +250,20 @@ Boolean isLambdaType(CheshireType t) {
     return (Boolean)(keyedLambdas.find(t) != keyedLambdas.end());
 }
 
-void printCheshireType(CheshireType node) {
+void printType(CheshireType node) {
     TypeKey t = node.typeKey;
     CheshireType raw = {node.typeKey, 0};
 
     if (isLambdaType(raw)) {
         LambdaType l = keyedLambdas[raw];
-        printCheshireType(l.first);
+        printType(l.first);
         printf("::(");
 
         for (size_t i = 0; i < l.second.size(); i++) {
             if (i != 0)
                 printf(", ");
 
-            printCheshireType(l.second[i]);
+            printType(l.second[i]);
         }
 
         printf(")");
@@ -276,13 +275,27 @@ void printCheshireType(CheshireType node) {
         }
     } else {
         switch (t) {
-            case 0: printf("void"); break;
-            case 1: printf("I8"); break;
-            case 2: printf("I16"); break;
-            case 3: printf("Int"); break;
-            case 4: printf("I64"); break;
-            case 5: printf("Decimal"); break;
-            case 6: printf("Boolean"); break;
+            case 0:
+                printf("void");
+                break;
+            case 1:
+                printf("I8");
+                break;
+            case 2:
+                printf("I16");
+                break;
+            case 3:
+                printf("Int");
+                break;
+            case 4:
+                printf("I64");
+                break;
+            case 5:
+                printf("Decimal");
+                break;
+            case 6:
+                printf("Boolean");
+                break;
             default:
                 PANIC("No such recognized type as: %d, arrayNesting = %d", t, node.arrayNesting);
                 break;

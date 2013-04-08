@@ -158,17 +158,6 @@ ExpressionNode* createReservedLiteralNode(ReservedLiteral rl) {
     return node;
 }
 
-ExpressionNode* createLengthOperation(ExpressionNode* expression) {
-    ExpressionNode* node = allocExpressionNode();
-    
-    if (node == NULL)
-        return NULL;
-    
-    node->type = OP_LENGTH;
-    node->unaryChild = expression;
-    return node;
-}
-
 ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -193,6 +182,31 @@ ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, Bloc
     return node;
 }
 
+ExpressionNode* createInstantiationOperation(CheshireType type, ExpressionList* params) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_INSTANTIATION;
+    node->instantiate.type = type;
+    node->instantiate.params = params;
+    return node;
+}
+
+ExpressionNode* createObjectCall(ExpressionNode* object, char* method, ExpressionList* params) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_OBJECT_CALL;
+    node->objectcall.object = object;
+    node->objectcall.method = method;
+    node->objectcall.params = params;
+    return node;
+}
+
 void deleteExpressionNode(ExpressionNode* node) {
     if (node == NULL)
         return;
@@ -206,7 +220,6 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_UNARY_MINUS:
         case OP_PLUSONE:
         case OP_MINUSONE:
-        case OP_LENGTH:
         case OP_DEREFERENCE:
             deleteExpressionNode(node->unaryChild); // Unary Operations
             break;
@@ -249,6 +262,14 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_CLOSURE:
             deleteParameterList(node->closure.params);
             deleteBlockList(node->closure.body);
+            break;
+        case OP_INSTANTIATION:
+            deleteExpressionList(node->instantiate.params);
+            break;
+        case OP_OBJECT_CALL:
+            deleteExpressionNode(node->objectcall.object);
+            free(node->objectcall.method);
+            deleteExpressionList(node->objectcall.params);
             break;
         case OP_INTEGER:
         case OP_DECIMAL:

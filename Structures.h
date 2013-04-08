@@ -103,6 +103,7 @@ extern "C" {
 
             struct {
                 CheshireType type;
+                struct tagExpressionList* params;
             } instantiate;
 
             struct {
@@ -115,6 +116,12 @@ extern "C" {
                 struct tagParameterList* params;
                 struct tagBlockList* body;
             } closure;
+
+            struct {
+                struct tagExpressionNode* object;
+                char* method;
+                struct tagExpressionList* params;
+            } objectcall;
         };
     } ExpressionNode;
 

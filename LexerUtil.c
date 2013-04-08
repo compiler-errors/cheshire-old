@@ -103,11 +103,62 @@ void saveIdentifier(const char* string, char** var) {
 }
 
 void saveStringLiteral(const char* string, char** var) {
-    int substringlen = strlen(string) - 1;
-    char* substring = malloc(sizeof(char) * substringlen); //subtract 2 quotes, add 1 "\0"
-    memcpy(substring, string+1, substringlen);
-    substring[substringlen-1] = '\0';
-    *var = substring;
+    int stringLength = strlen(string)-1;
+    int interpretedLength = 0;
+    
+    int i;
+    for (i = 1; i < stringLength; i++) {
+        if (string[i] == '\\') {
+            i++; //skip char after.
+        }
+        interpretedLength++;
+    }
+    
+    char* newstring = malloc(interpretedLength + 1);
+    newstring[interpretedLength] = '\0';
+    
+    int j; //i already defined.
+    for (i = 1, j = 0; i < stringLength; i++) {
+        if (string[i] == '\\') {
+            i++; //skip char after.
+            char escape = string[i], output;
+            switch(escape) {
+                case '\\':
+                    output = '\\';
+                    break;
+                case '"':
+                    output = '"';
+                    break;
+                case '\'':
+                    output = '\'';
+                    break;
+                case 'b': //bell
+                    output = '\b';
+                    break;
+                case 'f': //form-feed, new page
+                    output = '\f';
+                    break;
+                case 'n': //new-line
+                    output = '\n';
+                    break;
+                case 'r': //carriage return
+                    output = '\r';
+                    break;
+                case 't': //tab
+                    output = '\t';
+                    break;
+                default:
+                    output = '\0';
+                    break;
+            }
+            newstring[j] = escape;
+        } else {
+            newstring[j] = string[i];
+        }
+        j++;
+    }
+    
+    *var = newstring;
 }
 
 char* saveIdentifierReturn(const char* string) {

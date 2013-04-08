@@ -8,7 +8,6 @@
 extern "C" {
 #endif
 
-#define TYPE_SELF       ((CheshireType) {-3, 0})
 #define TYPE_NULL       ((CheshireType) {-2, 0})
 #define TYPE_VOID       ((CheshireType)  {0, 0})
 #define TYPE_I8         ((CheshireType)  {1, 0})
@@ -37,7 +36,7 @@ extern "C" {
     Boolean isTypeName(const char*);
     CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);
     CheshireType getNamedType(const char* name);
-    void printCheshireType(CheshireType);
+    void printType(CheshireType);
 
     Boolean equalTypes(CheshireType left, CheshireType right);
     Boolean isVoid(CheshireType);

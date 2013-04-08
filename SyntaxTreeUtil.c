@@ -31,11 +31,6 @@ void printExpression(ExpressionNode* node) {
             printExpression(node->unaryChild);
             printf("--)");
             break;
-        case OP_LENGTH:
-            printf("(len ");
-            printExpression(node->unaryChild);
-            printf(")");
-            break;
         case OP_NOT:
             printf("(not ");
             printExpression(node->unaryChild);
@@ -158,7 +153,7 @@ void printExpression(ExpressionNode* node) {
             printf("(");
             printExpression(node->instanceof.expression);
             printf(" instanceof ");
-            printCheshireType(node->instanceof.type);
+            printType(node->instanceof.type);
             printf(")");
             break;
         case OP_VARIABLE:
@@ -175,7 +170,7 @@ void printExpression(ExpressionNode* node) {
             break;
         case OP_CAST:
             printf("(cast <");
-            printCheshireType(node->cast.type);
+            printType(node->cast.type);
             printf("> ");
             printExpression(node->cast.child);
             printf(")");
@@ -183,7 +178,7 @@ void printExpression(ExpressionNode* node) {
         case OP_METHOD_CALL:
             printf("(");
             printExpression(node->methodcall.callback);
-            printParameterList(node->methodcall.params);
+            printParameters(node->methodcall.params);
             printf(")");
             break;
         case OP_RESERVED_LITERAL:
@@ -213,13 +208,25 @@ void printExpression(ExpressionNode* node) {
             break;
         case OP_CLOSURE:
             printf("(");
-            printCheshireType(getLambdaType(node->closure.type, node->closure.params));
+            printType(getLambdaType(node->closure.type, node->closure.params));
             printf(" <CLOSURE>)");
             break;
+        case OP_INSTANTIATION:
+            printf("(new ");
+            printType(node->instantiate.type);
+            printParameters(node->instantiate.params);
+            printf(")");
+            break;
+        case OP_OBJECT_CALL: //todo: this.
+            printf("(");
+            printExpression(node->objectcall.object);
+            printf("::%s", node->objectcall.method);
+            printParameters(node->objectcall.params);
+            printf(")");
     }
 }
 
-void printParameterList(ExpressionList* param) {
+void printParameters(ExpressionList* param) {
     printf("(");
 
     if (param != NULL) {

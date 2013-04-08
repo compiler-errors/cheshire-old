@@ -65,7 +65,7 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             for (ClassList* classnode = node->classdef.classlist; classnode != NULL; classnode = classnode->next) {
                 CheshireType memberdefault = typeCheckExpressionNode(scope, classnode->defaultValue);
                 STORE_EXPRESSION_INTO_LVAL(classnode->type, memberdefault, classnode->defaultValue, "class variable");
-            } 
+            }
         }
         break;
         case PRT_METHOD_DECLARATION:
@@ -251,8 +251,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = TYPE_INT;
         case OP_DECIMAL:
             return node->determinedType = TYPE_DECIMAL;
-        case OP_LENGTH:
-            return node->determinedType = TYPE_INT;
         case OP_DEREFERENCE: {
             CheshireType child = typeCheckExpressionNode(scope, node->unaryChild);
             return node->determinedType = child;
@@ -270,7 +268,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             setExpectedMethodType(currentExpectedType);
             return node->determinedType = getLambdaType(node->closure.type, node->closure.params);
         }
-        case OP_ACCESS:
+        case OP_ACCESS: {
             CheshireType childType = typeCheckExpressionNode(scope, node->access.expression);
             ERROR_IF(!isObjectType(childType), "Cannot dereference a non-object type!");
             CStrEql streql;
@@ -285,6 +283,17 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 PANIC("Could not find variable %s", node->access.variable);
 
             return node->determinedType = ret;
+        }
+        case OP_INSTANTIATION: {
+            ERROR_IF(!isObjectType(node->instantiate.type), "Cannot instantiate a non-object type!");
+            //todo: this.
+            //type check parameters against __Init (name?) function which is defaulted or what idk?
+            return node->determinedType = node->instantiate.type;
+        }
+        case OP_OBJECT_CALL: {
+            //todo: this
+            return node->determinedType = TYPE_VOID;
+        }
     }
 
     PANIC("FATAL ERROR IN TYPE CHECKING.");
@@ -307,7 +316,7 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             defineVariable(scope, node->varDefinition.variable, givenType);
             node->varDefinition.type = givenType; //"infer" the type of the variable.
             printf("Inferred ");
-            printCheshireType(givenType);
+            printType(givenType);
             printf(" for expression: ");
             printExpression(node->varDefinition.value);
             printf("\n");

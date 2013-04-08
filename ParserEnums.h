@@ -60,8 +60,9 @@ extern "C" {
         OP_RESERVED_LITERAL,
         OP_ARRAY_ACCESS,
         OP_STRING,
-        OP_LENGTH, //todo: remove.
-        OP_CLOSURE
+        OP_CLOSURE,
+        OP_INSTANTIATION,
+        OP_OBJECT_CALL
     } OperationType;
 
     typedef enum {

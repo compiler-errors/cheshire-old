@@ -53,6 +53,7 @@ typedef void* yyscan_t;
     ReservedLiteral reserved_literal;
     double decimal;
     long integer;
+    char character;
     struct tagParameterList* parameter_list;
     struct tagExpressionNode* expression;
     struct tagExpressionList* expression_list;
@@ -108,6 +109,7 @@ typedef void* yyscan_t;
 %token <reserved_literal> TOK_RESERVED_LITERAL
 %token <string> TOK_IDENTIFIER
 %token <string> TOK_STRING
+%token <character> TOK_CHAR
 
 %right TOK_COMMA
 %right TOK_SET
@@ -201,7 +203,6 @@ statement
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass %prec P_IF  { $$ = createIfStatement( $3 , $5 ); }
     | TOK_WHILE TOK_LPAREN expression TOK_RPAREN statement_or_pass  { $$ = createWhileStatement( $3 , $5 ); }
-    | TOK_DELETE expression TOK_LN  { /*todo: implement me*/ }
     | TOK_RETURN expression TOK_LN  { $$ = createReturnStatement( $2 ); }
     | TOK_RETURN TOK_LN  { $$ = createReturnStatement( createReservedLiteralNode(RL_NULL) ); }
     ;
@@ -225,6 +226,7 @@ expression
     | lval_expression  { $$ = dereferenceExpression( $1 ); }
     | TOK_INTEGER  { $$ = createIntegerNode( $1 ); }
     | TOK_DECIMAL  { $$ = createDecimalNode( $1 ); }
+    | TOK_CHAR  { $$ = createCharNode( $1 ); }
     | TOK_RESERVED_LITERAL  { $$ = createReservedLiteralNode( $1 ); }
     | TOK_STRING  { $$ = createStringNode( $1 ); }
     | TOK_LPAREN expression TOK_RPAREN { $$ = $2 ; }
@@ -237,9 +239,8 @@ expression
     | expression TOK_ADDSUB expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_MULTDIV expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
-    | typename TOK_LPAREN expression TOK_RPAREN %prec P_CAST  { $$ = createCastOperation( $3 , $1 ); }
-    | TOK_NEW TOK_TYPE  { /*todo: Implement me*/ }
-    | expression TOK_COLONCOLON parameter_list  { /*todo: Implement me*/ }
+    | typename TOK_LPAREN expression TOK_RPAREN  { $$ = createCastOperation( $3 , $1 ); }
+    | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
     | TOK_DEFINE typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $5 ); }
     ;
 
@@ -253,6 +254,7 @@ expression_statement
     : lval_expression TOK_SET expression  { $$ = createBinOperation( OP_SET , $1 , $3 ); }
     | lval_expression TOK_INCREMENT  { $$ = createIncrementOperation( $1 , $2 ); }
     | expression expression_list  { $$ = createMethodCall( $1 , $2 ); }
+    | expression TOK_COLONCOLON TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
     ;
 
 expression_list

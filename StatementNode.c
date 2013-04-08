@@ -138,14 +138,14 @@ void deleteStatementNode(StatementNode* node) {
             deleteBlockList(node->block);
             break;
         case S_IF:
+        case S_WHILE:
             deleteExpressionNode(node->conditional.condition);
             deleteStatementNode(node->conditional.block);
-            deleteStatementNode(node->conditional.elseBlock);
             break;
-        case S_WHILE:
         case S_IF_ELSE:
             deleteExpressionNode(node->conditional.condition);
             deleteStatementNode(node->conditional.block);
+            deleteStatementNode(node->conditional.elseBlock);
             break;
         case S_VARIABLE_DEF:
         case S_INFER_DEF:
