@@ -31,6 +31,7 @@ using std::floor;
                 if (!isSuper(ltype, rtype)) { \
                     PANIC("Cannot store type into non-super-type!"); \
                 } \
+                WIDEN_NODE(ltype, rtype, node); \
             } \
         } else \
             PANIC("left and right types must be both numerical, object or the same exact type for %s", reason); \
@@ -131,7 +132,6 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
             defineVariable(scope, node->variable.name, node->variable.type);
             break;
         case PRT_CLASS_DEFINITION: {
-            //todo: check ancestor overrides (no overrides allowed for vars, overrides checked for methods)
             ERROR_IF(!isObjectType(node->classdef.parent), "Invalid parent type of class %s", node->classdef.name);
             int typekey = defineClass(node->classdef.name, node->classdef.classlist, node->classdef.parent);
             CStrEql streql;
@@ -151,16 +151,48 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
                             if (c2->type == CLT_METHOD)
                                 ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
                         }
+                        
+                        for (ClassList* c2 = objectMapping[node->classdef.parent.typeKey]; c2 != NULL; c2 = c2->next) {
+                            if (c2->type == CLT_VARIABLE)
+                                ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
+                            if (c2->type == CLT_METHOD)
+                                ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
+                        }
                         break;
                     }
                     case CLT_METHOD: {
                         c->method.params = linkParameterList(((CheshireType) {typekey, 0}), saveIdentifierReturn("self"), c->method.params);
                         char* name = c->method.name;
+                        
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next) {
                             if (c2->type == CLT_VARIABLE)
                                 ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
-                            if (c2->type == CLT_METHOD)
+                            if (c2->type == CLT_METHOD) {
+                                //check for override.
                                 ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
+                            }
+                        }
+                        
+                        for (ClassList* c2 = objectMapping[node->classdef.parent.typeKey]; c2 != NULL; c2 = c2->next) {
+                            if (c2->type == CLT_VARIABLE)
+                                ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
+                            if (c2->type == CLT_METHOD) {
+                                //check for override.
+                                if (streql(name, c2->method.name)) {
+                                    if (equalTypes(c->method.returnType, c2->method.returnType)) {
+                                        for (ParameterList* a = c->method.params->next, * b = c2->method.params->next; true; a = a->next, b = b->next) {
+                                            if (a == NULL && b == NULL) {
+                                                break;
+                                            } else if (a == NULL || b == NULL) { //otherwise, if only 1 is null...
+                                                PANIC("Invalid override of %s -- unmatching parameter list sizes.", name);
+                                            } else {
+                                                ERROR_IF(!equalTypes(a->type, b->type), "Invalid override of %s -- unmatching parameter types.", name);
+                                            }
+                                        }
+                                    } else
+                                        PANIC("Invalid override of %s -- unmatching return types.", name);
+                                }
+                            }
                         }
                         break;
                     }

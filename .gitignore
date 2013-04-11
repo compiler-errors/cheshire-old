@@ -5,6 +5,7 @@
 /CheshireLexer.yy.h
 /CheshireParser.yy.output
 /CheshireParser.yy.c
+/*.o
 /cheshirec
 /astyle_command.txt
 /logfile

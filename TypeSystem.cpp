@@ -205,7 +205,10 @@ CheshireType getClassVariable(CheshireType type, const char* variable) {
     
     for (ClassList* p = objectMapping[type.typeKey]; p != NULL; p = p->next) {
         switch (p->type) {
-            case CLT_CONSTRUCTOR: continue;
+            case CLT_CONSTRUCTOR:
+                if (streql(variable, "new"))
+                    return getLambdaType(TYPE_VOID, p->constructor.params);
+                break;
             case CLT_VARIABLE:
                 if (streql(p->variable.name, variable))
                     return p->variable.type;
@@ -218,7 +221,19 @@ CheshireType getClassVariable(CheshireType type, const char* variable) {
     }
     
     if (!streql(variable, "new")) {
-        //todo: check ancestor.
+        for (ClassList* p = objectMapping[ancestryMap[type.typeKey]]; p != NULL; p = p->next) {
+            switch (p->type) {
+                case CLT_CONSTRUCTOR: continue;
+                case CLT_VARIABLE:
+                    if (streql(p->variable.name, variable))
+                        return p->variable.type;
+                    break;
+                case CLT_METHOD:
+                    if (streql(p->method.name, variable))
+                        return getLambdaType(p->method.returnType, p->method.params);
+                    break;
+            }
+        }
     }
     
     return TYPE_VOID;
