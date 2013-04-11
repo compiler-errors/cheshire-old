@@ -18,6 +18,7 @@ extern "C" {
     ExpressionNode* createStringNode(char*);
     ExpressionNode* createIntegerNode(long);
     ExpressionNode* createDecimalNode(double);
+    ExpressionNode* createCharNode(char);
     ExpressionNode* createCastOperation(ExpressionNode*, CheshireType newType);
     ExpressionNode* createMethodCall(ExpressionNode* callback, ExpressionList*);
     ExpressionNode* createIncrementOperation(ExpressionNode*, OperationType);
@@ -57,7 +58,9 @@ extern "C" {
     ParameterList* linkParameterList(CheshireType type, char* name, ParameterList* next);
 
 //defined in ClassList.c
-    ClassList* linkClassList(CheshireType, char* name, ExpressionNode* default_value, ClassList* next);
+    ClassList* linkClassVariable(CheshireType, char*, ExpressionNode* value, ClassList* next);
+    ClassList* linkClassMethod(CheshireType returns, ParameterList*, char*, BlockList*, ClassList* next);
+    ClassList* linkClassConstructor(ParameterList* params, ExpressionList* inherits, BlockList* block, ClassList* next);
 
 #ifdef __cplusplus
 }

@@ -26,12 +26,13 @@ extern "C" {
     ParserReturnType;
     typedef enum { RL_TRUE, RL_FALSE, RL_NULL } ReservedLiteral;
     typedef enum { FALSE = 0, TRUE = 1 } Boolean;
-    typedef enum { CLT_METHOD, CLT_VARIABLE } ClassListType;
+    typedef enum { CLT_METHOD, CLT_VARIABLE, CLT_CONSTRUCTOR } ClassListType;
 
     typedef enum {
         OP_NOP,             //placeholder type: not used - hopefully - anywhere.
         OP_INTEGER,
         OP_DECIMAL,
+        OP_CHAR,
         OP_DEREFERENCE,
         OP_NOT,
         OP_COMPL,

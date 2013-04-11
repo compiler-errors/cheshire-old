@@ -100,6 +100,17 @@ ExpressionNode* createDecimalNode(double d) {
     return node;
 }
 
+    ExpressionNode* createCharNode(char character) {
+        ExpressionNode* node = allocExpressionNode();
+        
+        if (node == NULL)
+            return NULL;
+        
+        node->type = OP_CHAR;
+        node->character = character;
+        return node;
+    }
+
 ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType type) {
     ExpressionNode* node = allocExpressionNode();
     
@@ -273,6 +284,7 @@ void deleteExpressionNode(ExpressionNode* node) {
             break;
         case OP_INTEGER:
         case OP_DECIMAL:
+        case OP_CHAR:
         case OP_RESERVED_LITERAL:
             //DEFAULT, NO OPERATION
             break;

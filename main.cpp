@@ -50,21 +50,13 @@ int main(int argc, char** argv) {
         if (ret == 1)
             PANIC("Reached a fatal error in parsing!");
 
-        if (ret == -2)
+        if (ret == -2) //-2 = EOF.
             break;
 
-        if (ret == 2) {
-            ret = yyparse(&node, scanner); //I read the class name, now to read it's actual {} contents.
-
-            if (ret == -2 || ret == 2)
-                PANIC("Incomplete class definition!");
-
-            if (ret == 1)
-                PANIC("Reached a fatal error in parsing class!");
+        if (node != NULL) {
+            defineTopNode(scope, node);
+            topNodes.push_front(node);
         }
-
-        defineTopNode(scope, node);
-        topNodes.push_front(node);
     }
 
     printf("Now type checking...\n");
