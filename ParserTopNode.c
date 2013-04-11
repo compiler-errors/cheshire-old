@@ -102,7 +102,7 @@ void deleteParserTopNode(ParserTopNode* node) {
             deleteExpressionNode(node->variable.value);
             break;
         case PRT_CLASS_DEFINITION:
-            free(node->classdef.name);
+            //free(node->classdef.name);
             deleteClassList(node->classdef.classlist);
             break;
     }

@@ -17,7 +17,7 @@ using std::max;
 #define insertBaseType(type) { typeID = typeKeys++; namedObjects[type] = typeID; printf("Initializing type '%s' with key %d\n", type, typeID); }
 
 //////////////// STATICS /////////////////
-static AllocatedTypeStrings allocatedTypeString;
+static AllocatedTypeStrings allocatedTypeStrings;
 static NamedObjects namedObjects;
 static LambdaTypes lambdaTypes;
 ObjectMapping objectMapping;
@@ -53,6 +53,7 @@ static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* para
 //////////////////////////////////////////
 
 void initTypeSystem() {
+
     if (!isInitialized) {
         int typeID = 0;
         insertBaseType("void");   //type 0
@@ -63,19 +64,25 @@ void initTypeSystem() {
         insertBaseType("Decimal");//type 5
         insertBaseType("Boolean");//type 6
         //object
+        char* object_copy = saveIdentifierReturn("Object");
+        allocatedTypeStrings.insert(object_copy);
         typeID = typeKeys++;
-        namedObjects["Object"] = typeID;
+        namedObjects[object_copy] = typeID;
         printf("Initializing type '%s' with key %d\n", "Object", typeID);
         objectMapping[typeID] = NULL;
         ancestryMap[typeID] = typeID;
-        classNames[typeID] = "Object";
+        classNames[typeID] = object_copy;
         //string
+        char* string_copy = saveIdentifierReturn("String");
+        allocatedTypeStrings.insert(string_copy);
         typeID = typeKeys++;
-        namedObjects["String"] = typeID;
+        namedObjects[string_copy] = typeID;
         printf("Initializing type '%s' with key %d\n", "String", typeID);
         objectMapping[typeID] = NULL;
         ancestryMap[typeID] = TYPE_OBJECT.typeKey;
-        classNames[typeID] = "String";
+        classNames[typeID] = string_copy;
+    } else {
+        PANIC("Double initialization of type system!");
     }
 
     isInitialized = TRUE;
@@ -83,6 +90,11 @@ void initTypeSystem() {
 
 void freeTypeSystem() {
     isInitialized = FALSE;
+    
+    for (AllocatedTypeStrings::iterator i = allocatedTypeStrings.begin(); i != allocatedTypeStrings.end(); ++i)
+        free(*i);
+    
+    allocatedTypeStrings.clear();
     namedObjects.clear();
     lambdaTypes.clear();
     objectMapping.clear();
@@ -154,20 +166,30 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
     scope->highestScope->variables[name] = type;
 }
 
-void reserveClassNameType(const char* name) {
-    if (namedObjects.find(name) != namedObjects.end())
-        PANIC("Cannot re-define class of name: %s", name);
-
+void reserveClassNameType(char* name) {
+    allocatedTypeStrings.insert(name);
+    
+    if (isTypeName(name)) {
+        ERROR_IF(!isObjectType(getNamedType(name)), "Cannot forward-declare non-object-types!");
+        int typeID = getNamedType(name).typeKey;
+        namedObjects.erase(namedObjects.find(classNames[typeID]));
+        classNames[typeID] = name;
+        namedObjects[name] = typeID;
+        return;
+    }
+    
     int typeID = typeKeys++;
     namedObjects[name] = typeID;
     objectMapping[typeID] = NULL;
     classNames[typeID] = name;
 }
 
-int defineClass(const char* name, ClassList* classlist, CheshireType parent) {
+int defineClass(char* name, ClassList* classlist, CheshireType parent) {
+    reserveClassNameType(name);
+    
     if (objectMapping[getNamedType(name).typeKey] != NULL)
         PANIC("Cannot re-define class of name: %s", name);
-
+    
     int typeID = getNamedType(name).typeKey;
     namedObjects[name] = typeID;
     objectMapping[typeID] = classlist;
@@ -176,15 +198,48 @@ int defineClass(const char* name, ClassList* classlist, CheshireType parent) {
     return typeID;
 }
 
+CheshireType getClassVariable(CheshireType type, const char* variable) {
+    CStrEql streql;
+    
+    ERROR_IF(!isObjectType(type), "Cannot fetch object variable from non-object type.");
+    
+    for (ClassList* p = objectMapping[type.typeKey]; p != NULL; p = p->next) {
+        switch (p->type) {
+            case CLT_CONSTRUCTOR: continue;
+            case CLT_VARIABLE:
+                if (streql(p->variable.name, variable))
+                    return p->variable.type;
+                break;
+            case CLT_METHOD:
+                if (streql(p->method.name, variable))
+                    return getLambdaType(p->method.returnType, p->method.params);
+                break;
+        }
+    }
+    
+    if (!streql(variable, "new")) {
+        //todo: check ancestor.
+    }
+    
+    return TYPE_VOID;
+}
+
 Boolean isTypeName(const char* str) {
     return (Boolean)(namedObjects.find(str) != namedObjects.end());
 }
 
 CheshireType getNamedType(const char* str) {
-    CheshireType ret = {0, 0};
+    CheshireType ret = TYPE_VOID;
     ERROR_IF(!isTypeName(str), "No such named type as %s", str);
     ret.typeKey = namedObjects[str];
     return ret;
+}
+
+char* getNamedTypeString(CheshireType type) {
+    if (isObjectType(type) && type.arrayNesting == 0) {
+        return saveIdentifierReturn(classNames[type.typeKey]);
+    }
+    PANIC("Invalid class name!");
 }
 
 CheshireType getLambdaType(CheshireType returnType, ParameterList* parameters) {

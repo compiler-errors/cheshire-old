@@ -32,9 +32,28 @@ extern "C" {
 
     typedef struct tagClassList {
         struct tagClassList* next;
-        CheshireType type;
-        struct tagExpressionNode* defaultValue;
-        char* name;
+        ClassListType type;
+        
+        union {
+            struct { 
+                CheshireType type;
+                struct tagExpressionNode* defaultValue;
+                char* name;
+            } variable;
+            
+            struct {
+                CheshireType returnType;
+                struct tagParameterList* params;
+                struct tagBlockList* block;
+                char* name;
+            } method;
+            
+            struct {
+                struct tagParameterList* params;
+                struct tagExpressionList* inheritsParams;
+                struct tagBlockList* block;
+            } constructor;
+        };
     } ClassList;
 
     typedef struct tagParserTopNode {
@@ -73,17 +92,16 @@ extern "C" {
         union {
             long integer;
             double decimal;
+            char character;
+            char* string;
+            ReservedLiteral reserved;
+            struct tagExpressionNode* unaryChild;
 
             struct {
                 struct tagExpressionNode* left;
                 struct tagExpressionNode* right;
             } binary;
 
-            struct tagExpressionNode* unaryChild;
-
-            char* string;
-
-            ReservedLiteral reserved;
 
             /* simple types above */
             struct {

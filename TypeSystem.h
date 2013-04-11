@@ -30,12 +30,14 @@ extern "C" {
     CheshireType getExpectedMethodType(void);
     CheshireType getVariableType(CheshireScope*, const char* name);
     void defineVariable(CheshireScope*, const char* name, CheshireType type);
-    void reserveClassNameType(const char* name); //"defines" a class so it can use its own name in its definition.
-    int defineClass(const char* name, ClassList*, CheshireType parent);
+    CheshireType getClassVariable(CheshireType, const char* variable);
+    void reserveClassNameType(char* name); //"defines" a class so it can use its own name in its definition.
+    int defineClass(char* name, ClassList*, CheshireType parent);
 
     Boolean isTypeName(const char*);
     CheshireType getLambdaType(CheshireType returnType, struct tagParameterList* parameters);
     CheshireType getNamedType(const char* name);
+    char* getNamedTypeString(CheshireType);
     void printType(CheshireType);
 
     Boolean equalTypes(CheshireType left, CheshireType right);

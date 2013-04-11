@@ -168,6 +168,9 @@ void printExpression(ExpressionNode* node) {
         case OP_DECIMAL:
             printf("(%lf)", node->decimal);
             break;
+        case OP_CHAR:
+            printf("('%c')", node->character);
+            break;
         case OP_CAST:
             printf("(cast <");
             printType(node->cast.type);
@@ -217,12 +220,13 @@ void printExpression(ExpressionNode* node) {
             printParameters(node->instantiate.params);
             printf(")");
             break;
-        case OP_OBJECT_CALL: //todo: this.
+        case OP_OBJECT_CALL:
             printf("(");
             printExpression(node->objectcall.object);
             printf("::%s", node->objectcall.method);
             printParameters(node->objectcall.params);
             printf(")");
+            break;
     }
 }
 

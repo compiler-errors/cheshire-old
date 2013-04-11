@@ -6,7 +6,7 @@
 #include "LexerUtilities.h"
 #include "CheshireParser.yy.h"
 
-static int lineno = 0;
+static int lineno = 1;
 %}
 
 %option header-file="CheshireLexer.yy.h"
@@ -31,6 +31,7 @@ BACKSLASH   "\\"
 "#"[^\n"#"]*                  {} /*comment*/
 infer     return TOK_INFER;
 True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
+forward   return TOK_FWDECL;
 external  return TOK_EXTERNAL;
 pass      return TOK_PASS;
 global    return TOK_GLOBAL;

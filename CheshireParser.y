@@ -7,8 +7,6 @@
 
 int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg);
 
-static char* classLookahead = NULL;
-
 static int dummyIncrement = 0;
 /* come up with an arbitrary "dummy name", such as __dummy_param_1 or __var_2 that should be unique across the file. */
 char* createDummyName(const char* prefix) {
@@ -64,6 +62,7 @@ typedef void* yyscan_t;
 }
 
 %token TOK_EOF
+%token TOK_FWDECL
 %token TOK_ASSERT
 %token TOK_GLOBAL
 %token TOK_CLASS
@@ -127,6 +126,7 @@ typedef void* yyscan_t;
 %nonassoc TOK_ELSE
 %nonassoc TOK_LPAREN TOK_RPAREN
 
+%type <string> possible_objectname
 %type <expression> expression
 %type <expression> lval_expression
 %type <expression> expression_statement
@@ -148,15 +148,17 @@ typedef void* yyscan_t;
 
 input
     : TOK_EXTERNAL TOK_DEFINE typename TOK_IDENTIFIER parameter_list TOK_LN  { *output = createMethodDeclaration( $3 , $4 , $5 ); YYACCEPT; }
+    | TOK_FWDECL possible_objectname TOK_LN  { reserveClassNameType( $2 ); *output = NULL; YYACCEPT; }
     | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
     | TOK_EXTERNAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDeclaration( $2 , $3 ); YYACCEPT; }
     | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); YYACCEPT; }
-    | TOK_CLASS TOK_IDENTIFIER { classLookahead = $2; reserveClassNameType( $2 ); return 2; }
-    | class_list_or_pass  { if (classLookahead == NULL)
-                                PANIC("Class block provided without name!");
-                            CheshireType object = getNamedType("Object"); *output = createClassDefinition( classLookahead , $1 , object ); YYACCEPT; 
-                          }
+    | TOK_CLASS possible_objectname class_list_or_pass { CheshireType object = getNamedType("Object"); *output = createClassDefinition( $2 , $3 , object ); YYACCEPT; }
     | TOK_EOF  { return -2; }
+    ;
+
+possible_objectname
+    : TOK_IDENTIFIER  { $$ = $1 ; }
+    | typename  { $$ = getNamedTypeString( $1 ); printf("Named: %s\n", $$ ); }
     ;
 
 class_list_or_pass
@@ -169,11 +171,10 @@ class_list
     ;
 
 class_list_contains
-    : typename TOK_IDENTIFIER TOK_SET expression TOK_LN class_list_contains  { $$ = linkClassList( $1 , $2 , $4 , $6 ); }
-    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass class_list_contains  { 
-                                                                                     CheshireType lambda = getLambdaType( $2 , linkParameterList( getNamedType(classLookahead) , saveIdentifierReturn("self") , $4 ));
-                                                                                     $$ = linkClassList( lambda , $3 , createClosureNode( $2 , $4 , $5 ), $6 );
-                                                                                   }
+    : typename TOK_IDENTIFIER TOK_SET expression TOK_LN class_list_contains  { $$ = linkClassVariable( $1 , $2 , $4 , $6 ); }
+    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass class_list_contains  { $$ = linkClassMethod( $2 , $4 , $3 , $5 , $6 ); }
+    | TOK_DEFINE TOK_NEW parameter_list TOK_INHERITS expression_list block_or_pass class_list_contains { $$ = linkClassConstructor( $3 , $5, $6 , $7 ); }
+    | TOK_DEFINE TOK_NEW parameter_list block_or_pass class_list_contains { $$ = linkClassConstructor( $3 , NULL , $4 , $5 ); }
     | TOK_RBRACE  { $$ = NULL; }
     ;
 
