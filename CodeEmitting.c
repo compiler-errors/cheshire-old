@@ -327,57 +327,167 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_PLUSONE: {
+            //todo:
         }
         break;
         case OP_MINUSONE: {
+            //todo:
         }
         break;
         case OP_EQUALS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fcmp eq", node->binary.left->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "icmp eq", node->binary.left->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_NOT_EQUALS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fcmp ne", node->binary.left->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "icmp ne", node->binary.left->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_GRE_EQUALS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fcmp sge", node->binary.left->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "icmp sge", node->binary.left->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_LES_EQUALS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fcmp sle", node->binary.left->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "icmp sle", node->binary.left->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_GREATER: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fcmp sgt", node->binary.left->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "icmp sgt", node->binary.left->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_LESS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fcmp slt", node->binary.left->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "icmp slt", node->binary.left->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_AND: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            BINARY_STORE(l, "and", node->determinedType, a, b);
+            return l;
         }
         break;
         case OP_OR: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            BINARY_STORE(l, "or", node->determinedType, a, b);
+            return l;
         }
         break;
         case OP_PLUS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fadd", node->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "add", node->determinedType, a, b);
+            }
+            return l;
+            return l;
         }
         break;
         case OP_MINUS: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fsub", node->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "sub", node->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_MULT: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fmul", node->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "mul", node->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_DIV: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "fdiv", node->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "sdiv", node->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_MOD: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(l, "frem", node->determinedType, a, b);
+            } else {
+                BINARY_STORE(l, "srem", node->determinedType, a, b);
+            }
+            return l;
         }
         break;
         case OP_SET: {
+            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
+            PRINT("store ");
+            emitType(node->binary.left.determinedType);
+            PRINT(" ");
+            emitValue(b);
+            PRINT(", ");
+            emitType(node->binary.left.determinedType);
+            PRINT("* ");
+            emitValue(a);
+            PRINT("\n");
         }
         break;
         case OP_INSTANCEOF: {
         }
         break;
         case OP_VARIABLE: {
+            return fetchVariable(node->string);
         }
         break;
         case OP_CAST: {
@@ -396,6 +506,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_STRING: {
+            
         }
         break;
         case OP_CLOSURE: {
