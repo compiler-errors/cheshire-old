@@ -327,11 +327,57 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_PLUSONE: {
-            //todo:
+            LLVMValue lval = emitExpression(out, node->unaryChild);
+            LLVMValue deref = getTemporaryStorage(UNIQUE_IDENTIFIER), plusone = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, deref);
+            PRINT(" = load ");
+            emitType(out, node->determinedType);
+            PRINT("* ");
+            emitValue(out, lval);
+            PRINT("\n");
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(plusone, "fadd", node->determinedType, deref, getIntegerLiteral(1));
+            } else {
+                BINARY_STORE(plusone, "add", node->determinedType, deref, getIntegerLiteral(1));
+            }
+            PRINT("    store ");
+            emitType(node->binary.left.determinedType);
+            PRINT(" ");
+            emitValue(plusone);
+            PRINT(", ");
+            emitType(node->binary.left.determinedType);
+            PRINT("* ");
+            emitValue(lval);
+            PRINT("\n");
+            return deref;
         }
         break;
         case OP_MINUSONE: {
-            //todo:
+            LLVMValue lval = emitExpression(out, node->unaryChild);
+            LLVMValue deref = getTemporaryStorage(UNIQUE_IDENTIFIER), plusone = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, deref);
+            PRINT(" = load ");
+            emitType(out, node->determinedType);
+            PRINT("* ");
+            emitValue(out, lval);
+            PRINT("\n");
+            if (isDecimal(node->binary.determinedType)) {
+                BINARY_STORE(plusone, "fsub", node->determinedType, deref, getIntegerLiteral(1));
+            } else {
+                BINARY_STORE(plusone, "sub", node->determinedType, deref, getIntegerLiteral(1));
+            }
+            PRINT("    store ");
+            emitType(node->binary.left.determinedType);
+            PRINT(" ");
+            emitValue(plusone);
+            PRINT(", ");
+            emitType(node->binary.left.determinedType);
+            PRINT("* ");
+            emitValue(lval);
+            PRINT("\n");
+            return deref;
         }
         break;
         case OP_EQUALS: {
@@ -422,7 +468,6 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             } else {
                 BINARY_STORE(l, "add", node->determinedType, a, b);
             }
-            return l;
             return l;
         }
         break;
