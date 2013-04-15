@@ -21,7 +21,7 @@ static AllocatedTypeStrings allocatedTypeStrings;
 static NamedObjects namedObjects;
 static LambdaTypes lambdaTypes;
 ObjectMapping objectMapping;
-static AncestryMap ancestryMap;
+AncestryMap ancestryMap;
 static ClassNames classNames;
 KeyedLambdas keyedLambdas;
 
@@ -53,7 +53,6 @@ static LambdaType prepareLambdaType(CheshireType returnType, ParameterList* para
 //////////////////////////////////////////
 
 void initTypeSystem() {
-
     if (!isInitialized) {
         int typeID = 0;
         insertBaseType("void");   //type 0
@@ -90,10 +89,10 @@ void initTypeSystem() {
 
 void freeTypeSystem() {
     isInitialized = FALSE;
-    
+
     for (AllocatedTypeStrings::iterator i = allocatedTypeStrings.begin(); i != allocatedTypeStrings.end(); ++i)
         free(*i);
-    
+
     allocatedTypeStrings.clear();
     namedObjects.clear();
     lambdaTypes.clear();
@@ -107,12 +106,12 @@ void freeTypeSystem() {
 CheshireScope* allocateCheshireScope() {
     CheshireScope* scope = new CheshireScope;
     scope->highestScope = NULL;
-    raiseScope(scope);
+    raiseTypeScope(scope);
     return scope;
 }
 
 void deleteCheshireScope(CheshireScope* scope) {
-    fallScope(scope);
+    fallTypeScope(scope);
 
     if (scope->highestScope != NULL)
         PANIC("Scope tracking has not exited from a higher scope!");
@@ -120,13 +119,13 @@ void deleteCheshireScope(CheshireScope* scope) {
     delete scope;
 }
 
-void raiseScope(CheshireScope* scope) {
+void raiseTypeScope(CheshireScope* scope) {
     VariableScope* old = scope->highestScope;
     scope->highestScope = new VariableScope;
     scope->highestScope->parentScope = old;
 }
 
-void fallScope(CheshireScope* scope) {
+void fallTypeScope(CheshireScope* scope) {
     VariableScope* old = scope->highestScope;
 
     if (old == NULL)
@@ -168,7 +167,7 @@ void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
 
 void reserveClassNameType(char* name) {
     allocatedTypeStrings.insert(name);
-    
+
     if (isTypeName(name)) {
         ERROR_IF(!isObjectType(getNamedType(name)), "Cannot forward-declare non-object-types!");
         int typeID = getNamedType(name).typeKey;
@@ -177,7 +176,7 @@ void reserveClassNameType(char* name) {
         namedObjects[name] = typeID;
         return;
     }
-    
+
     int typeID = typeKeys++;
     namedObjects[name] = typeID;
     objectMapping[typeID] = NULL;
@@ -186,10 +185,10 @@ void reserveClassNameType(char* name) {
 
 int defineClass(char* name, ClassList* classlist, CheshireType parent) {
     reserveClassNameType(name);
-    
+
     if (objectMapping[getNamedType(name).typeKey] != NULL)
         PANIC("Cannot re-define class of name: %s", name);
-    
+
     int typeID = getNamedType(name).typeKey;
     namedObjects[name] = typeID;
     objectMapping[typeID] = classlist;
@@ -200,42 +199,52 @@ int defineClass(char* name, ClassList* classlist, CheshireType parent) {
 
 CheshireType getClassVariable(CheshireType type, const char* variable) {
     CStrEql streql;
-    
     ERROR_IF(!isObjectType(type), "Cannot fetch object variable from non-object type.");
-    
+
     for (ClassList* p = objectMapping[type.typeKey]; p != NULL; p = p->next) {
         switch (p->type) {
             case CLT_CONSTRUCTOR:
+
                 if (streql(variable, "new"))
                     return getLambdaType(TYPE_VOID, p->constructor.params);
+
                 break;
             case CLT_VARIABLE:
+
                 if (streql(p->variable.name, variable))
                     return p->variable.type;
+
                 break;
             case CLT_METHOD:
+
                 if (streql(p->method.name, variable))
                     return getLambdaType(p->method.returnType, p->method.params);
+
                 break;
         }
     }
-    
+
     if (!streql(variable, "new")) {
         for (ClassList* p = objectMapping[ancestryMap[type.typeKey]]; p != NULL; p = p->next) {
             switch (p->type) {
-                case CLT_CONSTRUCTOR: continue;
+                case CLT_CONSTRUCTOR:
+                    continue;
                 case CLT_VARIABLE:
+
                     if (streql(p->variable.name, variable))
                         return p->variable.type;
+
                     break;
                 case CLT_METHOD:
+
                     if (streql(p->method.name, variable))
                         return getLambdaType(p->method.returnType, p->method.params);
+
                     break;
             }
         }
     }
-    
+
     return TYPE_VOID;
 }
 
@@ -254,6 +263,7 @@ char* getNamedTypeString(CheshireType type) {
     if (isObjectType(type) && type.arrayNesting == 0) {
         return saveIdentifierReturn(classNames[type.typeKey]);
     }
+
     PANIC("Invalid class name!");
 }
 
@@ -285,6 +295,10 @@ Boolean isBoolean(CheshireType t) {
 
 Boolean isInt(CheshireType t) {
     return (Boolean)(t.typeKey == TYPE_INT.typeKey && t.arrayNesting == 0);
+}
+
+Boolean isDecimal(CheshireType t) {
+    return (Boolean)(t.typeKey == TYPE_DECIMAL.typeKey && t.arrayNesting == 0);
 }
 
 Boolean isNumericalType(CheshireType t) {

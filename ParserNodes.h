@@ -51,7 +51,7 @@ extern "C" {
     ParserTopNode* createMethodDeclaration(CheshireType, char* name, ParameterList* params);
     ParserTopNode* createMethodDefinition(CheshireType, char* name, ParameterList* params, BlockList* body);
     ParserTopNode* createGlobalVariableDeclaration(CheshireType type, char* name);
-    ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name, ExpressionNode* value);
+    ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name);
     ParserTopNode* createClassDefinition(char* name, ClassList*, CheshireType parent);
 
 //defined in ParameterList.c

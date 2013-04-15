@@ -163,7 +163,7 @@ void printExpression(ExpressionNode* node) {
             printf("(\"%s\")", node->string);
             break;
         case OP_INTEGER:
-            printf("(%ld)", node->integer);
+            printf("(%lld)", node->integer);
             break;
         case OP_DECIMAL:
             printf("(%lf)", node->decimal);

@@ -70,9 +70,9 @@ len       return TOK_LEN;
 "instanceof"    return TOK_INSTANCEOF;
 "new"           return TOK_NEW;
 "delete"        return TOK_DELETE;
-[1-9]{DIGIT}*   { long x; sscanf(yytext, "%ld", &x); yylval->integer = x; return TOK_INTEGER; }
-0[xX][0-9A-F]+  { long x; sscanf(yytext, "%lx", &x); yylval->integer = x; return TOK_INTEGER; }
-0[0-7]*         { long x; sscanf(yytext, "%lo", &x); yylval->integer = x; return TOK_INTEGER; }
+[1-9]{DIGIT}*   { int64_t x; sscanf(yytext, "%lld", &x); yylval->integer = x; return TOK_INTEGER; }
+0[xX][0-9A-F]+  { int64_t x; sscanf(yytext, "%llx", &x); yylval->integer = x; return TOK_INTEGER; }
+0[0-7]*         { int64_t x; sscanf(yytext, "%llo", &x); yylval->integer = x; return TOK_INTEGER; }
 {DIGIT}+("."{DIGIT}+)?([Ee]{SIGN}{DIGIT}+)?  { sscanf(yytext, "%lf", &(yylval->decimal)); return TOK_DECIMAL; }
 "."             return TOK_LN;
 {IDENTIFIER_START}{IDENTIFIER}* {   if (isTypeName(yytext)) {

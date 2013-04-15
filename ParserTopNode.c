@@ -22,7 +22,7 @@ ParserTopNode* createMethodDeclaration(CheshireType type, char* functionName, Pa
         return NULL;
 
     node->type = PRT_METHOD_DECLARATION;
-    node->method.type = type;
+    node->method.returnType = type;
     node->method.functionName = functionName;
     node->method.params = params;
     return node;
@@ -35,7 +35,7 @@ ParserTopNode* createMethodDefinition(CheshireType type, char* functionName, Par
         return NULL;
 
     node->type = PRT_METHOD_DEFINITION;
-    node->method.type = type;
+    node->method.returnType = type;
     node->method.functionName = functionName;
     node->method.params = params;
     node->method.body = body;
@@ -54,7 +54,7 @@ ParserTopNode* createGlobalVariableDeclaration(CheshireType type, char* name) {
     return node;
 }
 
-ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name, ExpressionNode* value) {
+ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name) {
     ParserTopNode* node = allocParserTopNode();
 
     if (node == NULL)
@@ -63,7 +63,6 @@ ParserTopNode* createGlobalVariableDefinition(CheshireType type, char* name, Exp
     node->type = PRT_VARIABLE_DEFINITION;
     node->variable.type = type;
     node->variable.name = name;
-    node->variable.value = value;
     return node;
 }
 
@@ -99,7 +98,6 @@ void deleteParserTopNode(ParserTopNode* node) {
             break;
         case PRT_VARIABLE_DEFINITION:
             free(node->variable.name);
-            deleteExpressionNode(node->variable.value);
             break;
         case PRT_CLASS_DEFINITION:
             //free(node->classdef.name);

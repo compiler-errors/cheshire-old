@@ -105,24 +105,26 @@ void saveIdentifier(const char* string, char** var) {
 void saveStringLiteral(const char* string, char** var) {
     int stringLength = strlen(string)-1;
     int interpretedLength = 0;
-    
     int i;
+
     for (i = 1; i < stringLength; i++) {
         if (string[i] == '\\') {
             i++; //skip char after.
         }
+
         interpretedLength++;
     }
-    
+
     char* newstring = malloc(interpretedLength + 1);
     newstring[interpretedLength] = '\0';
-    
     int j; //i already defined.
+
     for (i = 1, j = 0; i < stringLength; i++) {
         if (string[i] == '\\') {
             i++; //skip char after.
             char escape = string[i], output;
-            switch(escape) {
+
+            switch (escape) {
                 case '\\':
                     output = '\\';
                     break;
@@ -151,13 +153,15 @@ void saveStringLiteral(const char* string, char** var) {
                     output = '\0';
                     break;
             }
+
             newstring[j] = escape;
         } else {
             newstring[j] = string[i];
         }
+
         j++;
     }
-    
+
     *var = newstring;
 }
 

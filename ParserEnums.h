@@ -79,6 +79,16 @@ extern "C" {
         S_RETURN
     } StatementType;
 
+    typedef enum {
+        LVT_GLOBAL_VALUE,
+        LVT_LOCAL_VALUE,
+        LVT_INT_LITERAL,
+        LVT_DOUBLE_LITERAL,
+        LVT_VOID,
+        LVT_JUMPPOINT
+    } LLVMValueType;
+
+
 #ifdef	__cplusplus
 }
 #endif

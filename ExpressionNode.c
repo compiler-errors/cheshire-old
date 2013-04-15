@@ -7,26 +7,26 @@
 
 static ExpressionNode* allocExpressionNode(void) {
     ExpressionNode* node = (ExpressionNode*) malloc(sizeof(ExpressionNode));
-    
+
     if (node == NULL)
         PANIC_OR_RETURN_NULL;
-    
+
     node->type = OP_NOP;
     return node;
 }
 
 ExpressionNode* createUnaryOperation(OperationType optype, ExpressionNode* child) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     if (optype == OP_MINUS) {
         optype = OP_UNARY_MINUS;
     } else if (optype == OP_PLUS) {
         PANIC("No such operation as \"unary +\"");
     }
-    
+
     node->type = optype;
     node->unaryChild = child;
     return node;
@@ -34,10 +34,10 @@ ExpressionNode* createUnaryOperation(OperationType optype, ExpressionNode* child
 
 ExpressionNode* createBinOperation(OperationType optype, ExpressionNode* left, ExpressionNode* right) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = optype;
     node->binary.left = left;
     node->binary.right = right;
@@ -46,10 +46,10 @@ ExpressionNode* createBinOperation(OperationType optype, ExpressionNode* left, E
 
 ExpressionNode* createInstanceOfNode(ExpressionNode* expression, CheshireType type) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_INSTANCEOF;
     node->instanceof.expression = expression;
     node->instanceof.type = type;
@@ -58,10 +58,10 @@ ExpressionNode* createInstanceOfNode(ExpressionNode* expression, CheshireType ty
 
 ExpressionNode* createVariableAccess(char* variable) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_VARIABLE;
     node->string = variable;
     return node;
@@ -69,10 +69,10 @@ ExpressionNode* createVariableAccess(char* variable) {
 
 ExpressionNode* createStringNode(char* str) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_STRING;
     node->string = str;
     return node;
@@ -80,10 +80,10 @@ ExpressionNode* createStringNode(char* str) {
 
 ExpressionNode* createIntegerNode(long i) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_INTEGER;
     node->integer = i;
     return node;
@@ -91,32 +91,32 @@ ExpressionNode* createIntegerNode(long i) {
 
 ExpressionNode* createDecimalNode(double d) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_DECIMAL;
     node->decimal = d;
     return node;
 }
 
-    ExpressionNode* createCharNode(char character) {
-        ExpressionNode* node = allocExpressionNode();
-        
-        if (node == NULL)
-            return NULL;
-        
-        node->type = OP_CHAR;
-        node->character = character;
-        return node;
-    }
+ExpressionNode* createCharNode(char character) {
+    ExpressionNode* node = allocExpressionNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = OP_CHAR;
+    node->character = character;
+    return node;
+}
 
 ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType type) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_CAST;
     node->cast.child = expression;
     node->cast.type = type;
@@ -125,10 +125,10 @@ ExpressionNode* createCastOperation(ExpressionNode* expression, CheshireType typ
 
 ExpressionNode* createAccessNode(ExpressionNode* object, char* variable) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_ACCESS;
     node->access.expression = object;
     node->access.variable = variable;
@@ -137,10 +137,10 @@ ExpressionNode* createAccessNode(ExpressionNode* object, char* variable) {
 
 ExpressionNode* createMethodCall(ExpressionNode* callback, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_METHOD_CALL;
     node->methodcall.callback = callback;
     node->methodcall.params = params;
@@ -149,10 +149,10 @@ ExpressionNode* createMethodCall(ExpressionNode* callback, ExpressionList* param
 
 ExpressionNode* createIncrementOperation(ExpressionNode* expression, OperationType optype) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = optype;
     node->unaryChild = expression;
     return node;
@@ -160,10 +160,10 @@ ExpressionNode* createIncrementOperation(ExpressionNode* expression, OperationTy
 
 ExpressionNode* createReservedLiteralNode(ReservedLiteral rl) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_RESERVED_LITERAL;
     node->reserved = rl;
     return node;
@@ -171,10 +171,10 @@ ExpressionNode* createReservedLiteralNode(ReservedLiteral rl) {
 
 ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_DEREFERENCE;
     node->unaryChild = expression;
     return node;
@@ -182,10 +182,10 @@ ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
 
 ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, BlockList* body) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_CLOSURE;
     node->closure.type = type;
     node->closure.params = params;
@@ -195,10 +195,10 @@ ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, Bloc
 
 ExpressionNode* createInstantiationOperation(CheshireType type, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_INSTANTIATION;
     node->instantiate.type = type;
     node->instantiate.params = params;
@@ -207,10 +207,10 @@ ExpressionNode* createInstantiationOperation(CheshireType type, ExpressionList* 
 
 ExpressionNode* createObjectCall(ExpressionNode* object, char* method, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
-    
+
     if (node == NULL)
         return NULL;
-    
+
     node->type = OP_OBJECT_CALL;
     node->objectcall.object = object;
     node->objectcall.method = method;
@@ -221,7 +221,7 @@ ExpressionNode* createObjectCall(ExpressionNode* object, char* method, Expressio
 void deleteExpressionNode(ExpressionNode* node) {
     if (node == NULL)
         return;
-    
+
     switch (node->type) {
         case OP_NOP:
             PANIC("No such operation as No-OP or Increment/Decrement without \"Post-\" or \"Pre-\"");
@@ -289,6 +289,6 @@ void deleteExpressionNode(ExpressionNode* node) {
             //DEFAULT, NO OPERATION
             break;
     }
-    
+
     free(node);
 }

@@ -24,8 +24,8 @@ extern "C" {
     CheshireScope* allocateCheshireScope(void);
     void deleteCheshireScope(CheshireScope*);
 
-    void raiseScope(CheshireScope*);
-    void fallScope(CheshireScope*);
+    void raiseTypeScope(CheshireScope*);
+    void fallTypeScope(CheshireScope*);
     void setExpectedMethodType(CheshireType);
     CheshireType getExpectedMethodType(void);
     CheshireType getVariableType(CheshireScope*, const char* name);
@@ -44,6 +44,7 @@ extern "C" {
     Boolean isVoid(CheshireType);
     Boolean isBoolean(CheshireType);
     Boolean isInt(CheshireType);
+    Boolean isDecimal(CheshireType);
     Boolean isObjectType(CheshireType);
     Boolean isLambdaType(CheshireType);
     Boolean isNumericalType(CheshireType);
