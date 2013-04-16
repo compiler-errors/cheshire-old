@@ -20,6 +20,10 @@ extern "C" {
             int64_t value;
             double decimal;
             char* name;
+            struct {
+                char* name;
+                int uid;
+            } vardef;
         };
     } LLVMValue;
 

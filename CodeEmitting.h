@@ -20,7 +20,10 @@ extern "C" {
     LLVMValue emitExpression(FILE*, ExpressionNode*);
     void emitValue(FILE*, LLVMValue);
     void emitType(FILE*, CheshireType);
+    void emitLambdaType(FILE*, CheshireType);
 
+    void initVariableScope(void);
+    void freeVariableScope(void);
     void raiseVariableScope(void);
     void fallVariableScope(void);
     void registerVariable(char* name, LLVMValue);

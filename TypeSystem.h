@@ -42,6 +42,7 @@ extern "C" {
 
     Boolean equalTypes(CheshireType left, CheshireType right);
     Boolean isVoid(CheshireType);
+    Boolean isNull(CheshireType);
     Boolean isBoolean(CheshireType);
     Boolean isInt(CheshireType);
     Boolean isDecimal(CheshireType);

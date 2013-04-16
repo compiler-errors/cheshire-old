@@ -342,6 +342,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
             ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
             ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
+            ERROR_IF(cast.arrayNesting > 0, "Cannot cast arrays!");
             return node->determinedType = cast;
         }
         case OP_METHOD_CALL: {
@@ -462,6 +463,8 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
             defineVariable(scope, node->varDefinition.variable, givenType);
             node->varDefinition.type = givenType; //"infer" the type of the variable.
+            if (isNull(givenType))
+                PANIC("Cannot infer type of TYPE_NULL!");
             printf("Inferred ");
             printType(givenType);
             printf(" for expression: ");

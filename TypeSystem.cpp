@@ -289,6 +289,10 @@ Boolean isVoid(CheshireType t) {
     return (Boolean)(t.typeKey == TYPE_VOID.typeKey);
 }
 
+Boolean isNull(CheshireType t) {
+    return (Boolean)(t.typeKey == TYPE_NULL.typeKey);
+}
+
 Boolean isBoolean(CheshireType t) {
     return (Boolean)(t.typeKey == TYPE_BOOLEAN.typeKey && t.arrayNesting == 0);
 }
