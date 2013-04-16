@@ -138,9 +138,7 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR:
-                        c->constructor.params = linkParameterList(((CheshireType) {
-                            typekey, 0
-                        }), saveIdentifierReturn("self"), c->constructor.params);
+                        c->constructor.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->constructor.params);
 
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next)
                             ERROR_IF(c2->type == CLT_CONSTRUCTOR, "Class must have only one constructor!");
@@ -172,9 +170,7 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
                         break;
                     }
                     case CLT_METHOD: {
-                        c->method.params = linkParameterList(((CheshireType) {
-                            typekey, 0
-                        }), saveIdentifierReturn("self"), c->method.params);
+                        c->method.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->method.params);
                         char* name = c->method.name;
 
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next) {
@@ -182,7 +178,6 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
                                 ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
 
                             if (c2->type == CLT_METHOD) {
-                                //check for override.
                                 ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
                             }
                         }
@@ -326,7 +321,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
-            CheshireType ret = getVariableType(scope, node->string);
+            CheshireType ret = getVariableType(scope, node->string); //todo: rewrite variable
             return node->determinedType = ret;
         }
         case OP_STRING:
@@ -455,7 +450,7 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_VARIABLE_DEF: {
             CheshireType expectedType = node->varDefinition.type;
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            defineVariable(scope, node->varDefinition.variable, expectedType);
+            defineVariable(scope, node->varDefinition.variable, expectedType); //todo: add param: newRewrite(variable).
             STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
         }
         break;

@@ -212,7 +212,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             break;
         }
         case PRT_CLASS_DEFINITION: {
-            PRINT("class_%s = type {", node->classdef.name);
+            /*PRINT("class_%s = type {", node->classdef.name);
             Boolean predecessor = FALSE;
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 if (!predecessor)
@@ -235,7 +235,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_METHOD:
-                        //export method, include self reference!
+                        //export method, include self reference -- wait NO I ALREADY ADDED!!!!
                         break;
                     case CLT_CONSTRUCTOR:
                         constructed = TRUE;
@@ -249,7 +249,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             if (!constructed) {
                 //default constructor.
             }
-            
+            */
             break;
         }
     }
@@ -276,7 +276,7 @@ void emitStatement(FILE* out, StatementNode* statement) {
             PRINT("    ");
             LLVMValue variable = getLocalVariableStorage(statement->varDefinition.variable);
             emitValue(out, variable);
-            PRINT(" = alloca ");
+            PRINT(" = alloca "); //todo: move alloca out of inner loop!!
             emitType(out, statement->varDefinition.type);
             PRINT("\n");
             PRINT("    store ");
@@ -307,12 +307,12 @@ void emitStatement(FILE* out, StatementNode* statement) {
             int labeltrue = UNIQUE_IDENTIFIER, labelfalse = UNIQUE_IDENTIFIER;
             PRINT("    br i1 ");
             emitValue(out, branchfactor);
-            PRINT(", label %%_Branch%d, label %%_Branch%d\n", labeltrue, labelfalse);
-            PRINT("_Branch%d:\n", labeltrue);
+            PRINT(", label %%label%d, label %%label%d\n", labeltrue, labelfalse);
+            PRINT("label%d:\n", labeltrue);
             raiseVariableScope();
             emitStatement(out, statement->conditional.block);
             fallVariableScope();
-            PRINT("_Branch%d:\n", labelfalse);
+            PRINT("label%d:\n", labelfalse);
         }
         break;
         case S_IF_ELSE: {
@@ -320,33 +320,33 @@ void emitStatement(FILE* out, StatementNode* statement) {
             int labeltrue = UNIQUE_IDENTIFIER, labelfalse = UNIQUE_IDENTIFIER, labelend = UNIQUE_IDENTIFIER;
             PRINT("    br i1 ");
             emitValue(out, branchfactor);
-            PRINT(", label %%_Branch%d, label %%_Branch%d\n", labeltrue, labelfalse);
-            PRINT("_Branch%d:\n", labeltrue);
+            PRINT(", label %%label%d, label %%label%d\n", labeltrue, labelfalse);
+            PRINT("label%d:\n", labeltrue);
             raiseVariableScope();
             emitStatement(out, statement->conditional.block);
             fallVariableScope();
-            PRINT("    br label %%_Branch%d\n", labelend);
-            PRINT("_Branch%d:\n", labelfalse);
+            PRINT("    br label %%label%d\n", labelend);
+            PRINT("label%d:\n", labelfalse);
             raiseVariableScope();
             emitStatement(out, statement->conditional.elseBlock);
             fallVariableScope();
-            PRINT("_Branch%d:\n", labelend);
+            PRINT("label%d:\n", labelend);
         }
         break;
         case S_WHILE: {
             int labelbegin = UNIQUE_IDENTIFIER, labeltrue = UNIQUE_IDENTIFIER, labelend = UNIQUE_IDENTIFIER;
-            PRINT("_Branch%d:\n", labelbegin);
+            PRINT("    br label %%label%d\n", labelbegin);
+            PRINT("label%d:\n", labelbegin);
             LLVMValue branchfactor = emitExpression(out, statement->conditional.condition);
             PRINT("    br i1 ");
             emitValue(out, branchfactor);
-            PRINT(", label %%_Branch%d, label %%_Branch%d\n", labeltrue, labelend);
-            PRINT("_Branch%d:\n", labeltrue);
+            PRINT(", label %%label%d, label %%label%d\n", labeltrue, labelend);
+            PRINT("label%d:\n", labeltrue);
             raiseVariableScope();
             emitStatement(out, statement->conditional.block);
             fallVariableScope();
-            PRINT("_Branch%d:\n", labeltrue);
-            PRINT("    br label %%_Branch%d", labelbegin);
-            PRINT("_Branch%d:\n", labelend);
+            PRINT("    br label %%label%d\n", labelbegin);
+            PRINT("label%d:\n", labelend);
         }
         break;
         case S_RETURN: {
@@ -637,7 +637,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         break;
         case OP_SET: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
-            PRINT("store ");
+            PRINT("    store ");
             emitType(out, node->binary.left->determinedType);
             PRINT(" ");
             emitValue(out, b);
@@ -646,6 +646,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             PRINT("* ");
             emitValue(out, a);
             PRINT("\n");
+            return b;
         }
         break;
         case OP_INSTANCEOF: {
