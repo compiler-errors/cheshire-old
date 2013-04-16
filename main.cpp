@@ -11,6 +11,7 @@
 #include <fstream>
 #include "Structures.h"
 #include "TypeSystem.h"
+#include "CodeEmitting.h"
 
 extern "C" {
 #include "CheshireParser.yy.h"
@@ -55,7 +56,7 @@ int main(int argc, char** argv) {
 
         if (node != NULL) {
             defineTopNode(scope, node);
-            topNodes.push_front(node);
+            topNodes.push_back(node);
         }
     }
 
@@ -69,14 +70,16 @@ int main(int argc, char** argv) {
     yy_delete_buffer(state, scanner);
     yylex_destroy(scanner);
 
+    initVariableScope();
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
-        //emitCode(stdout, *i);
+        emitCode(stdout, *i);
     }
 
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         deleteParserTopNode(*i);
     }
 
+    freeVariableScope();
     deleteCheshireScope(scope);
     freeTypeSystem();
     return 0;

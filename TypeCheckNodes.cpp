@@ -31,6 +31,7 @@ using std::floor;
                 if (!isSuper(ltype, rtype)) { \
                     PANIC("Cannot store type into non-super-type!"); \
                 } \
+                WIDEN_NODE(ltype, rtype, node); \
             } \
         } else \
             PANIC("left and right types must be both numerical, object or the same exact type for %s", reason); \
@@ -39,6 +40,7 @@ using std::floor;
 //////////////// STATICS /////////////////
 extern KeyedLambdas keyedLambdas;
 extern ObjectMapping objectMapping;
+extern AncestryMap ancestryMap;
 //////////////////////////////////////////
 
 void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
@@ -47,40 +49,34 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             PANIC("Type system received PRT_NONE.");
             break;
         case PRT_METHOD_DEFINITION:
-            setExpectedMethodType(node->method.type);
-            raiseScope(scope);
+            setExpectedMethodType(node->method.returnType);
+            raiseTypeScope(scope);
 
             for (ParameterList* p = node->method.params; p != NULL; p = p->next)
                 defineVariable(scope, p->name, p->type);
 
             typeCheckBlockList(scope, node->method.body);
-            fallScope(scope);
+            fallTypeScope(scope);
             setExpectedMethodType(TYPE_VOID);
             break;
-        case PRT_VARIABLE_DEFINITION: {
-            CheshireType givenType = typeCheckExpressionNode(scope, node->variable.value);
-            STORE_EXPRESSION_INTO_LVAL(node->variable.type, givenType, node->variable.value, "global variable");
-        }
-        break;
         case PRT_CLASS_DEFINITION: {
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR: {
-                        raiseScope(scope);
+                        raiseTypeScope(scope);
                         setExpectedMethodType(TYPE_VOID);
-                        
+
                         for (ParameterList* p = c->constructor.params; p != NULL; p = p->next)
                             defineVariable(scope, p->name, p->type);
-                        
+
                         CheshireType superctor = getClassVariable(node->classdef.parent, "new");
-                        
+
                         if (equalTypes(superctor, TYPE_VOID)) {
                             ERROR_IF(c->constructor.params != NULL, "Expected empty parameter list for default super constructor.");
                         } else {
                             LambdaType superctorMethod = keyedLambdas[superctor];
-                            
                             unsigned int index = 1; //one parameter provided implicitly: the "self" reference.
-                            
+
                             for (ExpressionList* paramNode = c->constructor.inheritsParams; paramNode != NULL; paramNode = paramNode->next, index++) {
                                 ERROR_IF(index >= superctorMethod.second.size(), "Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", superctorMethod.second.size(), index);
                                 CheshireType parameterExpectedType = superctorMethod.second[index];
@@ -88,29 +84,33 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
                                 STORE_EXPRESSION_INTO_LVAL(parameterExpectedType, parameterGivenType, paramNode->parameter, "parameter");
                             }
                         }
-                        
+
                         typeCheckBlockList(scope, c->constructor.block);
-                        fallScope(scope);
-                    } break;
+                        fallTypeScope(scope);
+                    }
+                    break;
                     case CLT_VARIABLE: {
                         CheshireType defaultValue = typeCheckExpressionNode(scope, c->variable.defaultValue);
                         STORE_EXPRESSION_INTO_LVAL(c->variable.type, defaultValue, c->variable.defaultValue, "class variable.");
-                    } break;
+                    }
+                    break;
                     case CLT_METHOD: {
                         setExpectedMethodType(c->method.returnType);
-                        raiseScope(scope);
-                        
+                        raiseTypeScope(scope);
+
                         for (ParameterList* p = c->method.params; p != NULL; p = p->next)
                             defineVariable(scope, p->name, p->type);
-                        
+
                         typeCheckBlockList(scope, c->method.block);
-                        fallScope(scope);
+                        fallTypeScope(scope);
                         setExpectedMethodType(TYPE_VOID);
-                    } break;
+                    }
+                    break;
                 }
             }
         }
         break;
+        case PRT_VARIABLE_DEFINITION:
         case PRT_METHOD_DECLARATION:
         case PRT_VARIABLE_DECLARATION:
             break;
@@ -124,43 +124,90 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
             break;
         case PRT_METHOD_DECLARATION:
         case PRT_METHOD_DEFINITION:
-            defineVariable(scope, node->method.functionName, getLambdaType(node->method.type, node->method.params));
+            defineVariable(scope, node->method.functionName, getLambdaType(node->method.returnType, node->method.params));
             break;
         case PRT_VARIABLE_DECLARATION:
         case PRT_VARIABLE_DEFINITION:
             defineVariable(scope, node->variable.name, node->variable.type);
             break;
         case PRT_CLASS_DEFINITION: {
-            //todo: check ancestor overrides (no overrides allowed for vars, overrides checked for methods)
             ERROR_IF(!isObjectType(node->classdef.parent), "Invalid parent type of class %s", node->classdef.name);
             int typekey = defineClass(node->classdef.name, node->classdef.classlist, node->classdef.parent);
             CStrEql streql;
-            
+
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR:
-                        c->constructor.params = linkParameterList(((CheshireType) {typekey, 0}), saveIdentifierReturn("self"), c->constructor.params);
+                        c->constructor.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->constructor.params);
+
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next)
                             ERROR_IF(c2->type == CLT_CONSTRUCTOR, "Class must have only one constructor!");
+
                         break;
                     case CLT_VARIABLE: {
                         char* name = c->variable.name;
+
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next) {
                             if (c2->type == CLT_VARIABLE)
                                 ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
+
                             if (c2->type == CLT_METHOD)
                                 ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
+                        }
+
+                        for (TypeKey ancestor = node->classdef.parent.typeKey; !equalTypes( {ancestor, 0}, TYPE_OBJECT); ancestor = ancestryMap[ancestor]) {
+                            if (ancestor == getNamedType(node->classdef.name).typeKey)
+                                PANIC("Circular reference to class %s", node->classdef.name);
+
+                            for (ClassList* c2 = objectMapping[ancestor]; c2 != NULL; c2 = c2->next) {
+                                if (c2->type == CLT_VARIABLE)
+                                    ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
+
+                                if (c2->type == CLT_METHOD)
+                                    ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
+                            }
                         }
                         break;
                     }
                     case CLT_METHOD: {
-                        c->method.params = linkParameterList(((CheshireType) {typekey, 0}), saveIdentifierReturn("self"), c->method.params);
+                        c->method.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->method.params);
                         char* name = c->method.name;
+
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next) {
                             if (c2->type == CLT_VARIABLE)
                                 ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
-                            if (c2->type == CLT_METHOD)
+
+                            if (c2->type == CLT_METHOD) {
                                 ERROR_IF(streql(name, c2->method.name), "Multiple definition of %s", name);
+                            }
+                        }
+
+                        for (TypeKey ancestor = node->classdef.parent.typeKey; !equalTypes( {ancestor, 0}, TYPE_OBJECT); ancestor = ancestryMap[ancestor]) {
+                            if (ancestor == getNamedType(node->classdef.name).typeKey)
+                                PANIC("Circular reference to class %s", node->classdef.name);
+
+                            for (ClassList* c2 = objectMapping[ancestor]; c2 != NULL; c2 = c2->next) {
+                                if (c2->type == CLT_VARIABLE)
+                                    ERROR_IF(streql(name, c2->variable.name), "Multiple definition of %s", name);
+
+                                if (c2->type == CLT_METHOD) {
+                                    //check for override.
+                                    if (streql(name, c2->method.name)) {
+                                        if (equalTypes(c->method.returnType, c2->method.returnType)) {
+                                            for (ParameterList* a = c->method.params->next, * b = c2->method.params->next; true; a = a->next, b = b->next) {
+                                                if (a == NULL && b == NULL) {
+                                                    break;
+                                                } else if (a == NULL || b == NULL) { //otherwise, if only 1 is null...
+                                                    PANIC("Invalid override of %s -- unmatching parameter list sizes.", name);
+                                                } else {
+                                                    ERROR_IF(!equalTypes(a->type, b->type), "Invalid override of %s -- unmatching parameter types.", name);
+                                                }
+                                            }
+                                        } else
+                                            PANIC("Invalid override of %s -- unmatching return types.", name);
+                                    }
+                                }
+                            }
                         }
                         break;
                     }
@@ -192,10 +239,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
             return node->determinedType = childType;
         }
-        case OP_COMPL:
+        case OP_COMPL: {
+            CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
+            ERROR_IF(!isNumericalType(childType), "Expected a numerical type for operation: COMPL.");
+            ERROR_IF(equalTypes(childType, TYPE_DECIMAL), "Unexpected type: 'double' for COMPL operation!");
+            return node->determinedType = childType;
+        }
         case OP_UNARY_MINUS: {
             CheshireType childType = typeCheckExpressionNode(scope, node->unaryChild);
-            ERROR_IF(!isNumericalType(childType), "Expected a numerical type for operations COMPL and UNARY -");
+            ERROR_IF(!isNumericalType(childType), "Expected a numerical type for operation: UNARY -");
             return node->determinedType = childType;
         }
         case OP_GRE_EQUALS:
@@ -269,11 +321,11 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
-            CheshireType ret = getVariableType(scope, node->string);
+            CheshireType ret = getVariableType(scope, node->string); //todo: rewrite variable
             return node->determinedType = ret;
         }
         case OP_STRING:
-            return TYPE_STRING;
+            return node->determinedType = TYPE_STRING;
         case OP_CAST: {
             CheshireType cast = node->cast.type;
             CheshireType child = typeCheckExpressionNode(scope, node->cast.child);
@@ -285,6 +337,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
             ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
             ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
+            ERROR_IF(cast.arrayNesting > 0, "Cannot cast arrays!");
             return node->determinedType = cast;
         }
         case OP_METHOD_CALL: {
@@ -314,6 +367,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             }
         }
         case OP_INTEGER:
+            //todo: make sure it is within the regular integer bounds -2^31 to 2^31-1 or whatever.
             return node->determinedType = TYPE_INT;
         case OP_DECIMAL:
             return node->determinedType = TYPE_DECIMAL;
@@ -326,13 +380,13 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         case OP_CLOSURE: {
             CheshireType currentExpectedType = getExpectedMethodType();
             setExpectedMethodType(node->closure.type);
-            raiseScope(scope);
+            raiseTypeScope(scope);
 
             for (ParameterList* p = node->closure.params; p != NULL; p = p->next)
                 defineVariable(scope, p->name, p->type);
 
             typeCheckBlockList(scope, node->closure.body);
-            fallScope(scope);
+            fallTypeScope(scope);
             setExpectedMethodType(currentExpectedType);
             return node->determinedType = getLambdaType(node->closure.type, node->closure.params);
         }
@@ -340,43 +394,39 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType childType = typeCheckExpressionNode(scope, node->access.expression);
             CheshireType ret = getClassVariable(childType, node->access.variable);
             ERROR_IF(equalTypes(ret, TYPE_VOID), "Could not find variable %s", node->access.variable);
-
             return node->determinedType = ret;
         }
         case OP_INSTANTIATION: {
             ERROR_IF(!isObjectType(node->instantiate.type), "Cannot instantiate a non-object type!");
-            
             CheshireType methodType = getClassVariable(node->instantiate.type, "new");
+
             if (equalTypes(TYPE_VOID, methodType)) {
                 ERROR_IF(node->instantiate.params != NULL, "Expected empty parameter list for default constructor!");
                 return node->determinedType = node->instantiate.type;
             }
-            
+
             ERROR_IF(!isLambdaType(methodType), "Fatal constructor error!");
             LambdaType method = keyedLambdas[methodType];
             unsigned int index = 1; //one parameter provided implicitly: the "self" reference.
-            
+
             for (ExpressionList* paramNode = node->instantiate.params; paramNode != NULL; paramNode = paramNode->next, index++) {
                 ERROR_IF(index >= method.second.size(), "Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", method.second.size(), index);
                 CheshireType parameterExpectedType = method.second[index];
                 CheshireType parameterGivenType = typeCheckExpressionNode(scope, paramNode->parameter);
                 STORE_EXPRESSION_INTO_LVAL(parameterExpectedType, parameterGivenType, paramNode->parameter, "parameter");
             }
-            
+
             ERROR_IF(index != method.second.size(), "Not enough parameters for method call!");
             return node->determinedType = node->instantiate.type;
         }
-        
         case OP_OBJECT_CALL: {
             CheshireType obj = typeCheckExpressionNode(scope, node->objectcall.object);
-            
             CheshireType methodType = getClassVariable(obj, node->objectcall.method);
             ERROR_IF(!isLambdaType(methodType), "Cannot invoke non-lambda class member.");
             LambdaType method = keyedLambdas[methodType];
-            
             ERROR_IF(method.second.size() == 0, "Lambda type not valid for object call syntax!");
             unsigned int index = 1; //one parameter provided implicitly: the "self" reference.
-            
+
             for (ExpressionList* paramNode = node->objectcall.params; paramNode != NULL; paramNode = paramNode->next, index++) {
                 ERROR_IF(index >= method.second.size(), "Too many parameters for method call. Method takes %d parameters, more than %d parameters given!", method.second.size(), index);
                 CheshireType parameterExpectedType = method.second[index];
@@ -400,7 +450,7 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_VARIABLE_DEF: {
             CheshireType expectedType = node->varDefinition.type;
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            defineVariable(scope, node->varDefinition.variable, expectedType);
+            defineVariable(scope, node->varDefinition.variable, expectedType); //todo: add param: newRewrite(variable).
             STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
         }
         break;
@@ -408,6 +458,8 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
             defineVariable(scope, node->varDefinition.variable, givenType);
             node->varDefinition.type = givenType; //"infer" the type of the variable.
+            if (isNull(givenType))
+                PANIC("Cannot infer type of TYPE_NULL!");
             printf("Inferred ");
             printType(givenType);
             printf(" for expression: ");
@@ -427,9 +479,9 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         }
         break;
         case S_BLOCK: {
-            raiseScope(scope);
+            raiseTypeScope(scope);
             typeCheckBlockList(scope, node->block);
-            fallScope(scope);
+            fallTypeScope(scope);
         }
         break;
         case S_IF: {
@@ -438,9 +490,9 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             if (!isBoolean(condition))
                 PANIC("Expected type boolean for if statement");
 
-            raiseScope(scope);
+            raiseTypeScope(scope);
             typeCheckStatementNode(scope, node->conditional.block);
-            fallScope(scope);
+            fallTypeScope(scope);
         }
         break;
         case S_IF_ELSE: {
@@ -449,12 +501,12 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             if (!isBoolean(condition))
                 PANIC("Expected type boolean for if-else statement");
 
-            raiseScope(scope);
+            raiseTypeScope(scope);
             typeCheckStatementNode(scope, node->conditional.block);
-            fallScope(scope);
-            raiseScope(scope);
+            fallTypeScope(scope);
+            raiseTypeScope(scope);
             typeCheckStatementNode(scope, node->conditional.elseBlock);
-            fallScope(scope);
+            fallTypeScope(scope);
         }
         break;
         case S_WHILE: {
@@ -463,9 +515,9 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             if (!isBoolean(condition))
                 PANIC("Expected type boolean for while loop");
 
-            raiseScope(scope);
+            raiseTypeScope(scope);
             typeCheckStatementNode(scope, node->conditional.block);
-            fallScope(scope);
+            fallTypeScope(scope);
         }
         break;
         case S_RETURN: {

@@ -1,6 +1,7 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
+#include <stdlib.h>
 #define PANIC(format, args...) { printf("Error: "); printf(format , ##args); printf("\n"); exit(0); }
 #define PANIC_OR_RETURN_NULL { PANIC("Memory allocation error: ran out of memory!"); return NULL; }
 #define ERROR_IF(_case, format, args...) { if (_case) { PANIC(format , ##args) } }
@@ -10,6 +11,21 @@
 #ifdef    __cplusplus
 extern "C" {
 #endif
+
+// -------------------------------------------- //
+
+    typedef struct tagLLVMValue {
+        LLVMValueType type;
+        union {
+            int64_t value;
+            double decimal;
+            char* name;
+            struct {
+                char* name;
+                int uid;
+            } vardef;
+        };
+    } LLVMValue;
 
 // -------------------------------------------- //
 
@@ -33,21 +49,21 @@ extern "C" {
     typedef struct tagClassList {
         struct tagClassList* next;
         ClassListType type;
-        
+
         union {
-            struct { 
+            struct {
                 CheshireType type;
                 struct tagExpressionNode* defaultValue;
                 char* name;
             } variable;
-            
+
             struct {
                 CheshireType returnType;
                 struct tagParameterList* params;
                 struct tagBlockList* block;
                 char* name;
             } method;
-            
+
             struct {
                 struct tagParameterList* params;
                 struct tagExpressionList* inheritsParams;
@@ -61,7 +77,7 @@ extern "C" {
         union {
             struct {
                 char* functionName;
-                CheshireType type;
+                CheshireType returnType;
                 struct tagParameterList* params;
                 struct tagBlockList* body;
             } method;
@@ -69,7 +85,6 @@ extern "C" {
             struct {
                 CheshireType type;
                 char* name;
-                struct tagExpressionNode* value;
             } variable;
 
             struct {
@@ -90,7 +105,7 @@ extern "C" {
         OperationType type;
         CheshireType determinedType;
         union {
-            long integer;
+            int64_t integer;
             double decimal;
             char character;
             char* string;

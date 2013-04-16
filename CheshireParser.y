@@ -50,7 +50,7 @@ typedef void* yyscan_t;
     OperationType op_type;
     ReservedLiteral reserved_literal;
     double decimal;
-    long integer;
+    int64_t integer;
     char character;
     struct tagParameterList* parameter_list;
     struct tagExpressionNode* expression;
@@ -151,8 +151,9 @@ input
     | TOK_FWDECL possible_objectname TOK_LN  { reserveClassNameType( $2 ); *output = NULL; YYACCEPT; }
     | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass  { *output = createMethodDefinition( $2 , $3 , $4 , $5 ); YYACCEPT; }
     | TOK_EXTERNAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDeclaration( $2 , $3 ); YYACCEPT; }
-    | TOK_GLOBAL typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 , $5 ); YYACCEPT; }
-    | TOK_CLASS possible_objectname class_list_or_pass { CheshireType object = getNamedType("Object"); *output = createClassDefinition( $2 , $3 , object ); YYACCEPT; }
+    | TOK_GLOBAL typename TOK_IDENTIFIER TOK_LN  { *output = createGlobalVariableDefinition( $2 , $3 ); YYACCEPT; }
+    | TOK_CLASS possible_objectname class_list_or_pass  { CheshireType object = getNamedType("Object"); *output = createClassDefinition( $2 , $3 , object ); YYACCEPT; }
+    | TOK_CLASS possible_objectname TOK_INHERITS typename class_list_or_pass  { *output = createClassDefinition( $2 , $5 , $4 ); YYACCEPT; }
     | TOK_EOF  { return -2; }
     ;
 
