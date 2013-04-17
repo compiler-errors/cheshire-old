@@ -321,7 +321,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
-            CheshireType ret = getVariableType(scope, node->string); //todo: rewrite variable
+            CheshireType ret = getVariableType(scope, node->string);
             return node->determinedType = ret;
         }
         case OP_STRING:
@@ -450,7 +450,7 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_VARIABLE_DEF: {
             CheshireType expectedType = node->varDefinition.type;
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            defineVariable(scope, node->varDefinition.variable, expectedType); //todo: add param: newRewrite(variable).
+            defineVariable(scope, node->varDefinition.variable, expectedType);
             STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
         }
         break;

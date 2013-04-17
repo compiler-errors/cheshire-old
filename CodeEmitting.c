@@ -117,14 +117,16 @@ void emitCode(FILE* out, ParserTopNode* node) {
         case PRT_NONE:
             break;
         case PRT_METHOD_DECLARATION: {
-            LLVMValue exportedMethod = getMethodExport(node->method.functionName); //register before definition so it is usable.
-            registerVariable(node->method.functionName, exportedMethod);LLVMValue l = getGlobalStorage(node->method.functionName);
-            PRINT("@_Method_%s = global ", node->method.functionName);
+            LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
+            registerVariable(node->method.functionName, exportedMethod);
+            LLVMValue l = getMethodExport(node->method.functionName);
+            PRINT("@%s = extern global ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
             PRINT("\n");
             
+/*
             PRINT("declare ");
             emitType(out, node->method.returnType);
             PRINT(" @%s(", node->method.functionName);
@@ -138,12 +140,14 @@ void emitCode(FILE* out, ParserTopNode* node) {
             }
 
             PRINT(")\n");
+*/
             break;
         }
         case PRT_METHOD_DEFINITION: {
-            LLVMValue exportedMethod = getMethodExport(node->method.functionName); //register before definition so it is usable.
-            registerVariable(node->method.functionName, exportedMethod);LLVMValue l = getGlobalStorage(node->method.functionName);
-            PRINT("@_Method_%s = global ", node->method.functionName);
+            LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
+            registerVariable(node->method.functionName, exportedMethod);
+            LLVMValue l = getMethodExport(node->method.functionName);
+            PRINT("@%s = linkonce_odr global ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
@@ -151,7 +155,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             
             PRINT("define ");
             emitType(out, node->method.returnType);
-            PRINT(" @%s(", node->method.functionName);
+            PRINT(" @_Method_%s(", node->method.functionName);
             ParameterList* p;
 
             for (p = node->method.params; p != NULL; p = p->next) {
@@ -276,7 +280,7 @@ void emitStatement(FILE* out, StatementNode* statement) {
             PRINT("    ");
             LLVMValue variable = getLocalVariableStorage(statement->varDefinition.variable);
             emitValue(out, variable);
-            PRINT(" = alloca "); //todo: move alloca out of inner loop!!
+            PRINT(" = alloca ");
             emitType(out, statement->varDefinition.type);
             PRINT("\n");
             PRINT("    store ");
@@ -361,38 +365,6 @@ void emitStatement(FILE* out, StatementNode* statement) {
     }
 }
 
-void emitValue(FILE* out, LLVMValue value) {
-    switch (value.type) {
-        case LVT_GLOBAL_VARIABLE:
-            PRINT("@%s", value.name);
-            break;
-        case LVT_LOCAL_VARIABLE:
-            PRINT("%%%s%d", value.vardef.name, value.vardef.uid);
-            break;
-        case LVT_PARAMETER_VARIABLE:
-            PRINT("%%_Param_%s", value.name);
-            break;
-        case LVT_LOCAL_VALUE:
-            PRINT("%%_Value%lld", value.value);
-            break;
-        case LVT_INT_LITERAL:
-            PRINT("%lld", value.value);
-            break;
-        case LVT_DOUBLE_LITERAL:
-            PRINT("%lf", value.decimal);
-            break;
-        case LVT_VOID:
-            PRINT("void");
-            break;
-        case LVT_JUMPPOINT:
-            PRINT("%%_Branch%lld", value.value);
-            break;
-        case LVT_METHOD_EXPORT:
-            PRINT("@_Method_%s", value.name);
-            break;
-    }
-}
-
 LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
     switch (node->type) {
         case OP_NOP:
@@ -438,7 +410,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
 
             if (isDecimal(node->determinedType)) {
-                BINARY_STORE(l, "fsub", node->determinedType, getIntegerLiteral(0), a);
+                BINARY_STORE(l, "fsub", node->determinedType, getDecimalLiteral(0), a);
             } else {
                 BINARY_STORE(l, "sub", node->determinedType, getIntegerLiteral(0), a);
             }
@@ -837,4 +809,36 @@ void emitType(FILE* out, CheshireType type) { //object types have implicit *, re
 
     for (; array > 0; array--)
         PRINT("*");
+}
+
+void emitValue(FILE* out, LLVMValue value) {
+    switch (value.type) {
+        case LVT_GLOBAL_VARIABLE:
+            PRINT("@%s", value.name);
+            break;
+        case LVT_LOCAL_VARIABLE:
+            PRINT("%%%s%d", value.vardef.name, value.vardef.uid);
+            break;
+        case LVT_PARAMETER_VARIABLE:
+            PRINT("%%_Param_%s", value.name);
+            break;
+        case LVT_LOCAL_VALUE:
+            PRINT("%%_Value%lld", value.value);
+            break;
+        case LVT_INT_LITERAL:
+            PRINT("%lld", value.value);
+            break;
+        case LVT_DOUBLE_LITERAL:
+            PRINT("%.6le", value.decimal);
+            break;
+        case LVT_VOID:
+            PRINT("void");
+            break;
+        case LVT_JUMPPOINT:
+            PRINT("%%_Branch%lld", value.value);
+            break;
+        case LVT_METHOD_EXPORT:
+            PRINT("@_Method_%s", value.name);
+            break;
+    }
 }
