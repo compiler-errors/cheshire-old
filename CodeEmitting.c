@@ -757,8 +757,57 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_INSTANTIATION: {
-            //malloc object size.
+            LLVMValue mallocated = getTemporaryStorage(UNIQUE_IDENTIFIER), casted = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, mallocated);
+            LLVMValue size = emitSizeOfClass(out, node->instantiate.type);
+            PRINT(" = call i8* @malloc(");
+            emitValue(out, size);
+            PRINT(")\n");
+            PRINT("    ");
+            emitValue(out, casted);
+            PRINT(" = bitcast i8* ");
+            emitValue(out, mallocated);
+            PRINT(" to ");
+            emitType(node->instantiate.type);
+            PRINT("*\n");
             //call @_New_(CLASSNAME) (with no dereference unlike other cheshire methods) with pseudoparameter #0: self.
+            int paramLength = 0;
+            ExpressionList* e;
+            int i;
+
+            for (e = node->methodcall.params; e != NULL; e = e->next)
+                paramLength++;
+
+            LLVMValue fnptr = emitExpression(out, node->methodcall.callback);
+            LLVMValue* parameters = malloc(sizeof(LLVMValue) * (paramLength + 1));
+            CheshireType* parameterTypes = malloc(sizeof(CheshireType) * (paramLength + 1));
+            parameters[0] = casted;
+            parameterTypes[0] = node->instantiate.type;
+
+            for (e = node->methodcall.params, i = 1; e != NULL; e = e->next, i++) {
+                parameters[i] = emitExpression(out, e->parameter);
+                parameterTypes[i] = e->parameter->determinedType;
+            }
+            
+            PRINT("call ");
+            emitType(out, node->determinedType);
+            char* name = getNamedTypeString(node->instantiate.type);
+            PRINT(" _New_%s", classname);
+            free(name);
+            PRINT("(");
+
+            for (i = 0; i < paramLength; i++) {
+                emitType(out, parameterTypes[i]);
+                PRINT(" ");
+                emitValue(out, parameters[i]);
+
+                if (i != paramLength - 1)
+                    PRINT(", ");
+            }
+
+            PRINT(")\n");
+            return casted;
         }
         break;
         case OP_OBJECT_CALL: {
