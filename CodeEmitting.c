@@ -105,6 +105,24 @@ static inline LLVMValue getLocalVariableStorage(char* name) {
     return l;
 }
 
+static inline LLVMValue emitSizeOfClass(FILE* out, CheshireType t) {
+    LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+    LLVMValue intval = getTemporaryStorage(UNIQUE_IDENTIFIER);
+    PRINT("    ");
+    emitValue(out, l);
+    PRINT(" = getelementptr ");
+    emitType(out, t);
+    PRINT("* null, i32 1\n");
+    PRINT("    ");
+    emitValue(out, intval);
+    PRINT(" = ptrtoint ");
+    emitType(out, t);
+    PRINT("* ");
+    emitValue(out, l);
+    PRINT(" to i32\n");
+    return intval;
+}
+
 static inline LLVMValue getMethodExport(char* name) {
     LLVMValue l;
     l.type = LVT_METHOD_EXPORT;
@@ -120,7 +138,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
             registerVariable(node->method.functionName, exportedMethod);
             LLVMValue l = getMethodExport(node->method.functionName);
-            PRINT("@%s = extern global ", node->method.functionName);
+            PRINT("@%s = external global ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
@@ -131,7 +149,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
             registerVariable(node->method.functionName, exportedMethod);
             LLVMValue l = getMethodExport(node->method.functionName);
-            PRINT("@%s = linkonce_odr global ", node->method.functionName);
+            PRINT("@%s = weak global ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
@@ -178,7 +196,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             fallVariableScope();
 
             if (!isVoid(node->method.returnType))
-                UNARY("    ret", node->method.returnType, getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                UNARY("    ret", node->method.returnType, isDecimal(node->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
 
             PRINT("}\n");
             break;
@@ -213,7 +231,6 @@ void emitCode(FILE* out, ParserTopNode* node) {
             }
 
             PRINT("}\n");
-            
             //export methods
             //make sure I export a default constructor w/ all of the method definitions and calling super()
             //but throw an error if super()'s parameters are > 0...
@@ -730,8 +747,11 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     return getIntegerLiteral(1);
                 case RL_FALSE:
                     return getIntegerLiteral(0);
-                case RL_NULL:
-                    return getIntegerLiteral(0);
+                case RL_NULL: {
+                    LLVMValue l;
+                    l.type = LVT_NULL;
+                    return l;
+                }
             }
         }
         break;
@@ -757,11 +777,12 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_INSTANTIATION: {
-            LLVMValue mallocated = getTemporaryStorage(UNIQUE_IDENTIFIER), casted = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue size = emitSizeOfClass(out, node->instantiate.type);
+            LLVMValue mallocated = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue casted = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, mallocated);
-            LLVMValue size = emitSizeOfClass(out, node->instantiate.type);
-            PRINT(" = call i8* @malloc(");
+            PRINT(" = call i8* @malloc( i32 ");
             emitValue(out, size);
             PRINT(")\n");
             PRINT("    ");
@@ -769,33 +790,28 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             PRINT(" = bitcast i8* ");
             emitValue(out, mallocated);
             PRINT(" to ");
-            emitType(node->instantiate.type);
-            PRINT("*\n");
-            //call @_New_(CLASSNAME) (with no dereference unlike other cheshire methods) with pseudoparameter #0: self.
-            int paramLength = 0;
+            emitType(out, node->instantiate.type);
+            PRINT("\n");
+            int paramLength = 1;
             ExpressionList* e;
-            int i;
 
-            for (e = node->methodcall.params; e != NULL; e = e->next)
+            for (e = node->instantiate.params; e != NULL; e = e->next)
                 paramLength++;
 
-            LLVMValue fnptr = emitExpression(out, node->methodcall.callback);
-            LLVMValue* parameters = malloc(sizeof(LLVMValue) * (paramLength + 1));
-            CheshireType* parameterTypes = malloc(sizeof(CheshireType) * (paramLength + 1));
+            LLVMValue* parameters = malloc(sizeof(LLVMValue) * paramLength);
+            CheshireType* parameterTypes = malloc(sizeof(CheshireType) * paramLength);
             parameters[0] = casted;
             parameterTypes[0] = node->instantiate.type;
+            int i;
 
-            for (e = node->methodcall.params, i = 1; e != NULL; e = e->next, i++) {
+            for (e = node->instantiate.params, i = 1; e != NULL; e = e->next, i++) {
                 parameters[i] = emitExpression(out, e->parameter);
                 parameterTypes[i] = e->parameter->determinedType;
             }
-            
-            PRINT("call ");
-            emitType(out, node->determinedType);
+
             char* name = getNamedTypeString(node->instantiate.type);
-            PRINT(" _New_%s", classname);
+            PRINT("    call void @_New_%s(", name);
             free(name);
-            PRINT("(");
 
             for (i = 0; i < paramLength; i++) {
                 emitType(out, parameterTypes[i]);
@@ -811,13 +827,83 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_OBJECT_CALL: {
-            //emit object
-            //access method from object
-            //make room for pseudoparameter #0: self reference.
+            LLVMValue l;
+            LLVMValue object = emitExpression(out, node->objectcall.object);
+            int i;
+            // -- DEALLOCATING FUNCTION POINTER FROM OBJECT -- //
+            LLVMValue fnptr_ptr = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue fnptr = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, fnptr_ptr);
+            PRINT(" = getelementptr ");
+            emitType(out, node->objectcall.object->determinedType);
+            PRINT(" ");
+            emitValue(out, object);
+            PRINT(", i32 0, i32 %d\n", getObjectElement(node->objectcall.object->determinedType, node->objectcall.method));
+            PRINT("    ");
+            emitValue(out, fnptr);
+            PRINT(" = load ");
+            emitType(out, getClassVariable(node->objectcall.object->determinedType, node->objectcall.method));
+            PRINT("* ");
+            emitValue(out, fnptr_ptr);
+            PRINT("\n");
+            int paramLength = 1;
+            ExpressionList* e;
+
+            for (e = node->methodcall.params; e != NULL; e = e->next)
+                paramLength++;
+
+            LLVMValue* parameters = malloc(sizeof(LLVMValue) * paramLength);
+            CheshireType* parameterTypes = malloc(sizeof(CheshireType) * paramLength);
+            parameters[0] = object;
+            parameterTypes[0] = node->objectcall.object->determinedType;
+
+            for (e = node->objectcall.params, i = 1; e != NULL; e = e->next, i++) {
+                parameters[i] = emitExpression(out, e->parameter);
+                parameterTypes[i] = e->parameter->determinedType;
+            }
+
+            if (isVoid(node->determinedType)) {
+                l.type = LVT_VOID;
+                PRINT("    ");
+            } else {
+                l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, l);
+                PRINT(" = ");
+            }
+
+            PRINT("call ");
+            emitType(out, node->determinedType);
+            PRINT(" ");
+            emitValue(out, fnptr);
+            PRINT("(");
+
+            for (i = 0; i < paramLength; i++) {
+                emitType(out, parameterTypes[i]);
+                PRINT(" ");
+                emitValue(out, parameters[i]);
+
+                if (i != paramLength - 1)
+                    PRINT(", ");
+            }
+
+            PRINT(")\n");
+            return l;
         }
         break;
         case OP_ACCESS: {
-            //use getelementptr
+            // -- DEALLOCATING FUNCTION POINTER FROM OBJECT -- //
+            LLVMValue object = emitExpression(out, node->access.expression);
+            LLVMValue var = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, var);
+            PRINT(" = getelementptr ");
+            emitType(out, node->access.expression->determinedType);
+            PRINT(" ");
+            emitValue(out, object);
+            PRINT(", i32 0, i32 %d\n", getObjectElement(node->access.expression->determinedType, node->access.variable));
+            return var;
         }
         break;
     }
@@ -833,7 +919,7 @@ void emitType(FILE* out, CheshireType type) { //object types have implicit *, re
         PRINT("i8*");
     } else if (isObjectType(type)) {
         char* name = getNamedTypeString(type);
-        PRINT("class_%s*", name);
+        PRINT("%%Class_%s*", name);
         free(name);
     } else if (isNumericalType(type) || isBoolean(type)) {
         switch (type.typeKey) {

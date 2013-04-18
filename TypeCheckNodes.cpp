@@ -72,7 +72,7 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
                         CheshireType superctor = getClassVariable(node->classdef.parent, "new");
 
                         if (equalTypes(superctor, TYPE_VOID)) {
-                            ERROR_IF(c->constructor.params != NULL, "Expected empty parameter list for default super constructor.");
+                            ERROR_IF(c->constructor.inheritsParams != NULL, "Expected empty parameter list for default super constructor.");
                         } else {
                             LambdaType superctorMethod = keyedLambdas[superctor];
                             unsigned int index = 1; //one parameter provided implicitly: the "self" reference.

@@ -30,6 +30,7 @@ extern "C" {
     LLVMValue fetchVariable(char* name);
 
     ClassShape* getClassShape(CheshireType);
+    int getObjectElement(CheshireType, const char* elementName);
 
 #ifdef	__cplusplus
 }

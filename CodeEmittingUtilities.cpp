@@ -53,7 +53,7 @@ void initCodeEmitting() {
 
 void freeCodeEmitting() {
     fallVariableScope();
-    
+
     for (ClassShapes::iterator i = classShapes.begin(); i != classShapes.end(); ++i) {
         deleteClassShape(i->second);
     }
@@ -105,7 +105,9 @@ ClassShape* getClassShape(CheshireType type) {
     if (classShapes.find(type) != classShapes.end())
         return classShapes[type];
 
-    ClassShape* shape = cloneClassShape(getClassShape(((CheshireType) { ancestryMap[type.typeKey], 0 })));
+    ClassShape* shape = cloneClassShape(getClassShape(((CheshireType) {
+        ancestryMap[type.typeKey], 0
+    })));
     ClassList* object = objectMapping[type.typeKey];
     ClassShape** bottom = &shape;
 
@@ -132,6 +134,24 @@ ClassShape* getClassShape(CheshireType type) {
 
     classShapes[type] = shape;
     return shape;
+}
+
+int getObjectElement(CheshireType type, const char* elementName) {
+    ClassShape* shape;
+
+    if (classShapes.find(type) == classShapes.end())
+        shape = getClassShape(type);
+    else
+        shape = classShapes[type];
+
+    CStrEql streql;
+    int count = 0;
+
+    for (ClassShape* c = shape; c != NULL; c = c->next, count++)
+        if (streql(c->name, elementName))
+            return count;
+
+    PANIC("Could not find element %s", elementName);
 }
 
 void deleteClassShape(ClassShape* node) {
