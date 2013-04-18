@@ -216,44 +216,12 @@ void emitCode(FILE* out, ParserTopNode* node) {
             break;
         }
         case PRT_CLASS_DEFINITION: {
-            /*PRINT("class_%s = type {", node->classdef.name);
-            Boolean predecessor = FALSE;
-            for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
-                if (!predecessor)
-                    PRINT(", ");
-                switch (c->type) {
-                    case CLT_METHOD:
-                        emitType(getLambdaType(c->method.returnType, c->method.params));
-                        predecessor = TRUE;
-                        break;
-                    case CLT_VARIABLE:
-                        emitType(node->variable.type);
-                        predecessor = TRUE;
-                        break;
-                    default: break;
-                }
-            }
+            PRINT("%%class_%s = type {", node->classdef.name);
+            //prepare class list, register with classname service, etc.
             PRINT("}");
             
-            Boolean constructed = FALSE;
-            for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
-                switch (c->type) {
-                    case CLT_METHOD:
-                        //export method, include self reference -- wait NO I ALREADY ADDED!!!!
-                        break;
-                    case CLT_CONSTRUCTOR:
-                        constructed = TRUE;
-                        //construct, include self reference.
-                        //super call, assign defaults, then block.
-                        break;
-                    default: break;
-                }
-            }
-            
-            if (!constructed) {
-                //default constructor.
-            }
-            */
+            //make sure I export a default constructor w/ all of the method definitions and calling super()
+            //but throw an error if super()'s parameters are > 0...
             break;
         }
     }
