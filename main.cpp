@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
     printf("Type checked successfully! Code emitting: \n");
     yy_delete_buffer(state, scanner);
     yylex_destroy(scanner);
+    initCodeEmitting();
 
-    initVariableScope();
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         emitCode(stdout, *i);
     }
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
         deleteParserTopNode(*i);
     }
 
-    freeVariableScope();
+    freeCodeEmitting();
     deleteCheshireScope(scope);
     freeTypeSystem();
     return 0;

@@ -138,7 +138,9 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR:
-                        c->constructor.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->constructor.params);
+                        c->constructor.params = linkParameterList(((CheshireType) {
+                            typekey, 0
+                        }), saveIdentifierReturn("self"), c->constructor.params);
 
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next)
                             ERROR_IF(c2->type == CLT_CONSTRUCTOR, "Class must have only one constructor!");
@@ -170,7 +172,9 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
                         break;
                     }
                     case CLT_METHOD: {
-                        c->method.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->method.params);
+                        c->method.params = linkParameterList(((CheshireType) {
+                            typekey, 0
+                        }), saveIdentifierReturn("self"), c->method.params);
                         char* name = c->method.name;
 
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next) {
@@ -458,8 +462,10 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
             defineVariable(scope, node->varDefinition.variable, givenType);
             node->varDefinition.type = givenType; //"infer" the type of the variable.
+
             if (isNull(givenType))
                 PANIC("Cannot infer type of TYPE_NULL!");
+
             printf("Inferred ");
             printType(givenType);
             printf(" for expression: ");

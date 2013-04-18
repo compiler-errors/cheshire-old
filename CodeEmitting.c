@@ -125,22 +125,6 @@ void emitCode(FILE* out, ParserTopNode* node) {
             PRINT(" ");
             emitValue(out, l);
             PRINT("\n");
-            
-/*
-            PRINT("declare ");
-            emitType(out, node->method.returnType);
-            PRINT(" @%s(", node->method.functionName);
-            ParameterList* p;
-
-            for (p = node->method.params; p != NULL; p = p->next) {
-                emitType(out, p->type);
-
-                if (p->next != NULL)
-                    PRINT(", ");
-            }
-
-            PRINT(")\n");
-*/
             break;
         }
         case PRT_METHOD_DEFINITION: {
@@ -152,7 +136,6 @@ void emitCode(FILE* out, ParserTopNode* node) {
             PRINT(" ");
             emitValue(out, l);
             PRINT("\n");
-            
             PRINT("define ");
             emitType(out, node->method.returnType);
             PRINT(" @_Method_%s(", node->method.functionName);
@@ -170,6 +153,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
 
             PRINT(") {\n");
             raiseVariableScope();
+
             for (p = node->method.params; p != NULL; p = p->next) {
                 LLVMValue l = getParameterStorage(p->name);
                 PRINT("    ");
@@ -189,6 +173,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                 PRINT("\n");
                 registerVariable(p->name, variable);
             }
+
             emitBlock(out, node->method.body);
             fallVariableScope();
 
@@ -216,10 +201,20 @@ void emitCode(FILE* out, ParserTopNode* node) {
             break;
         }
         case PRT_CLASS_DEFINITION: {
+            ClassShape* c = getClassShape(getNamedType(node->classdef.name));
             PRINT("%%class_%s = type {", node->classdef.name);
-            //prepare class list, register with classname service, etc.
-            PRINT("}");
+            ClassShape* node;
+
+            for (node = c; node != NULL; node = node->next) {
+                emitType(out, node->type);
+
+                if (node->next != NULL)
+                    PRINT(", ");
+            }
+
+            PRINT("}\n");
             
+            //export methods
             //make sure I export a default constructor w/ all of the method definitions and calling super()
             //but throw an error if super()'s parameters are > 0...
             break;
@@ -396,11 +391,13 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             PRINT("* ");
             emitValue(out, lval);
             PRINT("\n");
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(plusone, "fadd", node->determinedType, deref, getDecimalLiteral(1));
             } else {
                 BINARY_STORE(plusone, "add", node->determinedType, deref, getIntegerLiteral(1));
             }
+
             PRINT("    store ");
             emitType(out, node->binary.left->determinedType);
             PRINT(" ");
@@ -423,11 +420,13 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             PRINT("* ");
             emitValue(out, lval);
             PRINT("\n");
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(plusone, "fsub", node->determinedType, deref, getDecimalLiteral(1));
             } else {
                 BINARY_STORE(plusone, "sub", node->determinedType, deref, getIntegerLiteral(1));
             }
+
             PRINT("    store ");
             emitType(out, node->binary.left->determinedType);
             PRINT(" ");
@@ -443,66 +442,78 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         case OP_EQUALS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fcmp eq", node->binary.left->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "icmp eq", node->binary.left->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_NOT_EQUALS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fcmp ne", node->binary.left->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "icmp ne", node->binary.left->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_GRE_EQUALS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fcmp sge", node->binary.left->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "icmp sge", node->binary.left->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_LES_EQUALS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fcmp sle", node->binary.left->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "icmp sle", node->binary.left->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_GREATER: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fcmp sgt", node->binary.left->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "icmp sgt", node->binary.left->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_LESS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fcmp slt", node->binary.left->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "icmp slt", node->binary.left->determinedType, a, b);
             }
+
             return l;
         }
         break;
@@ -523,55 +534,65 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         case OP_PLUS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fadd", node->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "add", node->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_MINUS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fsub", node->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "sub", node->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_MULT: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fmul", node->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "mul", node->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_DIV: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "fdiv", node->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "sdiv", node->determinedType, a, b);
             }
+
             return l;
         }
         break;
         case OP_MOD: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
             if (isDecimal(node->binary.left->determinedType)) {
                 BINARY_STORE(l, "frem", node->determinedType, a, b);
             } else {
                 BINARY_STORE(l, "srem", node->determinedType, a, b);
             }
+
             return l;
         }
         break;
@@ -599,6 +620,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         break;
         case OP_CAST: {
             LLVMValue child = emitExpression(out, node->cast.child);
+
             if (isNumericalType(node->cast.type)) {
                 if (equalTypes(node->cast.type, node->cast.child->determinedType)) {
                     //no cast
@@ -607,11 +629,13 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
                     PRINT("    ");
                     emitValue(out, l);
+
                     if (isDecimal(node->cast.type)) {
                         PRINT(" = sitofp ");
                     } else {
                         PRINT(" = sext ");
                     }
+
                     emitType(out, node->cast.child->determinedType);
                     PRINT(" ");
                     emitValue(out, child);
@@ -623,11 +647,13 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
                     PRINT("    ");
                     emitValue(out, l);
+
                     if (isDecimal(node->cast.child->determinedType)) {
                         PRINT(" = fptosi ");
                     } else {
                         PRINT(" = trunc ");
                     }
+
                     emitType(out, node->cast.child->determinedType);
                     PRINT(" ");
                     emitValue(out, child);
@@ -656,15 +682,19 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             int paramLength = 0;
             ExpressionList* e;
             int i;
-            for (e = node->methodcall.params; e != NULL; e = e->next) 
+
+            for (e = node->methodcall.params; e != NULL; e = e->next)
                 paramLength++;
+
             LLVMValue fnptr = emitExpression(out, node->methodcall.callback);
             LLVMValue* parameters = malloc(sizeof(LLVMValue) * paramLength);
             CheshireType* parameterTypes = malloc(sizeof(CheshireType) * paramLength);
+
             for (e = node->methodcall.params, i = 0; e != NULL; e = e->next, i++) {
                 parameters[i] = emitExpression(out, e->parameter);
                 parameterTypes[i] = e->parameter->determinedType;
             }
+
             if (isVoid(node->determinedType)) {
                 l.type = LVT_VOID;
                 PRINT("    ");
@@ -674,18 +704,22 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 emitValue(out, l);
                 PRINT(" = ");
             }
+
             PRINT("call ");
             emitType(out, node->determinedType);
             PRINT(" ");
             emitValue(out, fnptr);
             PRINT("(");
+
             for (i = 0; i < paramLength; i++) {
                 emitType(out, parameterTypes[i]);
                 PRINT(" ");
                 emitValue(out, parameters[i]);
+
                 if (i != paramLength - 1)
                     PRINT(", ");
             }
+
             PRINT(")\n");
             return l;
         }
@@ -704,7 +738,6 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         case OP_ARRAY_ACCESS: {
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
-            
             PRINT("    ");
             emitValue(out, l);
             PRINT(" = getelementptr inbounds ");
@@ -718,19 +751,24 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_STRING: {
-            
         }
         break;
         case OP_CLOSURE: {
         }
         break;
         case OP_INSTANTIATION: {
+            //malloc object size.
+            //call @_New_(CLASSNAME) (with no dereference unlike other cheshire methods) with pseudoparameter #0: self.
         }
         break;
         case OP_OBJECT_CALL: {
+            //emit object
+            //access method from object
+            //make room for pseudoparameter #0: self reference.
         }
         break;
         case OP_ACCESS: {
+            //use getelementptr
         }
         break;
     }
@@ -747,6 +785,7 @@ void emitType(FILE* out, CheshireType type) { //object types have implicit *, re
     } else if (isObjectType(type)) {
         char* name = getNamedTypeString(type);
         PRINT("class_%s*", name);
+        free(name);
     } else if (isNumericalType(type) || isBoolean(type)) {
         switch (type.typeKey) {
             case 1:

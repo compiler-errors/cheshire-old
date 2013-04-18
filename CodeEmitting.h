@@ -22,12 +22,14 @@ extern "C" {
     void emitType(FILE*, CheshireType);
     void emitLambdaType(FILE*, CheshireType);
 
-    void initVariableScope(void);
-    void freeVariableScope(void);
+    void initCodeEmitting(void);
+    void freeCodeEmitting(void);
     void raiseVariableScope(void);
     void fallVariableScope(void);
     void registerVariable(char* name, LLVMValue);
     LLVMValue fetchVariable(char* name);
+
+    ClassShape* getClassShape(CheshireType);
 
 #ifdef	__cplusplus
 }
