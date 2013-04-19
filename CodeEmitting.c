@@ -862,7 +862,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     return getIntegerLiteral(0);
                 case RL_NULL: {
                     LLVMValue l;
-                    //l.type = LVT_NULL;
+                    l.type = LVT_NULL;
                     return l;
                 }
             }
@@ -1095,6 +1095,9 @@ void emitValue(FILE* out, LLVMValue value) {
             break;
         case LVT_METHOD_EXPORT:
             PRINT("@_Method_%s", value.name);
+            break;
+        case LVT_NULL:
+            PRINT("null");
             break;
     }
 }
