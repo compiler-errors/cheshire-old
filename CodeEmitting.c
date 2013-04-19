@@ -13,7 +13,7 @@
 
 #define UNARY(instruction, type, a) \
     { \
-        PRINT("%s ", instruction); \
+        PRINT("    %s ", instruction); \
         emitType(out, type); \
         PRINT(" "); \
         emitValue(out, a); \
@@ -22,7 +22,7 @@
 
 #define BINARY(instruction, type, a, b) \
     { \
-        PRINT("%s ", instruction); \
+        PRINT("    %s ", instruction); \
         emitType(out, type); \
         PRINT(" "); \
         emitValue(out, a); \
@@ -112,7 +112,7 @@ static inline LLVMValue emitSizeOfClass(FILE* out, CheshireType t) {
     emitValue(out, l);
     PRINT(" = getelementptr ");
     emitType(out, t);
-    PRINT("* null, i32 1\n");
+    PRINT(" null, i32 1\n");
     PRINT("    ");
     emitValue(out, intval);
     PRINT(" = ptrtoint ");
@@ -195,8 +195,11 @@ void emitCode(FILE* out, ParserTopNode* node) {
             emitBlock(out, node->method.body);
             fallVariableScope();
 
-            if (!isVoid(node->method.returnType))
-                UNARY("    ret", node->method.returnType, isDecimal(node->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+            if (!isVoid(node->method.returnType)) {
+                UNARY("ret", node->method.returnType, isDecimal(node->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+            } else {
+                PRINT("    ret void\n");
+            }
 
             PRINT("}\n");
             break;
@@ -221,12 +224,12 @@ void emitCode(FILE* out, ParserTopNode* node) {
         case PRT_CLASS_DEFINITION: {
             ClassShape* c = getClassShape(getNamedType(node->classdef.name));
             PRINT("%%class_%s = type {", node->classdef.name);
-            ClassShape* node;
+            ClassShape* shapeNode;
 
-            for (node = c; node != NULL; node = node->next) {
-                emitType(out, node->type);
+            for (shapeNode = c; shapeNode != NULL; shapeNode = shapeNode->next) {
+                emitType(out, shapeNode->type);
 
-                if (node->next != NULL)
+                if (shapeNode->next != NULL)
                     PRINT(", ");
             }
 
@@ -234,6 +237,111 @@ void emitCode(FILE* out, ParserTopNode* node) {
             //export methods
             //make sure I export a default constructor w/ all of the method definitions and calling super()
             //but throw an error if super()'s parameters are > 0...
+            Boolean constructor = FALSE;
+            ClassList* classNode;
+
+            for (classNode = node->classdef.classlist; classNode != NULL; classNode = classNode->next) {
+                switch (classNode->type) {
+                    case CLT_CONSTRUCTOR: {
+                        constructor = TRUE;
+                        PRINT("define @_New_%s(", node->classdef.name);
+                        ParameterList* p;
+
+                        for (p = classNode->constructor.params; p != NULL; p = p->next) {
+                            emitType(out, p->type);
+                            PRINT(" ");
+                            LLVMValue paramValue = getParameterStorage(p->name);
+                            emitValue(out, paramValue);
+
+                            if (p->next != NULL)
+                                PRINT(", ");
+                        }
+
+                        PRINT(") {\n");
+                        raiseVariableScope();
+
+                        for (p = classNode->constructor.params; p != NULL; p = p->next) {
+                            LLVMValue l = getParameterStorage(p->name);
+                            PRINT("    ");
+                            LLVMValue variable = getLocalVariableStorage(p->name);
+                            emitValue(out, variable);
+                            PRINT(" = alloca ");
+                            emitType(out, p->type);
+                            PRINT("\n");
+                            PRINT("    store ");
+                            emitType(out, p->type);
+                            PRINT(" ");
+                            emitValue(out, l);
+                            PRINT(", ");
+                            emitType(out, p->type);
+                            PRINT("* ");
+                            emitValue(out, variable);
+                            PRINT("\n");
+                            registerVariable(p->name, variable);
+                        }
+
+                        int paramLength = 1;
+                        ExpressionList* e;
+
+                        for (e = classNode->constructor.inheritsParams; e != NULL; e = e->next)
+                            paramLength++;
+
+                        LLVMValue* parameters = malloc(sizeof(LLVMValue) * paramLength);
+                        CheshireType* parameterTypes = malloc(sizeof(CheshireType) * paramLength);
+                        parameters[0] = fetchVariable("self");
+                        parameterTypes[0] = getNamedType(node->classdef.name);
+                        int i;
+
+                        for (e = classNode->constructor.inheritsParams, i = 1; e != NULL; e = e->next, i++) {
+                            parameters[i] = emitExpression(out, e->parameter);
+                            parameterTypes[i] = e->parameter->determinedType;
+                        }
+
+                        char* superName = getNamedTypeString(node->classdef.parent);
+                        PRINT("    call void @_New_%s(", superName);
+                        free(superName);
+
+                        for (i = 0; i < paramLength; i++) {
+                            emitType(out, parameterTypes[i]);
+                            PRINT(" ");
+                            emitValue(out, parameters[i]);
+
+                            if (i != paramLength - 1)
+                                PRINT(", ");
+                        }
+
+                        PRINT(")\n");
+                        ClassList* subnode;
+
+                        for (subnode = node->classdef.classlist; subnode != NULL; subnode = subnode->next) {
+                            switch (subnode->type) {
+                                case CLT_VARIABLE: {
+                                    //getelementptr, emit default value, store
+                                } break;
+                                case CLT_METHOD: {
+                                    //getelementptr, store @_ClassMethod_<classname>_<name> into it.
+                                } break;
+                                case CLT_CONSTRUCTOR:
+                                    break;
+                            }
+                        }
+
+                        fallVariableScope();
+                        PRINT("}\n");
+                    }
+                    break;
+                    case CLT_METHOD: {
+                        //export method as name @_ClassMethod_<classname>_<name>
+                    } break;
+                    case CLT_VARIABLE:
+                        break;
+                }
+
+                //default constructor. call default superconstructor: ( call void _New_%s(<self>) ).
+                //TODO: add in typesystem a check against default constructors if THERE IS NO 'simple' SUPER CONSTRUCTOR!
+                //ex. fail default constructor if super constructor isnt (self) only.
+            }
+
             break;
         }
     }
@@ -314,6 +422,7 @@ void emitStatement(FILE* out, StatementNode* statement) {
             raiseVariableScope();
             emitStatement(out, statement->conditional.elseBlock);
             fallVariableScope();
+            PRINT("    br label %%label%d\n", labelend);
             PRINT("label%d:\n", labelend);
         }
         break;
@@ -334,12 +443,16 @@ void emitStatement(FILE* out, StatementNode* statement) {
         }
         break;
         case S_RETURN: {
-            LLVMValue l = emitExpression(out, statement->expression);
-            PRINT("    ret ");
-            emitType(out, statement->expression->determinedType);
-            PRINT(" ");
-            emitValue(out, l);
-            PRINT("\n");
+            if (isNull(statement->expression->determinedType)) {
+                PRINT("    ret void\n");
+            } else {
+                LLVMValue l = emitExpression(out, statement->expression);
+                PRINT("    ret ");
+                emitType(out, statement->expression->determinedType);
+                PRINT(" ");
+                emitValue(out, l);
+                PRINT("\n");
+            }
         }
         break;
     }
@@ -749,7 +862,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     return getIntegerLiteral(0);
                 case RL_NULL: {
                     LLVMValue l;
-                    l.type = LVT_NULL;
+                    //l.type = LVT_NULL;
                     return l;
                 }
             }
@@ -774,6 +887,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_CLOSURE: {
+            //remember to raise var scope.
         }
         break;
         case OP_INSTANTIATION: {
