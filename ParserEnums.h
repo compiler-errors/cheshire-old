@@ -89,6 +89,7 @@ extern "C" {
         LVT_VOID,
         LVT_JUMPPOINT,
         LVT_METHOD_EXPORT,
+        LVT_CLASS_METHOD,
         LVT_NULL
     } LLVMValueType;
 

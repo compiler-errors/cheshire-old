@@ -154,6 +154,22 @@ int getObjectElement(CheshireType type, const char* elementName) {
     PANIC("Could not find element %s", elementName);
 }
 
+CheshireType getObjectSelfType(CheshireType object, const char* methodname) {
+    ClassShape* classShape = getClassShape(object);
+    CStrEql streql;
+    
+    for (ClassShape* c = classShape; c != NULL; c = c->next) {
+        if (streql(methodname, c->name)) {
+            ERROR_IF(!isLambdaType(c->type), "Invalid lambda type!");
+            LambdaType l = keyedLambdas[c->type];
+            ERROR_IF(l.second.size() <= 0, "Error: not object call.");
+            return l.second[0];
+        }
+    }
+    
+    PANIC("No such self type!");
+}
+
 void deleteClassShape(ClassShape* node) {
     if (node == NULL)
         return;

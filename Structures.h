@@ -33,6 +33,10 @@ extern "C" {
                 char* name;
                 int uid;
             } vardef;
+            struct {
+                char* classname;
+                char* methodname;
+            } classmethod;
         };
     } LLVMValue;
 

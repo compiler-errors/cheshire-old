@@ -105,6 +105,14 @@ static inline LLVMValue getLocalVariableStorage(char* name) {
     return l;
 }
 
+static inline LLVMValue getClassMethodStorage(char* classname, char* methodname) {
+    LLVMValue l;
+    l.type = LVT_CLASS_METHOD;
+    l.classmethod.classname = classname;
+    l.classmethod.methodname = methodname;
+    return l;
+}
+
 static inline LLVMValue emitSizeOfClass(FILE* out, CheshireType t) {
     LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
     LLVMValue intval = getTemporaryStorage(UNIQUE_IDENTIFIER);
@@ -117,10 +125,30 @@ static inline LLVMValue emitSizeOfClass(FILE* out, CheshireType t) {
     emitValue(out, intval);
     PRINT(" = ptrtoint ");
     emitType(out, t);
-    PRINT("* ");
+    PRINT(" ");
     emitValue(out, l);
     PRINT(" to i32\n");
     return intval;
+}
+
+static inline void emitNonTypecheckedUpcast(FILE* out, LLVMValue* parameterValue, CheshireType* parameterType, LLVMValue givenValue, CheshireType selfType, CheshireType superType) {
+    if (equalTypes(superType, selfType)) {
+        *parameterValue = givenValue;
+        *parameterType = selfType;
+    } else {
+        LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+        PRINT("    ");
+        emitValue(out, l);
+        PRINT(" = bitcast ");
+        emitType(out, selfType);
+        PRINT(" ");
+        emitValue(out, givenValue);
+        PRINT(" to ");
+        emitType(out, superType);
+        PRINT("\n");
+        *parameterValue = l;
+        *parameterType = superType;
+    }
 }
 
 static inline LLVMValue getMethodExport(char* name) {
@@ -142,7 +170,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
-            PRINT("\n");
+            PRINT("\n\n");
             break;
         }
         case PRT_METHOD_DEFINITION: {
@@ -153,7 +181,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
-            PRINT("\n");
+            PRINT("\n\n");
             PRINT("define ");
             emitType(out, node->method.returnType);
             PRINT(" @_Method_%s(", node->method.functionName);
@@ -201,13 +229,13 @@ void emitCode(FILE* out, ParserTopNode* node) {
                 PRINT("    ret void\n");
             }
 
-            PRINT("}\n");
+            PRINT("}\n\n");
             break;
         }
         case PRT_VARIABLE_DECLARATION: {
             PRINT("@%s = external global ", node->variable.name);
             emitType(out, node->variable.type);
-            PRINT("\n");
+            PRINT("\n\n");
             LLVMValue l = getGlobalStorage(node->variable.name);
             break;
         }
@@ -216,14 +244,14 @@ void emitCode(FILE* out, ParserTopNode* node) {
             emitType(out, node->variable.type);
             PRINT(" ");
             emitValue(out, getIntegerLiteral(0));
-            PRINT("\n");
+            PRINT("\n\n");
             LLVMValue l = getGlobalStorage(node->variable.name);
             registerVariable(node->variable.name, l);
             break;
         }
         case PRT_CLASS_DEFINITION: {
             ClassShape* c = getClassShape(getNamedType(node->classdef.name));
-            PRINT("%%class_%s = type {", node->classdef.name);
+            PRINT("%%Class_%s = type {", node->classdef.name);
             ClassShape* shapeNode;
 
             for (shapeNode = c; shapeNode != NULL; shapeNode = shapeNode->next) {
@@ -233,21 +261,18 @@ void emitCode(FILE* out, ParserTopNode* node) {
                     PRINT(", ");
             }
 
-            PRINT("}\n");
-            //export methods
-            //make sure I export a default constructor w/ all of the method definitions and calling super()
-            //but throw an error if super()'s parameters are > 0...
+            PRINT("}\n\n");
             Boolean constructor = FALSE;
-            ClassList* classNode;
+            ClassList* classnode;
 
-            for (classNode = node->classdef.classlist; classNode != NULL; classNode = classNode->next) {
-                switch (classNode->type) {
+            for (classnode = node->classdef.classlist; classnode != NULL; classnode = classnode->next) {
+                switch (classnode->type) {
                     case CLT_CONSTRUCTOR: {
                         constructor = TRUE;
-                        PRINT("define @_New_%s(", node->classdef.name);
+                        PRINT("define void @_New_%s(", node->classdef.name);
                         ParameterList* p;
 
-                        for (p = classNode->constructor.params; p != NULL; p = p->next) {
+                        for (p = classnode->constructor.params; p != NULL; p = p->next) {
                             emitType(out, p->type);
                             PRINT(" ");
                             LLVMValue paramValue = getParameterStorage(p->name);
@@ -260,7 +285,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                         PRINT(") {\n");
                         raiseVariableScope();
 
-                        for (p = classNode->constructor.params; p != NULL; p = p->next) {
+                        for (p = classnode->constructor.params; p != NULL; p = p->next) {
                             LLVMValue l = getParameterStorage(p->name);
                             PRINT("    ");
                             LLVMValue variable = getLocalVariableStorage(p->name);
@@ -283,16 +308,24 @@ void emitCode(FILE* out, ParserTopNode* node) {
                         int paramLength = 1;
                         ExpressionList* e;
 
-                        for (e = classNode->constructor.inheritsParams; e != NULL; e = e->next)
+                        for (e = classnode->constructor.inheritsParams; e != NULL; e = e->next)
                             paramLength++;
 
+                        LLVMValue selfReference = fetchVariable("self");
+                        LLVMValue deallocatedSelf = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                        PRINT("    ");
+                        emitValue(out, deallocatedSelf);
+                        PRINT(" = load ");
+                        emitType(out, getNamedType(node->classdef.name));
+                        PRINT("* ");
+                        emitValue(out, selfReference);
+                        PRINT("\n");
                         LLVMValue* parameters = malloc(sizeof(LLVMValue) * paramLength);
                         CheshireType* parameterTypes = malloc(sizeof(CheshireType) * paramLength);
-                        parameters[0] = fetchVariable("self");
-                        parameterTypes[0] = getNamedType(node->classdef.name);
+                        emitNonTypecheckedUpcast(out, &(parameters[0]), &(parameterTypes[0]), deallocatedSelf, getNamedType(node->classdef.name), node->classdef.parent);
                         int i;
 
-                        for (e = classNode->constructor.inheritsParams, i = 1; e != NULL; e = e->next, i++) {
+                        for (e = classnode->constructor.inheritsParams, i = 1; e != NULL; e = e->next, i++) {
                             parameters[i] = emitExpression(out, e->parameter);
                             parameterTypes[i] = e->parameter->determinedType;
                         }
@@ -310,40 +343,231 @@ void emitCode(FILE* out, ParserTopNode* node) {
                                 PRINT(", ");
                         }
 
+                        free(parameters);
+                        free(parameterTypes);
                         PRINT(")\n");
                         ClassList* subnode;
 
                         for (subnode = node->classdef.classlist; subnode != NULL; subnode = subnode->next) {
                             switch (subnode->type) {
                                 case CLT_VARIABLE: {
-                                    //getelementptr, emit default value, store
-                                } break;
+                                    LLVMValue defaultValue = emitExpression(out, subnode->variable.defaultValue);
+                                    LLVMValue var = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                                    PRINT("    ");
+                                    emitValue(out, var);
+                                    PRINT(" = getelementptr ");
+                                    emitType(out, getNamedType(node->classdef.name));
+                                    PRINT(" ");
+                                    emitValue(out, deallocatedSelf);
+                                    PRINT(", i32 0, i32 %d\n", getObjectElement(getNamedType(node->classdef.name), subnode->variable.name));
+                                    PRINT("    store ");
+                                    emitType(out, subnode->variable.defaultValue->determinedType);
+                                    PRINT(" ");
+                                    emitValue(out, defaultValue);
+                                    PRINT(", ");
+                                    emitType(out, subnode->variable.defaultValue->determinedType);
+                                    PRINT("* ");
+                                    emitValue(out, var);
+                                    PRINT("\n");
+                                }
+                                break;
                                 case CLT_METHOD: {
-                                    //getelementptr, store @_ClassMethod_<classname>_<name> into it.
-                                } break;
+                                    LLVMValue defaultValue = getClassMethodStorage(node->classdef.name, subnode->method.name);
+                                    LLVMValue classStorage = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                                    CheshireType type = getLambdaType(subnode->method.returnType, subnode->method.params);
+                                    PRINT("    ");
+                                    emitValue(out, classStorage);
+                                    PRINT(" = getelementptr ");
+                                    emitType(out, getNamedType(node->classdef.name));
+                                    PRINT(" ");
+                                    emitValue(out, deallocatedSelf);
+                                    PRINT(", i32 0, i32 %d\n", getObjectElement(getNamedType(node->classdef.name), subnode->method.name));
+
+                                    if (!equalTypes(TYPE_VOID, getClassVariable(node->classdef.parent, subnode->method.name))) { //if not an override
+                                        emitNonTypecheckedUpcast(out, &defaultValue, &type, defaultValue, type, getClassVariable(node->classdef.parent, subnode->method.name));
+                                    }
+
+                                    PRINT("    store ");
+                                    emitType(out, type);
+                                    PRINT(" ");
+                                    emitValue(out, defaultValue);
+                                    PRINT(", ");
+                                    emitType(out, type);
+                                    PRINT("* ");
+                                    emitValue(out, classStorage);
+                                    PRINT("\n");
+                                }
+                                break;
                                 case CLT_CONSTRUCTOR:
                                     break;
                             }
                         }
 
+                        emitBlock(out, classnode->constructor.block);
                         fallVariableScope();
-                        PRINT("}\n");
+                        PRINT("    ret void\n");
+                        PRINT("}\n\n");
                     }
                     break;
                     case CLT_METHOD: {
-                        //export method as name @_ClassMethod_<classname>_<name>
-                    } break;
+                        PRINT("define ");
+                        emitType(out, classnode->method.returnType);
+                        PRINT(" @_ClassMethod_%s_%s(", node->classdef.name, classnode->method.name);
+                        ParameterList* p;
+
+                        for (p = classnode->method.params; p != NULL; p = p->next) {
+                            emitType(out, p->type);
+                            PRINT(" ");
+                            LLVMValue paramValue = getParameterStorage(p->name);
+                            emitValue(out, paramValue);
+
+                            if (p->next != NULL)
+                                PRINT(", ");
+                        }
+
+                        PRINT(") {\n");
+                        raiseVariableScope();
+
+                        for (p = classnode->method.params; p != NULL; p = p->next) {
+                            LLVMValue l = getParameterStorage(p->name);
+                            PRINT("    ");
+                            LLVMValue variable = getLocalVariableStorage(p->name);
+                            emitValue(out, variable);
+                            PRINT(" = alloca ");
+                            emitType(out, p->type);
+                            PRINT("\n");
+                            PRINT("    store ");
+                            emitType(out, p->type);
+                            PRINT(" ");
+                            emitValue(out, l);
+                            PRINT(", ");
+                            emitType(out, p->type);
+                            PRINT("* ");
+                            emitValue(out, variable);
+                            PRINT("\n");
+                            registerVariable(p->name, variable);
+                        }
+
+                        emitBlock(out, classnode->method.block);
+                        fallVariableScope();
+
+                        if (!isVoid(classnode->method.returnType)) {
+                            UNARY("ret", classnode->method.returnType, isDecimal(classnode->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                        } else {
+                            PRINT("    ret void\n");
+                        }
+
+                        PRINT("}\n\n");
+                    }
+                    break;
                     case CLT_VARIABLE:
                         break;
                 }
-
-                //default constructor. call default superconstructor: ( call void _New_%s(<self>) ).
-                //TODO: add in typesystem a check against default constructors if THERE IS NO 'simple' SUPER CONSTRUCTOR!
-                //ex. fail default constructor if super constructor isnt (self) only.
             }
 
-            break;
+            if (!constructor) {
+                PRINT("define void @_New_%s(%%Class_%s* %%_Param_self) {\n", node->classdef.name, node->classdef.name);
+                raiseVariableScope();
+                LLVMValue l = getParameterStorage("self");
+                PRINT("    ");
+                LLVMValue variable = getLocalVariableStorage("self");
+                emitValue(out, variable);
+                PRINT(" = alloca ");
+                emitType(out, getNamedType(node->classdef.name));
+                PRINT("\n");
+                PRINT("    store ");
+                emitType(out, getNamedType(node->classdef.name));
+                PRINT(" ");
+                emitValue(out, l);
+                PRINT(", ");
+                emitType(out, getNamedType(node->classdef.name));
+                PRINT("* ");
+                emitValue(out, variable);
+                PRINT("\n");
+                registerVariable("self", variable);
+                char* superName = getNamedTypeString(node->classdef.parent);
+                LLVMValue selfReference = fetchVariable("self");
+                LLVMValue deallocatedSelf = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, deallocatedSelf);
+                PRINT(" = load ");
+                emitType(out, getNamedType(node->classdef.name));
+                PRINT("* ");
+                emitValue(out, selfReference);
+                PRINT("\n");
+                LLVMValue superValue;
+                CheshireType superType;
+                emitNonTypecheckedUpcast(out, &superValue, &superType, deallocatedSelf, getNamedType(node->classdef.name), node->classdef.parent);
+                PRINT("    call void @_New_%s(", superName);
+                emitType(out, superType);
+                PRINT(" ");
+                emitValue(out, superValue);
+                PRINT(")\n");
+                free(superName);
+                ClassList* subnode;
+
+                for (subnode = node->classdef.classlist; subnode != NULL; subnode = subnode->next) {
+                    switch (subnode->type) {
+                        case CLT_VARIABLE: {
+                            LLVMValue defaultValue = emitExpression(out, subnode->variable.defaultValue);
+                            LLVMValue var = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                            PRINT("    ");
+                            emitValue(out, var);
+                            PRINT(" = getelementptr ");
+                            emitType(out, getNamedType(node->classdef.name));
+                            PRINT(" ");
+                            emitValue(out, deallocatedSelf);
+                            PRINT(", i32 0, i32 %d\n", getObjectElement(getNamedType(node->classdef.name), subnode->variable.name));
+                            PRINT("    store ");
+                            emitType(out, subnode->variable.defaultValue->determinedType);
+                            PRINT(" ");
+                            emitValue(out, defaultValue);
+                            PRINT(", ");
+                            emitType(out, subnode->variable.defaultValue->determinedType);
+                            PRINT("* ");
+                            emitValue(out, var);
+                            PRINT("\n");
+                        }
+                        break;
+                        case CLT_METHOD: {
+                            LLVMValue defaultValue = getClassMethodStorage(node->classdef.name, subnode->method.name);
+                            LLVMValue classStorage = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                            CheshireType type = getLambdaType(subnode->method.returnType, subnode->method.params);
+                            PRINT("    ");
+                            emitValue(out, classStorage);
+                            PRINT(" = getelementptr ");
+                            emitType(out, getNamedType(node->classdef.name));
+                            PRINT(" ");
+                            emitValue(out, deallocatedSelf);
+                            PRINT(", i32 0, i32 %d\n", getObjectElement(getNamedType(node->classdef.name), subnode->method.name));
+
+                            if (!equalTypes(TYPE_VOID, getClassVariable(node->classdef.parent, subnode->method.name))) { //if not an override
+                                emitNonTypecheckedUpcast(out, &defaultValue, &type, defaultValue, type, getClassVariable(node->classdef.parent, subnode->method.name));
+                            }
+
+                            PRINT("    store ");
+                            emitType(out, type);
+                            PRINT(" ");
+                            emitValue(out, defaultValue);
+                            PRINT(", ");
+                            emitType(out, type);
+                            PRINT("* ");
+                            emitValue(out, classStorage);
+                            PRINT("\n");
+                        }
+                        break;
+                        case CLT_CONSTRUCTOR:
+                            break;
+                    }
+                }
+
+                //emitBlock(out, classnode->constructor.block);
+                fallVariableScope();
+                PRINT("    ret void\n");
+                PRINT("}\n\n");
+            }
         }
+        break;
     }
 }
 
@@ -850,6 +1074,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT(", ");
             }
 
+            free(parameters);
+            free(parameterTypes);
             PRINT(")\n");
             return l;
         }
@@ -896,7 +1122,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             LLVMValue casted = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, mallocated);
-            PRINT(" = call i8* @malloc( i32 ");
+            PRINT(" = call i8* @malloc(i32 ");
             emitValue(out, size);
             PRINT(")\n");
             PRINT("    ");
@@ -936,6 +1162,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT(", ");
             }
 
+            free(parameters);
+            free(parameterTypes);
             PRINT(")\n");
             return casted;
         }
@@ -964,13 +1192,12 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             int paramLength = 1;
             ExpressionList* e;
 
-            for (e = node->methodcall.params; e != NULL; e = e->next)
+            for (e = node->objectcall.params; e != NULL; e = e->next)
                 paramLength++;
 
             LLVMValue* parameters = malloc(sizeof(LLVMValue) * paramLength);
             CheshireType* parameterTypes = malloc(sizeof(CheshireType) * paramLength);
-            parameters[0] = object;
-            parameterTypes[0] = node->objectcall.object->determinedType;
+            emitNonTypecheckedUpcast(out, &(parameters[0]), &(parameterTypes[0]), object, node->objectcall.object->determinedType, getObjectSelfType(node->objectcall.object->determinedType, node->objectcall.method));
 
             for (e = node->objectcall.params, i = 1; e != NULL; e = e->next, i++) {
                 parameters[i] = emitExpression(out, e->parameter);
@@ -1002,6 +1229,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT(", ");
             }
 
+            free(parameters);
+            free(parameterTypes);
             PRINT(")\n");
             return l;
         }
@@ -1095,6 +1324,9 @@ void emitValue(FILE* out, LLVMValue value) {
             break;
         case LVT_METHOD_EXPORT:
             PRINT("@_Method_%s", value.name);
+            break;
+        case LVT_CLASS_METHOD:
+            PRINT("@_ClassMethod_%s_%s", value.classmethod.classname, value.classmethod.methodname);
             break;
         case LVT_NULL:
             PRINT("null");

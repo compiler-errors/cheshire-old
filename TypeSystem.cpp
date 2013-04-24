@@ -100,7 +100,7 @@ void freeTypeSystem() {
     keyedLambdas.clear();
     ancestryMap.clear();
     classNames.clear();
-    typeKeys = 0;
+    //typeKeys = 0;
 }
 
 CheshireScope* allocateCheshireScope() {
@@ -274,7 +274,9 @@ CheshireType getLambdaType(CheshireType returnType, ParameterList* parameters) {
         return lambdaTypes[l];
     } else {
         TypeKey typeID = typeKeys++;
-        CheshireType t = {typeID, 0};
+        CheshireType t;
+        t.typeKey = typeID;
+        t.arrayNesting = 0;
         lambdaTypes[l] = t;
         keyedLambdas[t] = l;
         return t;

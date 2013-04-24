@@ -159,7 +159,7 @@ input
 
 possible_objectname
     : TOK_IDENTIFIER  { $$ = $1 ; }
-    | typename  { $$ = getNamedTypeString( $1 ); printf("Named: %s\n", $$ ); }
+    | typename  { $$ = getNamedTypeString( $1 ); }
     ;
 
 class_list_or_pass

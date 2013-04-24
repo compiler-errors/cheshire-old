@@ -31,6 +31,7 @@ extern "C" {
 
     ClassShape* getClassShape(CheshireType);
     int getObjectElement(CheshireType, const char* elementName);
+    CheshireType getObjectSelfType(CheshireType object, const char* methodname);
 
 #ifdef	__cplusplus
 }

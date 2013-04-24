@@ -60,9 +60,12 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             setExpectedMethodType(TYPE_VOID);
             break;
         case PRT_CLASS_DEFINITION: {
+            Boolean constructor = FALSE;
+
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR: {
+                        constructor = TRUE;
                         raiseTypeScope(scope);
                         setExpectedMethodType(TYPE_VOID);
 
@@ -106,6 +109,20 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
                         setExpectedMethodType(TYPE_VOID);
                     }
                     break;
+                }
+            }
+
+            if (!constructor) {
+                CheshireType superctor = getClassVariable(node->classdef.parent, "new");
+
+                if (!equalTypes(TYPE_VOID, superctor)) {
+                    LambdaType superctorMethod = keyedLambdas[superctor];
+
+                    if (!(equalTypes(superctorMethod.first, TYPE_VOID) &&
+                            superctorMethod.second.size() == 1u &&
+                            equalTypes(superctorMethod.second[0], getNamedType(node->classdef.name)))) {
+                        PANIC("Invalid super-constructor for default method!");
+                    }
                 }
             }
         }
