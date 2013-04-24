@@ -60,9 +60,12 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
             setExpectedMethodType(TYPE_VOID);
             break;
         case PRT_CLASS_DEFINITION: {
+            Boolean constructor = FALSE;
+
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR: {
+                        constructor = TRUE;
                         raiseTypeScope(scope);
                         setExpectedMethodType(TYPE_VOID);
 
@@ -72,7 +75,7 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
                         CheshireType superctor = getClassVariable(node->classdef.parent, "new");
 
                         if (equalTypes(superctor, TYPE_VOID)) {
-                            ERROR_IF(c->constructor.params != NULL, "Expected empty parameter list for default super constructor.");
+                            ERROR_IF(c->constructor.inheritsParams != NULL, "Expected empty parameter list for default super constructor.");
                         } else {
                             LambdaType superctorMethod = keyedLambdas[superctor];
                             unsigned int index = 1; //one parameter provided implicitly: the "self" reference.
@@ -108,6 +111,20 @@ void typeCheckTopNode(CheshireScope* scope, ParserTopNode* node) {
                     break;
                 }
             }
+
+            if (!constructor) {
+                CheshireType superctor = getClassVariable(node->classdef.parent, "new");
+
+                if (!equalTypes(TYPE_VOID, superctor)) {
+                    LambdaType superctorMethod = keyedLambdas[superctor];
+
+                    if (!(equalTypes(superctorMethod.first, TYPE_VOID) &&
+                            superctorMethod.second.size() == 1u &&
+                            equalTypes(superctorMethod.second[0], getNamedType(node->classdef.name)))) {
+                        PANIC("Invalid super-constructor for default method!");
+                    }
+                }
+            }
         }
         break;
         case PRT_VARIABLE_DEFINITION:
@@ -138,7 +155,9 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
             for (ClassList* c = node->classdef.classlist; c != NULL; c = c->next) {
                 switch (c->type) {
                     case CLT_CONSTRUCTOR:
-                        c->constructor.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->constructor.params);
+                        c->constructor.params = linkParameterList(((CheshireType) {
+                            typekey, 0
+                        }), saveIdentifierReturn("self"), c->constructor.params);
 
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next)
                             ERROR_IF(c2->type == CLT_CONSTRUCTOR, "Class must have only one constructor!");
@@ -170,7 +189,9 @@ void defineTopNode(CheshireScope* scope, ParserTopNode* node) {
                         break;
                     }
                     case CLT_METHOD: {
-                        c->method.params = linkParameterList(((CheshireType) { typekey, 0 }), saveIdentifierReturn("self"), c->method.params);
+                        c->method.params = linkParameterList(((CheshireType) {
+                            typekey, 0
+                        }), saveIdentifierReturn("self"), c->method.params);
                         char* name = c->method.name;
 
                         for (ClassList* c2 = c->next; c2 != NULL; c2 = c2->next) {
@@ -321,7 +342,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
-            CheshireType ret = getVariableType(scope, node->string); //todo: rewrite variable
+            CheshireType ret = getVariableType(scope, node->string);
             return node->determinedType = ret;
         }
         case OP_STRING:
@@ -450,7 +471,7 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
         case S_VARIABLE_DEF: {
             CheshireType expectedType = node->varDefinition.type;
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
-            defineVariable(scope, node->varDefinition.variable, expectedType); //todo: add param: newRewrite(variable).
+            defineVariable(scope, node->varDefinition.variable, expectedType);
             STORE_EXPRESSION_INTO_LVAL(expectedType, givenType, node->varDefinition.value, "variable definition");
         }
         break;
@@ -458,8 +479,10 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             CheshireType givenType = typeCheckExpressionNode(scope, node->varDefinition.value);
             defineVariable(scope, node->varDefinition.variable, givenType);
             node->varDefinition.type = givenType; //"infer" the type of the variable.
+
             if (isNull(givenType))
                 PANIC("Cannot infer type of TYPE_NULL!");
+
             printf("Inferred ");
             printType(givenType);
             printf(" for expression: ");

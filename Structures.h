@@ -14,6 +14,15 @@ extern "C" {
 
 // -------------------------------------------- //
 
+    typedef int TypeKey;
+
+    typedef struct tagCheshireType {
+        TypeKey typeKey;
+        int arrayNesting;
+    } CheshireType;
+
+// -------------------------------------------- //
+
     typedef struct tagLLVMValue {
         LLVMValueType type;
         union {
@@ -24,17 +33,18 @@ extern "C" {
                 char* name;
                 int uid;
             } vardef;
+            struct {
+                char* classname;
+                char* methodname;
+            } classmethod;
         };
     } LLVMValue;
 
-// -------------------------------------------- //
-
-    typedef int TypeKey;
-
-    typedef struct tagCheshireType {
-        TypeKey typeKey;
-        int arrayNesting;
-    } CheshireType;
+    typedef struct tagClassShape {
+        struct tagClassShape* next;
+        CheshireType type;
+        const char* name;
+    } ClassShape;
 
 // -------------------------------------------- //
 
@@ -187,6 +197,7 @@ extern "C" {
     } BlockList;
 
 
+    void deleteClassShape(ClassShape*);
     void deleteExpressionNode(ExpressionNode*);
     void deleteExpressionList(ExpressionList*);
     void deleteStatementNode(StatementNode*);

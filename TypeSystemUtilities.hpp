@@ -163,21 +163,21 @@ public:
     }
 
     bool typeEql(const CheshireType& a, const CheshireType& b) const {
-        return (a.typeKey == b.typeKey);
+        return (a.typeKey == b.typeKey && a.arrayNesting == b.arrayNesting);
     }
 };
 
 class CheshireTypeHash {
 public:
     int operator()(const CheshireType& type) const {
-        return (type.arrayNesting << 3) ^(type.typeKey << 2) ^(type.arrayNesting);
+        return (type.arrayNesting << 2) ^(type.typeKey);
     }
 };
 
 class CheshireTypeEql {
 public:
     bool operator()(const CheshireType& a, const CheshireType& b) const {
-        return a.arrayNesting == b.arrayNesting;
+        return a.typeKey == b.typeKey && a.arrayNesting == b.arrayNesting;
     }
 };
 
