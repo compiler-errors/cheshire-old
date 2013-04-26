@@ -24,15 +24,13 @@ using std::floor;
             CheshireType widetype = getWidestNumericalType(ltype, rtype); \
             ERROR_IF(!equalTypes(widetype, ltype), "Cannot store widened number into ltype!") \
             WIDEN_NODE(widetype, rtype, node); \
+        } else if (equalTypes(TYPE_NULL, rtype) && (isObjectType(ltype) || isLambdaType(ltype) || ltype.arrayNesting > 0)) { \
+            WIDEN_NODE(ltype, rtype, node); \
         } else if (isObjectType(ltype) && isObjectType(rtype)) { \
-            if (equalTypes(TYPE_NULL, rtype)) { \
-                WIDEN_NODE(ltype, rtype, node); \
-            } else { \
-                if (!isSuper(ltype, rtype)) { \
-                    PANIC("Cannot store type into non-super-type!"); \
-                } \
-                WIDEN_NODE(ltype, rtype, node); \
+            if (!isSuper(ltype, rtype)) { \
+                PANIC("Cannot store type into non-super-type!"); \
             } \
+            WIDEN_NODE(ltype, rtype, node); \
         } else \
             PANIC("left and right types must be both numerical, object or the same exact type for %s", reason); \
     }
@@ -281,18 +279,17 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
             ERROR_IF(isVoid(left) || isVoid(right), "Cannot compare void type in operations >=, <=, >, <, !=, or ==");
 
-            if (!equalTypes(left, right)) {
-                if (isNumericalType(left) && isNumericalType(right)) {
-                    CheshireType widetype = getWidestNumericalType(left, right);
-                    WIDEN_NODE(widetype, left, node->binary.left);
-                    WIDEN_NODE(widetype, right, node->binary.right);
-                } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
-                    if (!equalTypes(left, TYPE_NULL) && !equalTypes(right, TYPE_NULL)) {
-                        ERROR_IF(!isSuper(left, right) && !isSuper(right, left), "Comparison must be in a super-subtype relationship.");
-                    }
-                } else
-                    PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
-            }
+            
+            if (isNumericalType(left) && isNumericalType(right)) {
+                CheshireType widetype = getWidestNumericalType(left, right);
+                WIDEN_NODE(widetype, left, node->binary.left);
+                WIDEN_NODE(widetype, right, node->binary.right);
+            } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
+                if (!equalTypes(left, TYPE_NULL) && !equalTypes(right, TYPE_NULL)) {
+                    ERROR_IF(!isSuper(left, right) && !isSuper(right, left), "Comparison must be in a super-subtype relationship.");
+                }
+            } else
+                PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
 
             return node->determinedType = TYPE_BOOLEAN;
         }
@@ -355,10 +352,10 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 return node->determinedType = cast;
             }
 
-            ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
-            ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
-            ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
-            ERROR_IF(cast.arrayNesting > 0, "Cannot cast arrays!");
+            //ERROR_IF(isNumericalType(cast) ^ isNumericalType(child), "Received a mix of numerical and non-numerical types in cast!");
+            //ERROR_IF(isObjectType(cast) ^ isObjectType(child), "Received a mix of object and non-object types in cast!");
+            //ERROR_IF(isLambdaType(cast) || isLambdaType(child), "Cannot operate on lambda types in cast!");
+            //ERROR_IF(cast.arrayNesting > 0, "Cannot cast arrays!");
             return node->determinedType = cast;
         }
         case OP_METHOD_CALL: {

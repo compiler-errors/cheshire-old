@@ -243,7 +243,13 @@ void emitCode(FILE* out, ParserTopNode* node) {
             PRINT("@%s = common global ", node->variable.name);
             emitType(out, node->variable.type);
             PRINT(" ");
-            emitValue(out, getIntegerLiteral(0));
+            if (isNumericalType(node->variable.type)) {
+                emitValue(out, isDecimal(node->variable.type) ? getDecimalLiteral(0) : getIntegerLiteral(0));
+            } else {
+                LLVMValue nullValue;
+                nullValue.type = LVT_NULL;
+                emitValue(out, nullValue);
+            }
             PRINT("\n\n");
             LLVMValue l = getGlobalStorage(node->variable.name);
             registerVariable(node->variable.name, l);
@@ -451,10 +457,15 @@ void emitCode(FILE* out, ParserTopNode* node) {
                         emitBlock(out, classnode->method.block);
                         fallVariableScope();
 
-                        if (!isVoid(classnode->method.returnType)) {
-                            UNARY("ret", classnode->method.returnType, isDecimal(classnode->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                        if (isVoid(classnode->method.returnType)) {
+                            PRINT("    ret void");
+                        } else if (!isVoid(classnode->method.returnType)) {
+                            UNARY("ret", classnode->method.returnType, isDecimal(classnode->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); 
+                            //implicit, fallthrough return in non-void function.
                         } else {
-                            PRINT("    ret void\n");
+                            LLVMValue nullValue;
+                            nullValue.type = LVT_NULL;
+                            UNARY("ret", classnode->method.returnType, nullValue);
                         }
 
                         PRINT("}\n\n");
@@ -1095,15 +1106,17 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_ARRAY_ACCESS: {
+            //todo: add len operator!
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            //todo: runtime array sanity check
             PRINT("    ");
             emitValue(out, l);
-            PRINT(" = getelementptr inbounds ");
+            PRINT(" = getelementptr ");
             emitType(out, node->binary.left->determinedType);
             PRINT(" ");
             emitValue(out, a);
-            PRINT(", i32 ");
+            PRINT(", i32 0, i32 1, i32 ");
             emitValue(out, b);
             PRINT("\n");
             return l;
@@ -1255,8 +1268,13 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 }
 
 void emitType(FILE* out, CheshireType type) { //object types have implicit *, remember. Object* not Object
-    int array = type.arrayNesting;
-    type.arrayNesting = 0;
+    if (type.arrayNesting > 0) {
+        type.arrayNesting--;
+        PRINT("{i32, [0 x ");
+        emitType(out, type); //emit with one less nesting.
+        PRINT("]}*");
+        return;
+    }
 
     if (isNull(type)) {
         PRINT("i8*");
@@ -1291,9 +1309,6 @@ void emitType(FILE* out, CheshireType type) { //object types have implicit *, re
         PRINT("void");
     } else
         PANIC("Unknown type!");
-
-    for (; array > 0; array--)
-        PRINT("*");
 }
 
 void emitValue(FILE* out, LLVMValue value) {
