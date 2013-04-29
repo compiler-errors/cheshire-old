@@ -59,9 +59,11 @@ typedef void* yyscan_t;
     struct tagStatementNode* statement;
     struct tagBlockList* block_list;
     struct tagClassList* class_list;
+    struct tagUsingList* using_list;
 }
 
 %token TOK_EOF
+%token TOK_USING
 %token TOK_FWDECL
 %token TOK_ASSERT
 %token TOK_GLOBAL
@@ -143,6 +145,8 @@ typedef void* yyscan_t;
 %type <class_list> class_list_contains
 %type <class_list> class_list_or_pass
 %type <cheshire_type> typename
+%type <using_list> using_list
+%type <using_list> using_list_contains
 
 %%
 
@@ -243,7 +247,8 @@ expression
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
     | typename TOK_LPAREN expression TOK_RPAREN  { $$ = createCastOperation( $3 , $1 ); }
     | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
-    | TOK_DEFINE typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $5 ); }
+    | TOK_DEFINE typename TOK_COLON parameter_list TOK_USING using_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $6, $7 ); }
+    | TOK_DEFINE typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , NULL , $5 ); }
     ;
 
 lval_expression
@@ -258,6 +263,15 @@ expression_statement
     | expression expression_list  { $$ = createMethodCall( $1 , $2 ); }
     | expression TOK_COLONCOLON TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
     ;
+
+using_list
+    : TOK_LPAREN using_list_contains TOK_RPAREN  { $$ = $2 ; }
+    | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
+    ;
+
+using_list_contains
+    : TOK_IDENTIFIER TOK_COMMA using_list_contains  { $$ = linkUsingList( $1 , $3 ); }
+    | TOK_IDENTIFIER  { $$ = linkUsingList( $1 , NULL ); }
 
 expression_list
     : TOK_LPAREN expression_list_contains TOK_RPAREN  { $$ = $2 ; }

@@ -180,7 +180,7 @@ ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
     return node;
 }
 
-ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, BlockList* body) {
+ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, UsingList* usingList, BlockList* body) {
     ExpressionNode* node = allocExpressionNode();
 
     if (node == NULL)
@@ -189,6 +189,7 @@ ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, Bloc
     node->type = OP_CLOSURE;
     node->closure.type = type;
     node->closure.params = params;
+    node->closure.usingList = usingList;
     node->closure.body = body;
     return node;
 }
@@ -271,6 +272,7 @@ void deleteExpressionNode(ExpressionNode* node) {
             deleteExpressionList(node->methodcall.params);
             break;
         case OP_CLOSURE:
+            deleteUsingList(node->closure.usingList);
             deleteParameterList(node->closure.params);
             deleteBlockList(node->closure.body);
             break;

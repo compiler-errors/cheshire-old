@@ -156,6 +156,7 @@ extern "C" {
 
             struct {
                 CheshireType type;
+                struct tagUsingList* usingList;
                 struct tagParameterList* params;
                 struct tagBlockList* body;
             } closure;
@@ -196,6 +197,11 @@ extern "C" {
         struct tagBlockList* next;
     } BlockList;
 
+    typedef struct tagUsingList {
+        char* variable;
+        struct tagUsingList* next;
+    } UsingList;
+
 
     void deleteClassShape(ClassShape*);
     void deleteExpressionNode(ExpressionNode*);
@@ -205,6 +211,7 @@ extern "C" {
     void deleteParserTopNode(ParserTopNode*);
     void deleteParameterList(ParameterList*);
     void deleteClassList(ClassList*);
+    void deleteUsingList(UsingList*);
 
 #ifdef    __cplusplus
 }

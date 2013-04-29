@@ -31,6 +31,7 @@ BACKSLASH   "\\"
 "#"[^\n"#"]*                  {} /*comment*/
 infer     return TOK_INFER;
 True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
+using     return TOK_USING;
 forward   return TOK_FWDECL;
 external  return TOK_EXTERNAL;
 pass      return TOK_PASS;
