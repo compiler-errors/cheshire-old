@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include "CodeEmitting.h"
 #include "TypeSystem.h"
 #include "ParserEnums.h"
@@ -166,7 +167,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
             registerVariable(node->method.functionName, exportedMethod);
             LLVMValue l = getMethodExport(node->method.functionName);
-            PRINT("@%s = external global ", node->method.functionName);
+            PRINT("@%s = external constant ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
@@ -177,7 +178,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
             registerVariable(node->method.functionName, exportedMethod);
             LLVMValue l = getMethodExport(node->method.functionName);
-            PRINT("@%s = weak global ", node->method.functionName);
+            PRINT("@%s = constant ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
@@ -1123,10 +1124,21 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_STRING: {
+            int offset = ftell(out);
+            fseek(out, 0, SEEK_SET);
+            int tempident = UNIQUE_IDENTIFIER;
+            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n", tempident, strlen(node->string) + 1, node->string);
+            fseek(out, offset, SEEK_SET); //restore old position.
+            LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, temp);
+            PRINT(" = i8* getelementptr inbounds ([%d x i8]* @.tempstring%d, i32 0, i32 0)\n", strlen(node->string) + 1, tempident);
+            //todo: construct object too.
+            return temp;
         }
         break;
         case OP_CLOSURE: {
-            //remember to raise var scope.
+            //todo: remember to raise var scope.
         }
         break;
         case OP_INSTANTIATION: {
@@ -1265,6 +1277,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
     }
 
     PANIC("Fatal error in code-emitting!");
+    //return getIntegerLiteral(1337);
 }
 
 void emitType(FILE* out, CheshireType type) { //object types have implicit *, remember. Object* not Object

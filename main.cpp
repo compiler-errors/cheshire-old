@@ -22,6 +22,17 @@ extern "C" {
 
 using namespace std;
 
+//todo: always write to temporary file, then write to the specified output stream...
+
+//todo: make "def pure TYPENAME METHODNAME(PARAMS) {}", it still defines a pointer 
+//and nonpointer, but it inlines to the nonpointer when possible, and doesn't allow overwriting the methodname.
+//which can be handled in OPT.
+
+//todo: think of a "lambda a, b, c... -> returnval" syntax
+
+//todo: make implicit lambda upcasts with nesting new lambda definitions
+
+//todo: make sure lambdas with 0 using()'s are converted to outer methods.
 
 /*
  *

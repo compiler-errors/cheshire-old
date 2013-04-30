@@ -396,15 +396,29 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = child;
         }
         case OP_CLOSURE: {
+            auto oldscope = scope->highestScope;
+            
+            for (; scope->highestScope->parentScope != NULL; scope->highestScope = scope->highestScope->parentScope);
+            
             CheshireType currentExpectedType = getExpectedMethodType();
             setExpectedMethodType(node->closure.type);
             raiseTypeScope(scope);
+            auto newscope = scope->highestScope;
+            
+            for (UsingList* u = node->closure.usingList; u != NULL; u = u->next) {
+                scope->highestScope = oldscope;
+                CheshireType vartype = getVariableType(scope, u->variable);
+                scope->highestScope = newscope;
+                defineVariable(scope, u->variable, vartype);
+                //todo: toggle the enreference boolean
+            }
 
             for (ParameterList* p = node->closure.params; p != NULL; p = p->next)
                 defineVariable(scope, p->name, p->type);
 
             typeCheckBlockList(scope, node->closure.body);
             fallTypeScope(scope);
+            scope->highestScope = oldscope; //restore old scoping.
             setExpectedMethodType(currentExpectedType);
             return node->determinedType = getLambdaType(node->closure.type, node->closure.params);
         }
