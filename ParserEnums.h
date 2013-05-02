@@ -81,6 +81,8 @@ extern "C" {
 
     typedef enum {
         LVT_GLOBAL_VARIABLE,
+        LVT_GLOBAL_METHOD,
+        LVT_CLOSURE_METHOD,
         LVT_LOCAL_VALUE,
         LVT_LOCAL_VARIABLE,
         LVT_PARAMETER_VARIABLE,

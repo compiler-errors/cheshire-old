@@ -246,9 +246,10 @@ expression
     | expression TOK_MULTDIV expression  { $$ = createBinOperation( $2 , $1 , $3 ); }
     | expression TOK_INSTANCEOF typename  { $$ = createInstanceOfNode( $1 , $3 ); }
     | typename TOK_LPAREN expression TOK_RPAREN  { $$ = createCastOperation( $3 , $1 ); }
+    | TOK_LPAREN typename TOK_RPAREN expression  { $$ = createCastOperation( $4 , $2 ); }
     | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
-    | TOK_DEFINE typename TOK_COLON parameter_list TOK_USING using_list block_or_pass  { $$ = createClosureNode( $2 , $4 , $6, $7 ); }
-    | TOK_DEFINE typename TOK_COLON parameter_list block_or_pass  { $$ = createClosureNode( $2 , $4 , NULL , $5 ); }
+    | TOK_DEFINE typename parameter_list TOK_USING using_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $5, $6 ); }
+    | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , NULL , $4 ); }
     ;
 
 lval_expression
@@ -285,7 +286,7 @@ expression_list_contains
 
 typename
     : TOK_TYPE  { $$ = $1 ; }
-    | typename TOK_COLON parameter_list  { $$ = getLambdaType( $1 , $3 ); deleteParameterList( $3 ); }
+    | typename parameter_list  { $$ = getLambdaType( $1 , $2 ); deleteParameterList( $2 ); }
     | typename TOK_LBRACKET TOK_RBRACKET  { $$ = $1; $$.arrayNesting++; }
     ;
 

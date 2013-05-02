@@ -22,13 +22,11 @@ extern "C" {
 
 using namespace std;
 
+//todo: have export stage (write all variables to global scope), then actual codeEmitting stage.
+
 //todo: always write to temporary file, then write to the specified output stream...
 
-//todo: make "def pure TYPENAME METHODNAME(PARAMS) {}", it still defines a pointer 
-//and nonpointer, but it inlines to the nonpointer when possible, and doesn't allow overwriting the methodname.
-//which can be handled in OPT.
-
-//todo: think of a "lambda a, b, c... -> returnval" syntax
+//todo: think of a "parameter_list -> expression" syntax, ex ((Int a, Int b) -> a + b)(1, 2) would result in 3.
 
 //todo: make implicit lambda upcasts with nesting new lambda definitions
 
@@ -83,8 +81,13 @@ int main(int argc, char** argv) {
     initCodeEmitting();
 
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
+        forwardDefinition(*i);
+    }
+    
+    for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         emitCode(stdout, *i);
     }
+    
 
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         deleteParserTopNode(*i);

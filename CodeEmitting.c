@@ -84,9 +84,23 @@ static inline LLVMValue getTemporaryStorage(int identifier) {
     return l;
 }
 
+static inline LLVMValue getClosureMethod(int identifier) {
+    LLVMValue l;
+    l.type = LVT_CLOSURE_METHOD;
+    l.value = identifier;
+    return l;
+}
+
 static inline LLVMValue getGlobalStorage(char* name) {
     LLVMValue l;
     l.type = LVT_GLOBAL_VARIABLE;
+    l.name = name;
+    return l;
+}
+
+static inline LLVMValue getGlobalMethodStorage(char* name) {
+    LLVMValue l;
+    l.type = LVT_GLOBAL_METHOD;
     l.name = name;
     return l;
 }
@@ -159,15 +173,30 @@ static inline LLVMValue getMethodExport(char* name) {
     return l;
 }
 
+void forwardDefinition(ParserTopNode* node) {
+    switch (node->type) {
+        case PRT_METHOD_DECLARATION:
+        case PRT_METHOD_DEFINITION: {
+            LLVMValue exportedMethod = getGlobalMethodStorage(node->method.functionName); //register before definition so it is usable.
+            registerVariable(node->method.functionName, exportedMethod);
+        } break;
+        case PRT_VARIABLE_DEFINITION:
+        case PRT_VARIABLE_DECLARATION: {
+            LLVMValue l = getGlobalStorage(node->variable.name);
+            registerVariable(node->variable.name, l);
+        } break;
+        default:
+            break;
+    }
+}
+
 void emitCode(FILE* out, ParserTopNode* node) {
     switch (node->type) {
         case PRT_NONE:
             break;
         case PRT_METHOD_DECLARATION: {
-            LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
-            registerVariable(node->method.functionName, exportedMethod);
             LLVMValue l = getMethodExport(node->method.functionName);
-            PRINT("@%s = external constant ", node->method.functionName);
+            PRINT("@_M_%s = external constant ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
@@ -175,17 +204,15 @@ void emitCode(FILE* out, ParserTopNode* node) {
             break;
         }
         case PRT_METHOD_DEFINITION: {
-            LLVMValue exportedMethod = getGlobalStorage(node->method.functionName); //register before definition so it is usable.
-            registerVariable(node->method.functionName, exportedMethod);
             LLVMValue l = getMethodExport(node->method.functionName);
-            PRINT("@%s = constant ", node->method.functionName);
+            PRINT("@_M_%s = constant ", node->method.functionName);
             emitType(out, getLambdaType(node->method.returnType, node->method.params));
             PRINT(" ");
             emitValue(out, l);
             PRINT("\n\n");
-            PRINT("define ");
+            PRINT("define fastcc ");
             emitType(out, node->method.returnType);
-            PRINT(" @_Method_%s(", node->method.functionName);
+            PRINT(" @_MethodImpl_%s(", node->method.functionName);
             ParameterList* p;
 
             for (p = node->method.params; p != NULL; p = p->next) {
@@ -237,7 +264,6 @@ void emitCode(FILE* out, ParserTopNode* node) {
             PRINT("@%s = external global ", node->variable.name);
             emitType(out, node->variable.type);
             PRINT("\n\n");
-            LLVMValue l = getGlobalStorage(node->variable.name);
             break;
         }
         case PRT_VARIABLE_DEFINITION: {
@@ -252,8 +278,6 @@ void emitCode(FILE* out, ParserTopNode* node) {
                 emitValue(out, nullValue);
             }
             PRINT("\n\n");
-            LLVMValue l = getGlobalStorage(node->variable.name);
-            registerVariable(node->variable.name, l);
             break;
         }
         case PRT_CLASS_DEFINITION: {
@@ -276,7 +300,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                 switch (classnode->type) {
                     case CLT_CONSTRUCTOR: {
                         constructor = TRUE;
-                        PRINT("define void @_New_%s(", node->classdef.name);
+                        PRINT("define fastcc void @_New_%s(", node->classdef.name);
                         ParameterList* p;
 
                         for (p = classnode->constructor.params; p != NULL; p = p->next) {
@@ -338,7 +362,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                         }
 
                         char* superName = getNamedTypeString(node->classdef.parent);
-                        PRINT("    call void @_New_%s(", superName);
+                        PRINT("    call fastcc void @_New_%s(", superName);
                         free(superName);
 
                         for (i = 0; i < paramLength; i++) {
@@ -417,7 +441,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                     }
                     break;
                     case CLT_METHOD: {
-                        PRINT("define ");
+                        PRINT("define fastcc ");
                         emitType(out, classnode->method.returnType);
                         PRINT(" @_ClassMethod_%s_%s(", node->classdef.name, classnode->method.name);
                         ParameterList* p;
@@ -478,7 +502,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             }
 
             if (!constructor) {
-                PRINT("define void @_New_%s(%%Class_%s* %%_Param_self) {\n", node->classdef.name, node->classdef.name);
+                PRINT("define fastcc void @_New_%s(%%Class_%s* %%_Param_self) {\n", node->classdef.name, node->classdef.name);
                 raiseVariableScope();
                 LLVMValue l = getParameterStorage("self");
                 PRINT("    ");
@@ -510,7 +534,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                 LLVMValue superValue;
                 CheshireType superType;
                 emitNonTypecheckedUpcast(out, &superValue, &superType, deallocatedSelf, getNamedType(node->classdef.name), node->classdef.parent);
-                PRINT("    call void @_New_%s(", superName);
+                PRINT("    call fastcc void @_New_%s(", superName);
                 emitType(out, superType);
                 PRINT(" ");
                 emitValue(out, superValue);
@@ -573,7 +597,6 @@ void emitCode(FILE* out, ParserTopNode* node) {
                     }
                 }
 
-                //emitBlock(out, classnode->constructor.block);
                 fallVariableScope();
                 PRINT("    ret void\n");
                 PRINT("}\n\n");
@@ -581,6 +604,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
         }
         break;
     }
+    flushPreambles(out);
 }
 
 void emitBlock(FILE* out, BlockList* node) {
@@ -624,7 +648,7 @@ void emitStatement(FILE* out, StatementNode* statement) {
         }
         break;
         case S_ASSERT: {
-            //todo: assert. call __assert(bool) function?
+            //todo: assert. call fastcc __assert(bool) function?
         } break;
         case S_BLOCK: {
             emitBlock(out, statement->block);
@@ -977,7 +1001,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_INSTANCEOF: {
-            //todo: call GC function to find allocated type
+            //todo: call fastcc GC function to find allocated type
         }
         break;
         case OP_VARIABLE: {
@@ -1071,7 +1095,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT(" = ");
             }
 
-            PRINT("call ");
+            PRINT("call fastcc ");
             emitType(out, node->determinedType);
             PRINT(" ");
             emitValue(out, fnptr);
@@ -1124,11 +1148,12 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_STRING: {
-            int offset = ftell(out);
-            fseek(out, 0, SEEK_SET);
+            FILE* oldout = out;
+            out = newPreamble();
             int tempident = UNIQUE_IDENTIFIER;
             PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n", tempident, strlen(node->string) + 1, node->string);
-            fseek(out, offset, SEEK_SET); //restore old position.
+            attachPreamble(out);
+            out = oldout;
             LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, temp);
@@ -1138,7 +1163,62 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_CLOSURE: {
-            //todo: remember to raise var scope.
+            int closure_id = UNIQUE_IDENTIFIER;
+            if (node->closure.usingList == NULL) { //basically just a function...
+                FILE* oldout = out;
+                out = newPreamble();
+                PRINT("define fastcc ");
+                emitType(out, node->closure.type);
+                PRINT(" @_Closure_%d(", closure_id);
+                ParameterList* p;
+
+                for (p = node->closure.params; p != NULL; p = p->next) {
+                    emitType(out, p->type);
+                    PRINT(" ");
+                    LLVMValue paramValue = getParameterStorage(p->name);
+                    emitValue(out, paramValue);
+
+                    if (p->next != NULL)
+                        PRINT(", ");
+                }
+                PRINT(") {\n");
+                raiseVariableScope();
+
+                for (p = node->closure.params; p != NULL; p = p->next) {
+                    LLVMValue l = getParameterStorage(p->name);
+                    PRINT("    ");
+                    LLVMValue variable = getLocalVariableStorage(p->name);
+                    emitValue(out, variable);
+                    PRINT(" = alloca ");
+                    emitType(out, p->type);
+                    PRINT("\n");
+                    PRINT("    store ");
+                    emitType(out, p->type);
+                    PRINT(" ");
+                    emitValue(out, l);
+                    PRINT(", ");
+                    emitType(out, p->type);
+                    PRINT("* ");
+                    emitValue(out, variable);
+                    PRINT("\n");
+                    registerVariable(p->name, variable);
+                }
+
+                emitBlock(out, node->closure.body);
+                fallVariableScope();
+                
+                if (!isVoid(node->closure.type)) {
+                    UNARY("ret", node->closure.type, isDecimal(node->closure.type) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                } else {
+                    PRINT("    ret void\n");
+                }
+                PRINT("}\n");
+                attachPreamble(out);
+                out = oldout;
+                
+                return getClosureMethod(closure_id);
+            } else {
+            }
         }
         break;
         case OP_INSTANTIATION: {
@@ -1147,7 +1227,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             LLVMValue casted = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, mallocated);
-            PRINT(" = call i8* @malloc(i32 ");
+            PRINT(" = call fastcc i8* @malloc(i32 ");
             emitValue(out, size);
             PRINT(")\n");
             PRINT("    ");
@@ -1175,7 +1255,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             }
 
             char* name = getNamedTypeString(node->instantiate.type);
-            PRINT("    call void @_New_%s(", name);
+            PRINT("    call fastcc void @_New_%s(", name);
             free(name);
 
             for (i = 0; i < paramLength; i++) {
@@ -1239,7 +1319,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT(" = ");
             }
 
-            PRINT("call ");
+            PRINT("call fastcc ");
             emitType(out, node->determinedType);
             PRINT(" ");
             emitValue(out, fnptr);
@@ -1277,7 +1357,6 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
     }
 
     PANIC("Fatal error in code-emitting!");
-    //return getIntegerLiteral(1337);
 }
 
 void emitType(FILE* out, CheshireType type) { //object types have implicit *, remember. Object* not Object
@@ -1329,6 +1408,12 @@ void emitValue(FILE* out, LLVMValue value) {
         case LVT_GLOBAL_VARIABLE:
             PRINT("@%s", value.name);
             break;
+        case LVT_GLOBAL_METHOD:
+            PRINT("@_M_%s", value.name);
+            break;
+        case LVT_CLOSURE_METHOD:
+            PRINT("@_Closure_%lld", value.value);
+            break;
         case LVT_LOCAL_VARIABLE:
             PRINT("%%%s%d", value.vardef.name, value.vardef.uid);
             break;
@@ -1348,7 +1433,7 @@ void emitValue(FILE* out, LLVMValue value) {
             PRINT("void");
             break;
         case LVT_JUMPPOINT:
-            PRINT("%%_Branch%lld", value.value);
+            PRINT("%%_Branch_%lld", value.value);
             break;
         case LVT_METHOD_EXPORT:
             PRINT("@_Method_%s", value.name);

@@ -14,6 +14,7 @@
 extern "C" {
 #endif
 
+    void forwardDefinition(ParserTopNode*);
     void emitCode(FILE*, ParserTopNode*);
     void emitBlock(FILE*, BlockList*);
     void emitStatement(FILE*, StatementNode*);
@@ -32,6 +33,11 @@ extern "C" {
     ClassShape* getClassShape(CheshireType);
     int getObjectElement(CheshireType, const char* elementName);
     CheshireType getObjectSelfType(CheshireType object, const char* methodname);
+    
+    FILE* newPreamble(void);
+    void attachPreamble(FILE*);
+    void flushPreambles(FILE* out);
+    
 
 #ifdef	__cplusplus
 }
