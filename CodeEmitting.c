@@ -1218,6 +1218,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 
                 return getClosureMethod(closure_id);
             } else {
+                //remember to raise var scope.
             }
         }
         break;
