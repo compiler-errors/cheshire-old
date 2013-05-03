@@ -282,7 +282,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
         }
         case PRT_CLASS_DEFINITION: {
             ClassShape* c = getClassShape(getNamedType(node->classdef.name));
-            PRINT("%%Class_%s = type {", node->classdef.name);
+            PRINT("%%_Class_%s = type {", node->classdef.name);
             ClassShape* shapeNode;
 
             for (shapeNode = c; shapeNode != NULL; shapeNode = shapeNode->next) {
@@ -502,7 +502,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             }
 
             if (!constructor) {
-                PRINT("define fastcc void @_New_%s(%%Class_%s* %%_Param_self) {\n", node->classdef.name, node->classdef.name);
+                PRINT("define fastcc void @_New_%s(%%_Class_%s* %%_Param_self) {\n", node->classdef.name, node->classdef.name);
                 raiseVariableScope();
                 LLVMValue l = getParameterStorage("self");
                 PRINT("    ");
@@ -648,7 +648,10 @@ void emitStatement(FILE* out, StatementNode* statement) {
         }
         break;
         case S_ASSERT: {
-            //todo: assert. call fastcc __assert(bool) function?
+            LLVMValue assertion = emitExpression(out, statement->expression);
+            PRINT("    call fastcc void _Assert(");
+            emitValue(out, assertion);
+            PRINT(")\n");
         } break;
         case S_BLOCK: {
             emitBlock(out, statement->block);
@@ -1151,15 +1154,25 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             FILE* oldout = out;
             out = newPreamble();
             int tempident = UNIQUE_IDENTIFIER;
-            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n", tempident, strlen(node->string) + 1, node->string);
-            attachPreamble(out);
+            int stringlength = strlen(node->string) + 1;
+            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n", tempident, stringlength, node->string);
             out = oldout;
-            LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER), temp2 = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, temp);
-            PRINT(" = i8* getelementptr inbounds ([%d x i8]* @.tempstring%d, i32 0, i32 0)\n", strlen(node->string) + 1, tempident);
-            //todo: construct object too.
-            return temp;
+            PRINT(" = getelementptr inbounds [%d x i8]* @.tempstring%d, i32 0, i32 0\n", stringlength, tempident);
+            PRINT("    ");
+            emitValue(out, temp2);
+            PRINT(" = bitcast i8* ");
+            emitValue(out, temp);
+            PRINT(" to [0 x i8]*\n");
+            LLVMValue constructed = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, constructed);
+            PRINT(" = call %%_Class_String* @_New_String([0 x i8]* ");
+            emitValue(out, temp2);
+            PRINT(", i32 %d)\n", stringlength);
+            return constructed;
         }
         break;
         case OP_CLOSURE: {
@@ -1213,7 +1226,6 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT("    ret void\n");
                 }
                 PRINT("}\n");
-                attachPreamble(out);
                 out = oldout;
                 
                 return getClosureMethod(closure_id);
@@ -1373,7 +1385,7 @@ void emitType(FILE* out, CheshireType type) { //object types have implicit *, re
         PRINT("i8*");
     } else if (isObjectType(type)) {
         char* name = getNamedTypeString(type);
-        PRINT("%%Class_%s*", name);
+        PRINT("%%_Class_%s*", name);
         free(name);
     } else if (isNumericalType(type) || isBoolean(type)) {
         switch (type.typeKey) {

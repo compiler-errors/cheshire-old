@@ -75,8 +75,7 @@ typedef void* yyscan_t;
 %token TOK_FOR
 %token TOK_RETURN
 %token TOK_WHILE
-%token TOK_LPAREN
-%token TOK_RPAREN
+%token TOK_LPAREN%token TOK_RPAREN
 %token TOK_LBRACE
 %token TOK_RBRACE
 %token TOK_LBRACKET
@@ -204,6 +203,8 @@ statement
     : expression_statement TOK_LN  { $$ = createExpressionStatement( $1 ); }
     | TOK_ASSERT expression TOK_LN  { $$ = createAssertionStatement( $2 ); }
     | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
+    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list TOK_USING using_list block_or_pass { $$ = createInferDefinition( $3 , createClosureNode( $2 , $4 , $6, $7 ) ); }
+    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass { $$ = createInferDefinition( $3 , createClosureNode( $2 , $4 , NULL , $5 ) ); }
     | TOK_INFER TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createInferDefinition( $2 , $4 ); }
     | block  { $$ = createBlockStatement( $1 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }

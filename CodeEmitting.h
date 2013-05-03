@@ -35,7 +35,6 @@ extern "C" {
     CheshireType getObjectSelfType(CheshireType object, const char* methodname);
     
     FILE* newPreamble(void);
-    void attachPreamble(FILE*);
     void flushPreambles(FILE* out);
     
 

@@ -7,6 +7,7 @@
 typedef std::unordered_map<char*, LLVMValue, CStrHash, CStrEql> TypeScope;
 typedef std::unordered_map<CheshireType, ClassShape*, CheshireTypeHash, CheshireTypeEql> ClassShapes;
 static std::list<TypeScope> scope;
+static std::list<FILE*> preambleList;
 
 ClassShapes classShapes;
 extern ObjectMapping objectMapping;
@@ -177,3 +178,24 @@ void deleteClassShape(ClassShape* node) {
     deleteClassShape(node->next);
     free(node);
 }
+
+FILE* newPreamble(void) {
+    FILE* preamble = tmpfile();
+    preambleList.push_front(preamble);
+    return preamble;
+}
+
+void flushPreambles(FILE* out) {
+    for (auto i = preambleList.begin(); i != preambleList.end(); ++i) {
+        FILE* file = *i;
+        fseek(file, 0, SEEK_SET);
+        char c;
+        while ((c = fgetc(file)) != EOF) {
+            //char c = fgetc(file);
+            fprintf(out, "%c", c);
+        }
+        fclose(file);
+    }
+    preambleList.clear();
+}
+
