@@ -1283,6 +1283,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 for (u = node->closure.usingList; u != NULL; u = u->next, id++) {
                     LLVMValue variable = getLocalVariableStorage(u->variable);
                     LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                    LLVMValue unpacked = getTemporaryStorage(UNIQUE_IDENTIFIER);
                     PRINT("    ");
                     emitValue(out, variable);
                     PRINT(" = alloca ");
@@ -1291,10 +1292,17 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT("    ");
                     emitValue(out, l);
                     PRINT(" = getelementptr %%_ClosureNest_%d* %%_Unpacked, i32 0, i32 %d\n", nesttype, id);
-                    PRINT("    store ");
+                    PRINT("    ");
+                    emitValue(out, unpacked);
+                    PRINT(" = load ");
                     emitType(out, u->type);
                     PRINT(" ");
                     emitValue(out, l);
+                    PRINT("\n");
+                    PRINT("    store ");
+                    emitType(out, u->type);
+                    PRINT(" ");
+                    emitValue(out, unpacked);
                     PRINT(", ");
                     emitType(out, u->type);
                     PRINT("* ");
@@ -1335,8 +1343,76 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT("}\n\n");
                 out = oldout;
                 fallVariableScope();
-                //todo: generate llvm method here.
-                return getDecimalLiteral(1337);
+
+                LLVMValue storage = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                LLVMValue functioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                LLVMValue outfunction = getTemporaryStorage(UNIQUE_IDENTIFIER);
+
+                PRINT("    ");
+                emitValue(out, storage);
+                PRINT(" = call fastcc i8* @malloc(i32 10)\n"); //todo: determine sizes...
+                PRINT("    ");
+                emitValue(out, functioncast);
+                PRINT(" = bitcast ");
+                emitType(out, node->closure.type);
+                PRINT("(%%_ClosureNest_%d", nesttype);
+
+                if (node->closure.params != NULL) {
+                    PRINT(", "); //put extra comma for %_Packed
+
+                    for (p = node->closure.params; p != NULL; p = p->next) {
+                        emitType(out, p->type);
+                        if (p->next != NULL)
+                            PRINT(", ");
+                    }
+                }
+
+                PRINT(")* @_ClosureBody_%d to i8*", bodyid);
+                PRINT("    ");
+                LLVMValue sizeptr = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                LLVMValue size = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, sizeptr);
+                PRINT(" = getelementptr %%_ClosureNest_%d null, i32 1\n", nesttype);
+                PRINT("    ");
+                emitValue(out, size);
+                PRINT(" = ptrtoint %%_ClosureNest_%d ", nesttype);
+                emitValue(out, sizeptr);
+                PRINT(" to i32\n");
+                LLVMValue nest = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, nest);
+                PRINT(" = call fastcc i8* malloc(");
+                emitValue(out, size);
+                PRINT(")\n");
+                LLVMValue nestcast = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                emitValue(out, nestcast);
+                PRINT(" = bitcast i8* to %%_ClosureNest_%d*\n", nesttype);
+
+                id = 0;
+                for (u = node->closure.usingList; u != NULL; u = u->next) {
+                    LLVMValue element = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                    PRINT("    ");
+                    emitValue(out, element);
+                    PRINT(" = getelementptr %%_ClosureNest_%d ", nesttype);
+                    emitValue(out, nestcast);
+                    PRINT(", i32 0, i32 %d\n", id);
+                    //store gotten value into element
+                }
+
+                PRINT("    call i8* llvm.trampoline.init(i8* ");
+                emitValue(out, storage);
+                PRINT(", i8* ");
+                emitValue(out, functioncast);
+                PRINT(", i8* ");
+                emitValue(out, nest);
+                PRINT(")\n");
+                PRINT("    ");
+                emitValue(out, outfunction);
+                PRINT(" = call i8* llvm.adjust.trampoline(i8* ");
+                emitValue(out, storage);
+                PRINT(")\n");
+                return outfunction;
             }
         }
         break;
