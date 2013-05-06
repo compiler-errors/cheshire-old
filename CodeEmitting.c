@@ -179,12 +179,14 @@ void forwardDefinition(ParserTopNode* node) {
         case PRT_METHOD_DEFINITION: {
             LLVMValue exportedMethod = getGlobalMethodStorage(node->method.functionName); //register before definition so it is usable.
             registerVariable(node->method.functionName, exportedMethod);
-        } break;
+        }
+        break;
         case PRT_VARIABLE_DEFINITION:
         case PRT_VARIABLE_DECLARATION: {
             LLVMValue l = getGlobalStorage(node->variable.name);
             registerVariable(node->variable.name, l);
-        } break;
+        }
+        break;
         default:
             break;
     }
@@ -270,6 +272,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             PRINT("@%s = common global ", node->variable.name);
             emitType(out, node->variable.type);
             PRINT(" ");
+
             if (isNumericalType(node->variable.type)) {
                 emitValue(out, isDecimal(node->variable.type) ? getDecimalLiteral(0) : getIntegerLiteral(0));
             } else {
@@ -277,6 +280,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                 nullValue.type = LVT_NULL;
                 emitValue(out, nullValue);
             }
+
             PRINT("\n\n");
             break;
         }
@@ -485,7 +489,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
                         if (isVoid(classnode->method.returnType)) {
                             PRINT("    ret void");
                         } else if (!isVoid(classnode->method.returnType)) {
-                            UNARY("ret", classnode->method.returnType, isDecimal(classnode->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); 
+                            UNARY("ret", classnode->method.returnType, isDecimal(classnode->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0));
                             //implicit, fallthrough return in non-void function.
                         } else {
                             LLVMValue nullValue;
@@ -604,6 +608,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
         }
         break;
     }
+
     flushPreambles(out);
 }
 
@@ -652,7 +657,8 @@ void emitStatement(FILE* out, StatementNode* statement) {
             PRINT("    call fastcc void _Assert(");
             emitValue(out, assertion);
             PRINT(")\n");
-        } break;
+        }
+        break;
         case S_BLOCK: {
             emitBlock(out, statement->block);
         }
@@ -1155,7 +1161,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             out = newPreamble();
             int tempident = UNIQUE_IDENTIFIER;
             int stringlength = strlen(node->string) + 1;
-            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n", tempident, stringlength, node->string);
+            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n\n", tempident, stringlength, node->string);
             out = oldout;
             LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER), temp2 = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
@@ -1165,11 +1171,11 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             emitValue(out, temp2);
             PRINT(" = bitcast i8* ");
             emitValue(out, temp);
-            PRINT(" to [0 x i8]*\n");
+            PRINT(" to [0 x i8]\n");
             LLVMValue constructed = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, constructed);
-            PRINT(" = call %%_Class_String* @_New_String([0 x i8]* ");
+            PRINT(" = call %%_Class_String* @_New_String([0 x i8] ");
             emitValue(out, temp2);
             PRINT(", i32 %d)\n", stringlength);
             return constructed;
@@ -1177,6 +1183,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         break;
         case OP_CLOSURE: {
             int closure_id = UNIQUE_IDENTIFIER;
+
             if (node->closure.usingList == NULL) { //basically just a function...
                 FILE* oldout = out;
                 out = newPreamble();
@@ -1194,6 +1201,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     if (p->next != NULL)
                         PRINT(", ");
                 }
+
                 PRINT(") {\n");
                 raiseVariableScope();
 
@@ -1219,18 +1227,116 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 
                 emitBlock(out, node->closure.body);
                 fallVariableScope();
-                
+
                 if (!isVoid(node->closure.type)) {
                     UNARY("ret", node->closure.type, isDecimal(node->closure.type) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
                 } else {
                     PRINT("    ret void\n");
                 }
+
                 PRINT("}\n");
                 out = oldout;
-                
                 return getClosureMethod(closure_id);
             } else {
-                //remember to raise var scope.
+                raiseVariableScope();
+                FILE* oldout = out;
+                out = newPreamble();
+                int nesttype = UNIQUE_IDENTIFIER;
+                int bodyid = UNIQUE_IDENTIFIER;
+                PRINT("%%_ClosureNest_%d = type {", nesttype);
+                UsingList* using;
+
+                for (using = node->closure.usingList; using != NULL; using = using->next) {
+                    emitType(out, using->type);
+
+                    if (using->next != NULL)
+                        PRINT(", ");
+                }
+
+                PRINT("}\n\n");
+                PRINT("define fastcc ");
+                emitType(out, node->closure.type);
+                PRINT(" @_ClosureBody_%d(%%_ClosureNest_%d nest %%_Packed", bodyid, nesttype);
+                ParameterList* p;
+                UsingList* u;
+
+                if (node->closure.params != NULL) {
+                    PRINT(", "); //put extra comma for %_Packed
+
+                    for (p = node->closure.params; p != NULL; p = p->next) {
+                        emitType(out, p->type);
+                        PRINT(" ");
+                        LLVMValue paramValue = getParameterStorage(p->name);
+                        emitValue(out, paramValue);
+
+                        if (p->next != NULL)
+                            PRINT(", ");
+                    }
+                }
+
+                PRINT(") {\n");
+                raiseVariableScope();
+                PRINT("    %%_Unpacked = alloca %%_ClosureNest_%d\n", nesttype);
+                PRINT("    store %%_ClosureNest_%d %%_Packed, %%_ClosureNest_%d* %%_Unpacked\n", nesttype, nesttype);
+                int id = 0;
+
+                for (u = node->closure.usingList; u != NULL; u = u->next, id++) {
+                    LLVMValue variable = getLocalVariableStorage(u->variable);
+                    LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                    PRINT("    ");
+                    emitValue(out, variable);
+                    PRINT(" = alloca ");
+                    emitType(out, u->type);
+                    PRINT("\n");
+                    PRINT("    ");
+                    emitValue(out, l);
+                    PRINT(" = getelementptr %%_ClosureNest_%d* %%_Unpacked, i32 0, i32 %d\n", nesttype, id);
+                    PRINT("    store ");
+                    emitType(out, u->type);
+                    PRINT(" ");
+                    emitValue(out, l);
+                    PRINT(", ");
+                    emitType(out, u->type);
+                    PRINT("* ");
+                    emitValue(out, variable);
+                    PRINT("\n");
+                    registerVariable(u->variable, variable);
+                }
+
+                for (p = node->closure.params; p != NULL; p = p->next) {
+                    LLVMValue variable = getLocalVariableStorage(p->name);
+                    LLVMValue l = getParameterStorage(p->name);
+                    PRINT("    ");
+                    emitValue(out, variable);
+                    PRINT(" = alloca ");
+                    emitType(out, p->type);
+                    PRINT("\n");
+                    PRINT("    store ");
+                    emitType(out, p->type);
+                    PRINT(" ");
+                    emitValue(out, l);
+                    PRINT(", ");
+                    emitType(out, p->type);
+                    PRINT("* ");
+                    emitValue(out, variable);
+                    PRINT("\n");
+                    registerVariable(p->name, variable);
+                }
+
+                emitBlock(out, node->closure.body);
+                fallVariableScope();
+
+                if (!isVoid(node->closure.type)) {
+                    UNARY("ret", node->closure.type, isDecimal(node->closure.type) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                } else {
+                    PRINT("    ret void\n");
+                }
+
+                PRINT("}\n\n");
+                out = oldout;
+                fallVariableScope();
+                //todo: generate llvm method here.
+                return getDecimalLiteral(1337);
             }
         }
         break;
@@ -1382,36 +1488,36 @@ void emitType(FILE* out, CheshireType type) { //object types have implicit *, re
     }
 
     if (isNull(type)) {
-        PRINT("i8*");
+        PRINT("i8*"); //nulltype eventually gets casted...
     } else if (isObjectType(type)) {
         char* name = getNamedTypeString(type);
-        PRINT("%%_Class_%s*", name);
+        PRINT("%%_Class_%s*", name); //classname
         free(name);
     } else if (isNumericalType(type) || isBoolean(type)) {
         switch (type.typeKey) {
-            case 1:
+            case 1: //I8
                 PRINT("i8");
                 break;
-            case 2:
+            case 2: //I16
                 PRINT("i16");
                 break;
-            case 3:
+            case 3: //Int
                 PRINT("i32");
                 break;
-            case 4:
+            case 4: //I64
                 PRINT("i64");
                 break;
-            case 5:
+            case 5: //Decimal
                 PRINT("double");
                 break;
-            case 6:
+            case 6: //Boolean
                 PRINT("i1");
                 break;
         }
     } else if (isLambdaType(type)) {
-        emitLambdaType(out, type);
+        emitLambdaType(out, type); //emits the lambda type with special methods, b/c I use a LambdaType object. (not for C!)
     } else if (isVoid(type)) {
-        PRINT("void");
+        PRINT("void"); //void type
     } else
         PANIC("Unknown type!");
 }

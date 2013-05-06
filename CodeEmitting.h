@@ -33,10 +33,10 @@ extern "C" {
     ClassShape* getClassShape(CheshireType);
     int getObjectElement(CheshireType, const char* elementName);
     CheshireType getObjectSelfType(CheshireType object, const char* methodname);
-    
+
     FILE* newPreamble(void);
     void flushPreambles(FILE* out);
-    
+
 
 #ifdef	__cplusplus
 }

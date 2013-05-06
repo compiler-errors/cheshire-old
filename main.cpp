@@ -22,15 +22,9 @@ extern "C" {
 
 using namespace std;
 
-//todo: have export stage (write all variables to global scope), then actual codeEmitting stage.
-
-//todo: always write to temporary file, then write to the specified output stream...
-
 //todo: think of a "parameter_list -> expression" syntax, ex ((Int a, Int b) -> a + b)(1, 2) would result in 3.
 
 //todo: make implicit lambda upcasts with nesting new lambda definitions
-
-//todo: make sure lambdas with 0 using()'s are converted to outer methods.
 
 /*
  *
@@ -83,11 +77,10 @@ int main(int argc, char** argv) {
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         forwardDefinition(*i);
     }
-    
+
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         emitCode(stdout, *i);
     }
-    
 
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         deleteParserTopNode(*i);

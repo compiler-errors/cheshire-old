@@ -158,7 +158,7 @@ int getObjectElement(CheshireType type, const char* elementName) {
 CheshireType getObjectSelfType(CheshireType object, const char* methodname) {
     ClassShape* classShape = getClassShape(object);
     CStrEql streql;
-    
+
     for (ClassShape* c = classShape; c != NULL; c = c->next) {
         if (streql(methodname, c->name)) {
             ERROR_IF(!isLambdaType(c->type), "Invalid lambda type!");
@@ -167,7 +167,7 @@ CheshireType getObjectSelfType(CheshireType object, const char* methodname) {
             return l.second[0];
         }
     }
-    
+
     PANIC("No such self type!");
 }
 
@@ -190,12 +190,15 @@ void flushPreambles(FILE* out) {
         FILE* file = *i;
         fseek(file, 0, SEEK_SET);
         char c;
+
         while ((c = fgetc(file)) != EOF) {
             //char c = fgetc(file);
             fprintf(out, "%c", c);
         }
+
         fclose(file);
     }
+
     preambleList.clear();
 }
 

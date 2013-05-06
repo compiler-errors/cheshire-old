@@ -279,7 +279,6 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
             ERROR_IF(isVoid(left) || isVoid(right), "Cannot compare void type in operations >=, <=, >, <, !=, or ==");
 
-            
             if (isNumericalType(left) && isNumericalType(right)) {
                 CheshireType widetype = getWidestNumericalType(left, right);
                 WIDEN_NODE(widetype, left, node->binary.left);
@@ -397,20 +396,20 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         }
         case OP_CLOSURE: {
             auto oldscope = scope->highestScope;
-            
+
             for (; scope->highestScope->parentScope != NULL; scope->highestScope = scope->highestScope->parentScope);
-            
+
             CheshireType currentExpectedType = getExpectedMethodType();
             setExpectedMethodType(node->closure.type);
             raiseTypeScope(scope);
             auto newscope = scope->highestScope;
-            
+
             for (UsingList* u = node->closure.usingList; u != NULL; u = u->next) {
                 scope->highestScope = oldscope;
                 CheshireType vartype = getVariableType(scope, u->variable);
+                u->type = vartype;
                 scope->highestScope = newscope;
                 defineVariable(scope, u->variable, vartype);
-                //todo: toggle the enreference boolean
             }
 
             for (ParameterList* p = node->closure.params; p != NULL; p = p->next)

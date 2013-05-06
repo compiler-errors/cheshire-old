@@ -95,7 +95,6 @@ extern "C" {
             struct {
                 CheshireType type;
                 char* name;
-                Boolean enreferenced; //todo: is necessary?
             } variable;
 
             struct {
@@ -189,7 +188,6 @@ extern "C" {
                 CheshireType type;
                 char* variable;
                 struct tagExpressionNode* value;
-                Boolean enreferenced; //Is this variable referenced by a closure around it?
             } varDefinition;
         };
     } StatementNode;
@@ -201,6 +199,7 @@ extern "C" {
 
     typedef struct tagUsingList {
         char* variable;
+        CheshireType type;
         struct tagUsingList* next;
     } UsingList;
 

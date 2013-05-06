@@ -202,11 +202,12 @@ CheshireType getClassVariable(CheshireType type, const char* variable) {
     ERROR_IF(!isObjectType(type), "Cannot fetch object variable from non-object type.");
 
     if (!equalTypes(type, TYPE_OBJECT) && !streql(variable, "new")) {
-        CheshireType supervar = getClassVariable({ancestryMap[type.typeKey], 0}, variable);
+        CheshireType supervar = getClassVariable( {ancestryMap[type.typeKey], 0}, variable);
+
         if (!equalTypes(supervar, TYPE_VOID))
             return supervar;
     }
-    
+
     for (ClassList* p = objectMapping[type.typeKey]; p != NULL; p = p->next) {
         switch (p->type) {
             case CLT_CONSTRUCTOR:
