@@ -1241,22 +1241,35 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 raiseVariableScope();
                 FILE* oldout = out;
                 out = newPreamble();
-                int nesttype = UNIQUE_IDENTIFIER;
+                char* nesttype = NULL;
                 int bodyid = UNIQUE_IDENTIFIER;
-                PRINT("%%_ClosureNest_%d = type {", nesttype);
                 UsingList* using;
+                FILE* olderout = out;
+                out = tmpfile();//todo:get temporary file;
 
+                PRINT("{");
                 for (using = node->closure.usingList; using != NULL; using = using->next) {
                     emitType(out, using->type);
 
                     if (using->next != NULL)
                         PRINT(", ");
                 }
-
-                PRINT("}\n\n");
+                
+                PRINT("}");
+                fseek(out, 0, SEEK_END);
+                int filesize = ftell(out);
+                nesttype = malloc(filesize + 1);
+                nesttype[filesize] = '\0';
+                fseek(out, 0, SEEK_SET);
+                int i;
+                for (i = 0; filesize > 0; filesize--, i++) //off by one?
+                    nesttype[i] = fgetc(out);
+                fclose(out);
+                out = olderout;
+                
                 PRINT("define fastcc ");
                 emitType(out, node->closure.type);
-                PRINT(" @_ClosureBody_%d(%%_ClosureNest_%d nest %%_Packed", bodyid, nesttype);
+                PRINT(" @_ClosureBody_%d(%s* nest %%_Unpacked", bodyid, nesttype);
                 ParameterList* p;
                 UsingList* u;
 
@@ -1276,8 +1289,6 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 
                 PRINT(") {\n");
                 raiseVariableScope();
-                PRINT("    %%_Unpacked = alloca %%_ClosureNest_%d\n", nesttype);
-                PRINT("    store %%_ClosureNest_%d %%_Packed, %%_ClosureNest_%d* %%_Unpacked\n", nesttype, nesttype);
                 int id = 0;
 
                 for (u = node->closure.usingList; u != NULL; u = u->next, id++) {
@@ -1291,12 +1302,12 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT("\n");
                     PRINT("    ");
                     emitValue(out, l);
-                    PRINT(" = getelementptr %%_ClosureNest_%d* %%_Unpacked, i32 0, i32 %d\n", nesttype, id);
+                    PRINT(" = getelementptr %s* %%_Unpacked, i32 0, i32 %d\n", nesttype, id);
                     PRINT("    ");
                     emitValue(out, unpacked);
                     PRINT(" = load ");
                     emitType(out, u->type);
-                    PRINT(" ");
+                    PRINT("* ");
                     emitValue(out, l);
                     PRINT("\n");
                     PRINT("    store ");
@@ -1341,12 +1352,11 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 }
 
                 PRINT("}\n\n");
-                out = oldout;
                 fallVariableScope();
+                out = oldout;
 
                 LLVMValue storage = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 LLVMValue functioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
-                LLVMValue outfunction = getTemporaryStorage(UNIQUE_IDENTIFIER);
 
                 PRINT("    ");
                 emitValue(out, storage);
@@ -1355,7 +1365,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 emitValue(out, functioncast);
                 PRINT(" = bitcast ");
                 emitType(out, node->closure.type);
-                PRINT("(%%_ClosureNest_%d", nesttype);
+                PRINT("(%s*", nesttype);
 
                 if (node->closure.params != NULL) {
                     PRINT(", "); //put extra comma for %_Packed
@@ -1367,52 +1377,80 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     }
                 }
 
-                PRINT(")* @_ClosureBody_%d to i8*", bodyid);
-                PRINT("    ");
+                PRINT(")* @_ClosureBody_%d to i8*\n", bodyid);
                 LLVMValue sizeptr = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 LLVMValue size = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 PRINT("    ");
                 emitValue(out, sizeptr);
-                PRINT(" = getelementptr %%_ClosureNest_%d null, i32 1\n", nesttype);
+                PRINT(" = getelementptr %s* null, i32 1\n", nesttype);
                 PRINT("    ");
                 emitValue(out, size);
-                PRINT(" = ptrtoint %%_ClosureNest_%d ", nesttype);
+                PRINT(" = ptrtoint %s* ", nesttype);
                 emitValue(out, sizeptr);
                 PRINT(" to i32\n");
                 LLVMValue nest = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 PRINT("    ");
                 emitValue(out, nest);
-                PRINT(" = call fastcc i8* malloc(");
+                PRINT(" = call fastcc i8* @malloc(i32 ");
                 emitValue(out, size);
                 PRINT(")\n");
                 LLVMValue nestcast = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
                 emitValue(out, nestcast);
-                PRINT(" = bitcast i8* to %%_ClosureNest_%d*\n", nesttype);
+                PRINT(" = bitcast i8* ");
+                emitValue(out, nest);
+                PRINT(" to %s*\n", nesttype);
 
                 id = 0;
                 for (u = node->closure.usingList; u != NULL; u = u->next) {
                     LLVMValue element = getTemporaryStorage(UNIQUE_IDENTIFIER);
                     PRINT("    ");
                     emitValue(out, element);
-                    PRINT(" = getelementptr %%_ClosureNest_%d ", nesttype);
+                    PRINT(" = getelementptr %s* ", nesttype);
                     emitValue(out, nestcast);
                     PRINT(", i32 0, i32 %d\n", id);
-                    //store gotten value into element
+                    LLVMValue loaded = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                    LLVMValue variable = fetchVariable(u->variable);
+                    PRINT("    ");
+                    emitValue(out, loaded);
+                    PRINT(" = load ");
+                    emitType(out, u->type);
+                    PRINT("* ");
+                    emitValue(out, variable);
+                    PRINT("\n");
+                    PRINT("    store ");
+                    emitType(out, u->type);
+                    PRINT(" ");
+                    emitValue(out, loaded);
+                    PRINT(", ");
+                    emitType(out, u->type);
+                    PRINT("* ");
+                    emitValue(out, element);
+                    PRINT("\n");
                 }
 
-                PRINT("    call i8* llvm.trampoline.init(i8* ");
+                PRINT("    call void @llvm.init.trampoline(i8* ");
                 emitValue(out, storage);
                 PRINT(", i8* ");
                 emitValue(out, functioncast);
                 PRINT(", i8* ");
                 emitValue(out, nest);
                 PRINT(")\n");
+                LLVMValue outfunction = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 PRINT("    ");
                 emitValue(out, outfunction);
-                PRINT(" = call i8* llvm.adjust.trampoline(i8* ");
+                PRINT(" = call i8* @llvm.adjust.trampoline(i8* ");
                 emitValue(out, storage);
                 PRINT(")\n");
-                return outfunction;
+                LLVMValue outfunctioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, outfunctioncast);
+                PRINT(" = bitcast i8* ");
+                emitValue(out, outfunction);
+                PRINT(" to ");
+                emitType(out, node->determinedType);
+                PRINT("\n");
+                return outfunctioncast;
             }
         }
         break;
@@ -1631,7 +1669,7 @@ void emitValue(FILE* out, LLVMValue value) {
             PRINT("%%_Branch_%lld", value.value);
             break;
         case LVT_METHOD_EXPORT:
-            PRINT("@_Method_%s", value.name);
+            PRINT("@_MethodImpl_%s", value.name);
             break;
         case LVT_CLASS_METHOD:
             PRINT("@_ClassMethod_%s_%s", value.classmethod.classname, value.classmethod.methodname);
