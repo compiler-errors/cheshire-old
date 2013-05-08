@@ -1229,7 +1229,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 fallVariableScope();
 
                 if (!isVoid(node->closure.type)) {
-                    UNARY("ret", node->method.returnType, getDefaultReturnType(node->method.returnType)); //implicit, fallthrough return in non-void function.
+                    UNARY("ret", node->closure.type, getDefaultReturnType(node->closure.type)); //implicit, fallthrough return in non-void function.
                 } else {
                     PRINT("    ret void\n");
                 }
@@ -1345,7 +1345,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 emitBlock(out, node->closure.body);
                 fallVariableScope();
                 if (!isVoid(node->closure.type)) {
-                    UNARY("ret", node->method.returnType, getDefaultReturnType(node->method.returnType)); //implicit, fallthrough return in non-void function.
+                    UNARY("ret", node->closure.type, getDefaultReturnType(node->closure.type)); //implicit, fallthrough return in non-void function.
                 } else {
                     PRINT("    ret void\n");
                 }
