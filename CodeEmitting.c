@@ -1168,20 +1168,15 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             int stringlength = strlen(node->string) + 1;
             PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n\n", tempident, stringlength, node->string);
             out = oldout;
-            LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER), temp2 = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, temp);
             PRINT(" = getelementptr inbounds [%d x i8]* @.tempstring%d, i32 0, i32 0\n", stringlength, tempident);
-            PRINT("    ");
-            emitValue(out, temp2);
-            PRINT(" = bitcast i8* ");
-            emitValue(out, temp);
-            PRINT(" to [0 x i8]\n");
             LLVMValue constructed = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, constructed);
-            PRINT(" = call %%_Class_String* @_New_String([0 x i8] ");
-            emitValue(out, temp2);
+            PRINT(" = call %%_Class_String* @_New_String(i8* ");
+            emitValue(out, temp);
             PRINT(", i32 %d)\n", stringlength);
             return constructed;
         }
