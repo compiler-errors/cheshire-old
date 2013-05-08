@@ -128,6 +128,16 @@ static inline LLVMValue getClassMethodStorage(char* classname, char* methodname)
     return l;
 }
 
+static inline LLVMValue getDefaultReturnType(CheshireType t) {
+    if (isBoolean(t) || isNumericalType(t)) {
+        return getIntegerLiteral(0);
+    } else {
+        LLVMValue l;
+        l.type = LVT_NULL;
+        return l;
+    }
+}
+
 static inline LLVMValue emitSizeOfClass(FILE* out, CheshireType t) {
     LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
     LLVMValue intval = getTemporaryStorage(UNIQUE_IDENTIFIER);
@@ -254,7 +264,7 @@ void emitCode(FILE* out, ParserTopNode* node) {
             fallVariableScope();
 
             if (!isVoid(node->method.returnType)) {
-                UNARY("ret", node->method.returnType, isDecimal(node->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                UNARY("ret", node->method.returnType, getDefaultReturnType(node->method.returnType)); //implicit, fallthrough return in non-void function.
             } else {
                 PRINT("    ret void\n");
             }
@@ -486,15 +496,10 @@ void emitCode(FILE* out, ParserTopNode* node) {
                         emitBlock(out, classnode->method.block);
                         fallVariableScope();
 
-                        if (isVoid(classnode->method.returnType)) {
-                            PRINT("    ret void");
-                        } else if (!isVoid(classnode->method.returnType)) {
-                            UNARY("ret", classnode->method.returnType, isDecimal(classnode->method.returnType) ? getDecimalLiteral(0) : getIntegerLiteral(0));
-                            //implicit, fallthrough return in non-void function.
+                        if (!isVoid(classnode->method.returnType)) {
+                            UNARY("ret", node->method.returnType, getDefaultReturnType(node->method.returnType)); //implicit, fallthrough return in non-void function.
                         } else {
-                            LLVMValue nullValue;
-                            nullValue.type = LVT_NULL;
-                            UNARY("ret", classnode->method.returnType, nullValue);
+                            PRINT("    ret void\n");
                         }
 
                         PRINT("}\n\n");
@@ -1105,7 +1110,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             }
 
             PRINT("call fastcc ");
-            emitType(out, node->determinedType);
+            emitType(out, node->methodcall.callback->determinedType);
             PRINT(" ");
             emitValue(out, fnptr);
             PRINT("(");
@@ -1229,7 +1234,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 fallVariableScope();
 
                 if (!isVoid(node->closure.type)) {
-                    UNARY("ret", node->closure.type, isDecimal(node->closure.type) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                    UNARY("ret", node->method.returnType, getDefaultReturnType(node->method.returnType)); //implicit, fallthrough return in non-void function.
                 } else {
                     PRINT("    ret void\n");
                 }
@@ -1344,9 +1349,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 
                 emitBlock(out, node->closure.body);
                 fallVariableScope();
-
                 if (!isVoid(node->closure.type)) {
-                    UNARY("ret", node->closure.type, isDecimal(node->closure.type) ? getDecimalLiteral(0) : getIntegerLiteral(0)); //implicit, fallthrough return in non-void function.
+                    UNARY("ret", node->method.returnType, getDefaultReturnType(node->method.returnType)); //implicit, fallthrough return in non-void function.
                 } else {
                     PRINT("    ret void\n");
                 }
