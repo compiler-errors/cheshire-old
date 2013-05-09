@@ -31,6 +31,7 @@ extern "C" {
     typedef enum {
         OP_NOP,             //placeholder type: not used - hopefully - anywhere.
         OP_INTEGER,
+        OP_LONG_INTEGER,
         OP_DECIMAL,
         OP_CHAR,
         OP_DEREFERENCE,
@@ -63,7 +64,9 @@ extern "C" {
         OP_STRING,
         OP_CLOSURE,
         OP_INSTANTIATION,
-        OP_OBJECT_CALL
+        OP_OBJECT_CALL,
+        OP_LENGTH,
+        OP_CHOOSE
     } OperationType;
 
     typedef enum {

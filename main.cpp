@@ -26,6 +26,10 @@ using namespace std;
 
 //todo: make implicit lambda upcasts with nesting new lambda definitions
 
+//todo: using list captures
+
+//todo: choose operator A if B else C
+
 /*
  *
  */
@@ -42,11 +46,11 @@ int main(int argc, char** argv) {
         PANIC("Could not initialize lexer");
     }
 
-    printf("Initialized lex, now I'm going to initialize the buffer.\n");
+    //printf("Initialized lex, now I'm going to initialize the buffer.\n");
     state = yy_create_buffer(stdin, YY_BUF_SIZE, scanner);
     yy_switch_to_buffer(state, scanner);
     int ret = 0;
-    printf("Initialized, waiting for input!\n");
+    //printf("Initialized, waiting for input!\n");
 
     while (true) {
         ret = yyparse(&node, scanner);
@@ -63,13 +67,13 @@ int main(int argc, char** argv) {
         }
     }
 
-    printf("Now type checking...\n");
+    //printf("Now type checking...\n");
 
     for (list<ParserTopNode*>::iterator i = topNodes.begin(); i != topNodes.end(); ++i) {
         typeCheckTopNode(scope, *i);
     }
 
-    printf("Type checked successfully! Code emitting: \n");
+    //printf("Type checked successfully! Code emitting: \n");
     yy_delete_buffer(state, scanner);
     yylex_destroy(scanner);
     initCodeEmitting();

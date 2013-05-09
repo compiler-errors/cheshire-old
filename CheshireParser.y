@@ -104,6 +104,7 @@ typedef void* yyscan_t;
 %token <op_type> TOK_ADDSUB
 %token <op_type> TOK_MULTDIV
 %token <integer> TOK_INTEGER
+%token <integer> TOK_LONG_INTEGER
 %token <decimal> TOK_DECIMAL
 %token <cheshire_type> TOK_TYPE
 %token <reserved_literal> TOK_RESERVED_LITERAL
@@ -232,6 +233,7 @@ expression
     : expression_statement  { $$ = $1 ; }
     | lval_expression  { $$ = dereferenceExpression( $1 ); }
     | TOK_INTEGER  { $$ = createIntegerNode( $1 ); }
+    | TOK_LONG_INTEGER  { $$ = createLongIntegerNode( $1 ); }
     | TOK_DECIMAL  { $$ = createDecimalNode( $1 ); }
     | TOK_CHAR  { $$ = createCharNode( $1 ); }
     | TOK_RESERVED_LITERAL  { $$ = createReservedLiteralNode( $1 ); }
@@ -251,6 +253,8 @@ expression
     | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
     | TOK_DEFINE typename parameter_list TOK_USING using_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $5, $6 ); }
     | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , NULL , $4 ); }
+    | TOK_LEN expression  { $$ = createLenOperation( $2 ); }
+    | TOK_LBRACKET expression TOK_IF expression TOK_ELSE expression TOK_RBRACKET  { $$ = createChooseOperation( $4 , $2 , $6 ); }
     ;
 
 lval_expression

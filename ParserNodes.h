@@ -16,7 +16,8 @@ extern "C" {
     ExpressionNode* createInstanceOfNode(ExpressionNode*, CheshireType instanceofType);
     ExpressionNode* createVariableAccess(char*);
     ExpressionNode* createStringNode(char*);
-    ExpressionNode* createIntegerNode(long);
+    ExpressionNode* createIntegerNode(int64_t);
+    ExpressionNode* createLongIntegerNode(int64_t);
     ExpressionNode* createDecimalNode(double);
     ExpressionNode* createCharNode(char);
     ExpressionNode* createCastOperation(ExpressionNode*, CheshireType newType);
@@ -29,6 +30,8 @@ extern "C" {
     ExpressionNode* createSelfNode(void);
     ExpressionNode* createInstantiationOperation(CheshireType, ExpressionList*);
     ExpressionNode* createObjectCall(ExpressionNode*, char* method, ExpressionList*);
+    ExpressionNode* createLenOperation(ExpressionNode*);
+    ExpressionNode* createChooseOperation(ExpressionNode* condition, ExpressionNode*, ExpressionNode*);
 
 //defined in ExpressionList.c
     ExpressionList* linkExpressionList(ExpressionNode*, ExpressionList*);

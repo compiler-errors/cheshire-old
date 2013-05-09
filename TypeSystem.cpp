@@ -14,7 +14,7 @@
 
 using std::max;
 
-#define insertBaseType(type) { typeID = typeKeys++; namedObjects[type] = typeID; printf("Initializing type '%s' with key %d\n", type, typeID); }
+#define insertBaseType(type) { typeID = typeKeys++; namedObjects[type] = typeID; /*printf("Initializing type '%s' with key %d\n", type, typeID);*/ }
 
 //////////////// STATICS /////////////////
 static AllocatedTypeStrings allocatedTypeStrings;
@@ -67,7 +67,7 @@ void initTypeSystem() {
         allocatedTypeStrings.insert(object_copy);
         typeID = typeKeys++;
         namedObjects[object_copy] = typeID;
-        printf("Initializing type '%s' with key %d\n", "Object", typeID);
+        //printf("Initializing type '%s' with key %d\n", "Object", typeID);
         objectMapping[typeID] = NULL;
         ancestryMap[typeID] = typeID;
         classNames[typeID] = object_copy;
@@ -76,7 +76,7 @@ void initTypeSystem() {
         allocatedTypeStrings.insert(string_copy);
         typeID = typeKeys++;
         namedObjects[string_copy] = typeID;
-        printf("Initializing type '%s' with key %d\n", "String", typeID);
+        //printf("Initializing type '%s' with key %d\n", "String", typeID);
         objectMapping[typeID] = NULL;
         ancestryMap[typeID] = TYPE_OBJECT.typeKey;
         classNames[typeID] = string_copy;
@@ -380,6 +380,36 @@ void printType(CheshireType node) {
 
     for (int i = 0; i < node.arrayNesting; i++)
         printf("[]");
+}
+
+CheshireType getWidestObjectType(CheshireType left, CheshireType right) {
+    if (isNull(left))
+        return right;
+
+    if (isNull(right))
+        return left;
+
+    if (isSuper(left, right))
+        return left;
+
+    if (isSuper(right, left))
+        return right;
+
+    int leftid = left.typeKey;
+
+    while (leftid != TYPE_OBJECT.typeKey) {
+        leftid = ancestryMap[leftid];
+
+        if (isSuper(((CheshireType) {
+        leftid, 0
+    }), right)) {
+            return ((CheshireType) {
+                leftid, 0
+            });
+        }
+    }
+
+    return TYPE_OBJECT;
 }
 
 Boolean isSuper(CheshireType super, CheshireType sub) {

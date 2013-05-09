@@ -53,6 +53,7 @@ extern "C" {
     CheshireType getArrayDereference(CheshireType);
     CheshireType getWidestNumericalType(CheshireType left, CheshireType right);
 
+    CheshireType getWidestObjectType(CheshireType left, CheshireType right);
     Boolean isSuper(CheshireType parent, CheshireType child);
 
 // TYPE CHECKING FUNCTIONS //

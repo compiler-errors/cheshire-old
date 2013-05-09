@@ -166,6 +166,12 @@ extern "C" {
                 char* method;
                 struct tagExpressionList* params;
             } objectcall;
+
+            struct {
+                struct tagExpressionNode* condition;
+                struct tagExpressionNode* iftrue;
+                struct tagExpressionNode* iffalse;
+            } choose;
         };
     } ExpressionNode;
 

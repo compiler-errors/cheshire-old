@@ -165,6 +165,9 @@ void printExpression(ExpressionNode* node) {
         case OP_INTEGER:
             printf("(%lld)", node->integer);
             break;
+        case OP_LONG_INTEGER:
+            printf("(%lldL)", node->integer);
+            break;
         case OP_DECIMAL:
             printf("(%lf)", node->decimal);
             break;
@@ -226,6 +229,20 @@ void printExpression(ExpressionNode* node) {
             printf("::%s", node->objectcall.method);
             printParameters(node->objectcall.params);
             printf(")");
+            break;
+        case OP_LENGTH:
+            printf("(len ");
+            printExpression(node->unaryChild);
+            printf(")");
+            break;
+        case OP_CHOOSE:
+            printf("{");
+            printExpression(node->choose.iftrue);
+            printf(" if ");
+            printExpression(node->choose.condition);
+            printf(" else ");
+            printExpression(node->choose.iffalse);
+            printf("}");
             break;
     }
 }

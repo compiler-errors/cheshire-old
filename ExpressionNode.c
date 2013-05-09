@@ -78,13 +78,24 @@ ExpressionNode* createStringNode(char* str) {
     return node;
 }
 
-ExpressionNode* createIntegerNode(long i) {
+ExpressionNode* createIntegerNode(int64_t i) {
     ExpressionNode* node = allocExpressionNode();
 
     if (node == NULL)
         return NULL;
 
     node->type = OP_INTEGER;
+    node->integer = i;
+    return node;
+}
+
+ExpressionNode* createLongIntegerNode(int64_t i) {
+    ExpressionNode* node = allocExpressionNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = OP_LONG_INTEGER;
     node->integer = i;
     return node;
 }
@@ -219,6 +230,30 @@ ExpressionNode* createObjectCall(ExpressionNode* object, char* method, Expressio
     return node;
 }
 
+ExpressionNode* createLenOperation(ExpressionNode* child) {
+    ExpressionNode* node = allocExpressionNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = OP_LENGTH;
+    node->unaryChild = child;
+    return node;
+}
+
+ExpressionNode* createChooseOperation(ExpressionNode* condition, ExpressionNode* iftrue, ExpressionNode* iffalse) {
+    ExpressionNode* node = allocExpressionNode();
+
+    if (node == NULL)
+        return NULL;
+
+    node->type = OP_CHOOSE;
+    node->choose.condition = condition;
+    node->choose.iftrue = iftrue;
+    node->choose.iffalse = iffalse;
+    return node;
+}
+
 void deleteExpressionNode(ExpressionNode* node) {
     if (node == NULL)
         return;
@@ -233,6 +268,7 @@ void deleteExpressionNode(ExpressionNode* node) {
         case OP_PLUSONE:
         case OP_MINUSONE:
         case OP_DEREFERENCE:
+        case OP_LENGTH:
             deleteExpressionNode(node->unaryChild); // Unary Operations
             break;
         case OP_EQUALS:
@@ -284,7 +320,13 @@ void deleteExpressionNode(ExpressionNode* node) {
             free(node->objectcall.method);
             deleteExpressionList(node->objectcall.params);
             break;
+        case OP_CHOOSE:
+            deleteExpressionNode(node->choose.condition);
+            deleteExpressionNode(node->choose.iffalse);
+            deleteExpressionNode(node->choose.iftrue);
+            break;
         case OP_INTEGER:
+        case OP_LONG_INTEGER:
         case OP_DECIMAL:
         case OP_CHAR:
         case OP_RESERVED_LITERAL:

@@ -279,14 +279,18 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType right = typeCheckExpressionNode(scope, node->binary.right);
             ERROR_IF(isVoid(left) || isVoid(right), "Cannot compare void type in operations >=, <=, >, <, !=, or ==");
 
-            if (isNumericalType(left) && isNumericalType(right)) {
+            if (equalTypes(left, right)) {
+                //do nothing.
+            } else if (isNumericalType(left) && isNumericalType(right)) {
                 CheshireType widetype = getWidestNumericalType(left, right);
+                ERROR_IF(isVoid(widetype), "No common type shared.");
                 WIDEN_NODE(widetype, left, node->binary.left);
                 WIDEN_NODE(widetype, right, node->binary.right);
             } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
-                if (!equalTypes(left, TYPE_NULL) && !equalTypes(right, TYPE_NULL)) {
-                    ERROR_IF(!isSuper(left, right) && !isSuper(right, left), "Comparison must be in a super-subtype relationship.");
-                }
+                CheshireType widetype = getWidestObjectType(left, right); //todo: getWidestObjectType(TYPE_NULL, a) -> a. null default.
+                ERROR_IF(isVoid(widetype), "No common type shared.");
+                WIDEN_NODE(widetype, left, node->binary.left);
+                WIDEN_NODE(widetype, right, node->binary.right);
             } else
                 PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
 
@@ -384,8 +388,10 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             }
         }
         case OP_INTEGER:
-            //todo: make sure it is within the regular integer bounds -2^31 to 2^31-1 or whatever.
+            ERROR_IF(node->integer > ((int64_t) INT_MAX) || node->integer < ((int64_t) INT_MIN), "Integer out of bounds!");
             return node->determinedType = TYPE_INT;
+        case OP_LONG_INTEGER:
+            return node->determinedType = TYPE_I64;
         case OP_DECIMAL:
             return node->determinedType = TYPE_DECIMAL;
         case OP_CHAR:
@@ -467,6 +473,34 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
 
             ERROR_IF(index != method.second.size(), "Not enough parameters for method call!");
             return node->determinedType = method.first;
+        }
+        case OP_LENGTH: {
+            CheshireType child = typeCheckExpressionNode(scope, node->unaryChild);
+            ERROR_IF(getArrayNesting(child) == 0, "Cannot dereference a non-array type!");
+            return node->determinedType = TYPE_INT;
+        }
+        case OP_CHOOSE: {
+            CheshireType condition = typeCheckExpressionNode(scope, node->choose.condition);
+            CheshireType left = typeCheckExpressionNode(scope, node->choose.iftrue);
+            CheshireType right = typeCheckExpressionNode(scope, node->choose.iffalse);
+            ERROR_IF(!isBoolean(condition), "Condition must be boolean!");
+
+            if (equalTypes(left, right)) {
+                return node->determinedType = left; //== right.
+            } else if (isNumericalType(left) && isNumericalType(right)) {
+                CheshireType widetype = getWidestNumericalType(left, right);
+                ERROR_IF(isVoid(widetype), "No common type shared.");
+                WIDEN_NODE(widetype, left, node->choose.iftrue);
+                WIDEN_NODE(widetype, right, node->choose.iffalse);
+                return node->determinedType = widetype;
+            } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
+                CheshireType widetype = getWidestObjectType(left, right);
+                ERROR_IF(isVoid(widetype), "No common type shared.");
+                WIDEN_NODE(widetype, left, node->choose.iftrue);
+                WIDEN_NODE(widetype, right, node->choose.iffalse);
+                return node->determinedType = widetype;
+            } else
+                PANIC("left and right types must be numerical for operations >=, <=, >, <, including object for == and !=");
         }
     }
 

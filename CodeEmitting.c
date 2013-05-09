@@ -63,7 +63,7 @@
 static int unique_identifier = 0;
 
 
-static inline LLVMValue getIntegerLiteral(int literal) {
+static inline LLVMValue getIntegerLiteral(int64_t literal) {
     LLVMValue l;
     l.type = LVT_INT_LITERAL;
     l.value = literal;
@@ -736,6 +736,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
     switch (node->type) {
         case OP_NOP:
             break;
+        case OP_LONG_INTEGER:
         case OP_INTEGER: {
             LLVMValue l = getIntegerLiteral(node->integer);
             return l;
@@ -1147,18 +1148,33 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         case OP_ARRAY_ACCESS: {
             //todo: add len operator!
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
-            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
-            //todo: runtime array sanity check
+            LLVMValue array = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue arrayderef = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue element = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
-            emitValue(out, l);
+            emitValue(out, array);
             PRINT(" = getelementptr ");
-            emitType(out, node->binary.left->determinedType);
+            emitType(out, node->access.expression->determinedType);
             PRINT(" ");
             emitValue(out, a);
-            PRINT(", i32 0, i32 1, i32 ");
+            PRINT(", i32 0, i32 1\n");
+            PRINT("    ");
+            emitValue(out, arrayderef);
+            PRINT(" = load ");
+            emitType(out, node->determinedType);
+            PRINT("** ");
+            emitValue(out, array);
+            PRINT("\n");
+            PRINT("    ");
+            emitValue(out, element);
+            PRINT(" = getelementptr ");
+            emitType(out, node->determinedType);
+            PRINT("* ");
+            emitValue(out, arrayderef);
+            PRINT(", i32 ");
             emitValue(out, b);
             PRINT("\n");
-            return l;
+            return element;
         }
         break;
         case OP_STRING: {
@@ -1245,16 +1261,16 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 int bodyid = UNIQUE_IDENTIFIER;
                 UsingList* using;
                 FILE* olderout = out;
-                out = tmpfile();//todo:get temporary file;
-
+                out = tmpfile();
                 PRINT("{");
+
                 for (using = node->closure.usingList; using != NULL; using = using->next) {
                     emitType(out, using->type);
 
                     if (using->next != NULL)
                         PRINT(", ");
                 }
-                
+
                 PRINT("}");
                 fseek(out, 0, SEEK_END);
                 int filesize = ftell(out);
@@ -1262,11 +1278,12 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 nesttype[filesize] = '\0';
                 fseek(out, 0, SEEK_SET);
                 int i;
+
                 for (i = 0; filesize > 0; filesize--, i++) //off by one?
                     nesttype[i] = fgetc(out);
+
                 fclose(out);
                 out = olderout;
-                
                 PRINT("define fastcc ");
                 emitType(out, node->closure.type);
                 PRINT(" @_ClosureBody_%d(%s* nest %%_Unpacked", bodyid, nesttype);
@@ -1344,6 +1361,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 
                 emitBlock(out, node->closure.body);
                 fallVariableScope();
+
                 if (!isVoid(node->closure.type)) {
                     UNARY("ret", node->closure.type, getDefaultReturnType(node->closure.type)); //implicit, fallthrough return in non-void function.
                 } else {
@@ -1353,10 +1371,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT("}\n\n");
                 fallVariableScope();
                 out = oldout;
-
                 LLVMValue storage = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 LLVMValue functioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
-
                 PRINT("    ");
                 emitValue(out, storage);
                 PRINT(" = call fastcc i8* @malloc(i32 10)\n"); //todo: determine sizes...
@@ -1371,6 +1387,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 
                     for (p = node->closure.params; p != NULL; p = p->next) {
                         emitType(out, p->type);
+
                         if (p->next != NULL)
                             PRINT(", ");
                     }
@@ -1399,8 +1416,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT(" = bitcast i8* ");
                 emitValue(out, nest);
                 PRINT(" to %s*\n", nesttype);
-
                 id = 0;
+
                 for (u = node->closure.usingList; u != NULL; u = u->next) {
                     LLVMValue element = getTemporaryStorage(UNIQUE_IDENTIFIER);
                     PRINT("    ");
@@ -1586,6 +1603,51 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             return var;
         }
         break;
+        case OP_LENGTH: {
+            LLVMValue child = emitExpression(out, node->unaryChild);
+            LLVMValue lptr = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            LLVMValue lderef = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, lptr);
+            PRINT(" = getelementptr ");
+            emitType(out, node->unaryChild->determinedType);
+            PRINT(" ");
+            emitValue(out, child);
+            PRINT(", i32 0, i32 0\n");
+            PRINT("    ");
+            emitValue(out, lderef);
+            PRINT(" = load i32* ");
+            emitValue(out, lptr);
+            PRINT("\n");
+            return lderef;
+        }
+        break;
+        case OP_CHOOSE: {
+            LLVMValue condition = emitExpression(out, node->choose.condition);
+            int labeltrue = UNIQUE_IDENTIFIER, labelfalse = UNIQUE_IDENTIFIER, labelexit = UNIQUE_IDENTIFIER;
+            PRINT("    br i1 ");
+            emitValue(out, condition);
+            PRINT(", label %%label%d, label %%label%d\n", labeltrue, labelfalse);
+            PRINT("label%d:\n", labeltrue);
+            LLVMValue iftrue = emitExpression(out, node->choose.iftrue);
+            PRINT("    br label %%label%d\n", labelexit);
+            PRINT("label%d:\n", labelfalse);
+            LLVMValue iffalse = emitExpression(out, node->choose.iffalse);
+            PRINT("    br label %%label%d\n", labelexit);
+            PRINT("label%d:\n", labelexit);
+            LLVMValue phi = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, phi);
+            PRINT(" = phi ");
+            emitType(out, node->choose.iffalse->determinedType);
+            PRINT(" [");
+            emitValue(out, iftrue);
+            PRINT(", %%label%d], [", labeltrue);
+            emitValue(out, iffalse);
+            PRINT(", %%label%d]\n", labelfalse);
+            return phi;
+        }
+        break;
     }
 
     PANIC("Fatal error in code-emitting!");
@@ -1594,9 +1656,9 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 void emitType(FILE* out, CheshireType type) { //object types have implicit *, remember. Object* not Object
     if (type.arrayNesting > 0) {
         type.arrayNesting--;
-        PRINT("{i32, [0 x ");
+        PRINT("{i32, ");
         emitType(out, type); //emit with one less nesting.
-        PRINT("]}*");
+        PRINT("*}*");
         return;
     }
 

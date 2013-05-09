@@ -58,7 +58,6 @@ len       return TOK_LEN;
 "::" return TOK_COLONCOLON;
 \"(\\[bfnrt\'\?\\\"]|[^\\\"\n])*\"  { saveStringLiteral(yytext, &(yylval->string)); return TOK_STRING; }
 \'(\\[bfnrt\'\?\\\"]|[^\\\'\n])\'  { yylval->character = yytext[1]; return TOK_CHAR; }
-\".*\"                                { PANIC("Invalid string literal: %s", yytext); }
 "not"|"compl"    { determineOpType(yytext, &(yylval->op_type)); return TOK_NOT; }
 "and"|"or"      { determineOpType(yytext, &(yylval->op_type)); return TOK_AND_OR; }
 "++"|"--"       { determineOpType(yytext, &(yylval->op_type)); return TOK_INCREMENT; }
@@ -71,6 +70,9 @@ len       return TOK_LEN;
 "instanceof"    return TOK_INSTANCEOF;
 "new"           return TOK_NEW;
 "delete"        return TOK_DELETE;
+[1-9]{DIGIT}*L   { int64_t x; sscanf(yytext, "%lld", &x); yylval->integer = x; return TOK_LONG_INTEGER; }
+0[xX][0-9A-F]+L  { int64_t x; sscanf(yytext, "%llx", &x); yylval->integer = x; return TOK_LONG_INTEGER; }
+0[0-7]*L         { int64_t x; sscanf(yytext, "%llo", &x); yylval->integer = x; return TOK_LONG_INTEGER; }
 [1-9]{DIGIT}*   { int64_t x; sscanf(yytext, "%lld", &x); yylval->integer = x; return TOK_INTEGER; }
 0[xX][0-9A-F]+  { int64_t x; sscanf(yytext, "%llx", &x); yylval->integer = x; return TOK_INTEGER; }
 0[0-7]*         { int64_t x; sscanf(yytext, "%llo", &x); yylval->integer = x; return TOK_INTEGER; }
