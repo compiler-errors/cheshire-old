@@ -1146,7 +1146,6 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_ARRAY_ACCESS: {
-            //todo: add len operator!
             LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
             LLVMValue array = getTemporaryStorage(UNIQUE_IDENTIFIER);
             LLVMValue arrayderef = getTemporaryStorage(UNIQUE_IDENTIFIER);

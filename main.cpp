@@ -23,12 +23,7 @@ extern "C" {
 using namespace std;
 
 //todo: think of a "parameter_list -> expression" syntax, ex ((Int a, Int b) -> a + b)(1, 2) would result in 3.
-
-//todo: make implicit lambda upcasts with nesting new lambda definitions
-
 //todo: using list captures
-
-//todo: choose operator A if B else C
 
 /*
  *

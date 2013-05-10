@@ -287,7 +287,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 WIDEN_NODE(widetype, left, node->binary.left);
                 WIDEN_NODE(widetype, right, node->binary.right);
             } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
-                CheshireType widetype = getWidestObjectType(left, right); //todo: getWidestObjectType(TYPE_NULL, a) -> a. null default.
+                CheshireType widetype = getWidestObjectType(left, right);
                 ERROR_IF(isVoid(widetype), "No common type shared.");
                 WIDEN_NODE(widetype, left, node->binary.left);
                 WIDEN_NODE(widetype, right, node->binary.right);
