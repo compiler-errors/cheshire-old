@@ -1274,12 +1274,13 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 fseek(out, 0, SEEK_END);
                 int filesize = ftell(out);
                 nesttype = malloc(filesize + 1);
-                nesttype[filesize] = '\0';
                 fseek(out, 0, SEEK_SET);
                 int i;
 
-                for (i = 0; filesize > 0; filesize--, i++) //off by one?
+                for (i = 0; i < filesize; i++)
                     nesttype[i] = fgetc(out);
+                
+                nesttype[filesize] = '\0';
 
                 fclose(out);
                 out = olderout;
@@ -1465,6 +1466,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT(" to ");
                 emitType(out, node->determinedType);
                 PRINT("\n");
+                free(nesttype);
                 return outfunctioncast;
             }
         }

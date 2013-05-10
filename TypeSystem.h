@@ -29,6 +29,8 @@ extern "C" {
     void setExpectedMethodType(CheshireType);
     CheshireType getExpectedMethodType(void);
     CheshireType getVariableType(CheshireScope*, const char* name);
+    Boolean hasVariable(CheshireScope*, const char* name);
+    CheshireType searchShadowTypeScope(CheshireScope*, const char* name);
     void defineVariable(CheshireScope*, const char* name, CheshireType type);
     CheshireType getClassVariable(CheshireType, const char* variable);
     void reserveClassNameType(char* name); //"defines" a class so it can use its own name in its definition.

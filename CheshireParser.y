@@ -145,8 +145,6 @@ typedef void* yyscan_t;
 %type <class_list> class_list_contains
 %type <class_list> class_list_or_pass
 %type <cheshire_type> typename
-%type <using_list> using_list
-%type <using_list> using_list_contains
 
 %%
 
@@ -204,8 +202,7 @@ statement
     : expression_statement TOK_LN  { $$ = createExpressionStatement( $1 ); }
     | TOK_ASSERT expression TOK_LN  { $$ = createAssertionStatement( $2 ); }
     | typename TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createVariableDefinition( $1 , $2 , $4 ); }
-    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list TOK_USING using_list block_or_pass { $$ = createInferDefinition( $3 , createClosureNode( $2 , $4 , $6, $7 ) ); }
-    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass { $$ = createInferDefinition( $3 , createClosureNode( $2 , $4 , NULL , $5 ) ); }
+    | TOK_DEFINE typename TOK_IDENTIFIER parameter_list block_or_pass { $$ = createInferDefinition( $3 , createClosureNode( $2 , $4 , $5 ) ); }
     | TOK_INFER TOK_IDENTIFIER TOK_SET expression TOK_LN  { $$ = createInferDefinition( $2 , $4 ); }
     | block  { $$ = createBlockStatement( $1 ); }
     | TOK_IF TOK_LPAREN expression TOK_RPAREN statement_or_pass TOK_ELSE statement_or_pass %prec P_IFELSE  { $$ = createIfElseStatement( $3 , $5 , $7 ); }
@@ -251,8 +248,7 @@ expression
     | typename TOK_LPAREN expression TOK_RPAREN  { $$ = createCastOperation( $3 , $1 ); }
     | TOK_LPAREN typename TOK_RPAREN expression  { $$ = createCastOperation( $4 , $2 ); }
     | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
-    | TOK_DEFINE typename parameter_list TOK_USING using_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $5, $6 ); }
-    | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , NULL , $4 ); }
+    | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $4 ); }
     | TOK_LEN expression  { $$ = createLenOperation( $2 ); }
     | TOK_LBRACKET expression TOK_IF expression TOK_ELSE expression TOK_RBRACKET  { $$ = createChooseOperation( $4 , $2 , $6 ); }
     ;
@@ -269,15 +265,6 @@ expression_statement
     | expression expression_list  { $$ = createMethodCall( $1 , $2 ); }
     | expression TOK_COLONCOLON TOK_IDENTIFIER expression_list  { $$ = createObjectCall( $1 , $3 , $4 ); }
     ;
-
-using_list
-    : TOK_LPAREN using_list_contains TOK_RPAREN  { $$ = $2 ; }
-    | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
-    ;
-
-using_list_contains
-    : TOK_IDENTIFIER TOK_COMMA using_list_contains  { $$ = linkUsingList( $1 , $3 ); }
-    | TOK_IDENTIFIER  { $$ = linkUsingList( $1 , NULL ); }
 
 expression_list
     : TOK_LPAREN expression_list_contains TOK_RPAREN  { $$ = $2 ; }

@@ -121,18 +121,24 @@ void deleteCheshireScope(CheshireScope* scope) {
 
 void raiseTypeScope(CheshireScope* scope) {
     VariableScope* old = scope->highestScope;
+    VariableScope* oldShadow = scope->highestShadowScope;
     scope->highestScope = new VariableScope;
     scope->highestScope->parentScope = old;
+    scope->highestShadowScope = new VariableScope;
+    scope->highestShadowScope->parentScope = oldShadow;
 }
 
 void fallTypeScope(CheshireScope* scope) {
     VariableScope* old = scope->highestScope;
+    VariableScope* oldShadow = scope->highestShadowScope;
 
-    if (old == NULL)
+    if (old == NULL || oldShadow == NULL)
         PANIC("Trying to fall to a non-existent scope!");
 
     scope->highestScope = scope->highestScope->parentScope;
+    scope->highestShadowScope = scope->highestShadowScope->parentScope;
     delete old;
+    delete oldShadow;
 }
 
 void setExpectedMethodType(CheshireType type) {
@@ -155,14 +161,42 @@ CheshireType getVariableType(CheshireScope* scope, const char* name) {
     PANIC("No such variable defined as %s.", name);
 }
 
+Boolean hasVariable(CheshireScope* scope, const char* name) {
+    for (VariableScope* variableScope = scope->highestScope; variableScope != NULL; variableScope = variableScope->parentScope) {
+        auto iterator = variableScope->variables.find(name);
+
+        if (iterator != variableScope->variables.end()) {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+CheshireType searchShadowTypeScope(CheshireScope* scope, const char* name) {
+    for (VariableScope* variableScope = scope->highestShadowScope; variableScope != NULL; variableScope = variableScope->parentScope) {
+        auto iterator = variableScope->variables.find(name);
+
+        if (iterator != variableScope->variables.end()) {
+            return iterator->second;
+        }
+    }
+
+    PANIC("No such variable defined as %s.", name);
+}
+
 void defineVariable(CheshireScope* scope, const char* name, CheshireType type) {
     if (isVoid(type))
         PANIC("Cannot define variable of type VOID.");
 
     if (scope->highestScope->variables.find(name) != scope->highestScope->variables.end())
         PANIC("Redeclaration of variable %s!", name);
+    
+    if (scope->highestShadowScope->variables.find(name) != scope->highestShadowScope->variables.end())
+        PANIC("Redeclaration of variable %s!", name);
 
     scope->highestScope->variables[name] = type;
+    scope->highestShadowScope->variables[name] = type;
 }
 
 void reserveClassNameType(char* name) {

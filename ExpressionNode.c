@@ -191,7 +191,7 @@ ExpressionNode* dereferenceExpression(ExpressionNode* expression) {
     return node;
 }
 
-ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, UsingList* usingList, BlockList* body) {
+ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, BlockList* body) {
     ExpressionNode* node = allocExpressionNode();
 
     if (node == NULL)
@@ -200,7 +200,7 @@ ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, Usin
     node->type = OP_CLOSURE;
     node->closure.type = type;
     node->closure.params = params;
-    node->closure.usingList = usingList;
+    node->closure.usingList = NULL;
     node->closure.body = body;
     return node;
 }

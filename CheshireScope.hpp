@@ -24,6 +24,8 @@ extern "C" {
 
     typedef struct tagCheshireScope {
         struct tagVariableScope* highestScope;
+        struct tagVariableScope* highestShadowScope;
+        struct tagUsingList* dependencies;
     } CheshireScope;
 
     typedef struct tagVariableScope {

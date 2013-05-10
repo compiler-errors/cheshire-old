@@ -26,7 +26,7 @@ extern "C" {
     ExpressionNode* createReservedLiteralNode(ReservedLiteral);
     ExpressionNode* createAccessNode(ExpressionNode*, char* classVariable);
     ExpressionNode* dereferenceExpression(ExpressionNode*);
-    ExpressionNode* createClosureNode(CheshireType, ParameterList*, UsingList*, BlockList*);
+    ExpressionNode* createClosureNode(CheshireType, ParameterList*, BlockList*);
     ExpressionNode* createSelfNode(void);
     ExpressionNode* createInstantiationOperation(CheshireType, ExpressionList*);
     ExpressionNode* createObjectCall(ExpressionNode*, char* method, ExpressionList*);
@@ -51,7 +51,7 @@ extern "C" {
     BlockList* linkBlockList(StatementNode*, BlockList*);
 
 //defined in UsingList.c
-    UsingList* linkUsingList(char*, UsingList*);
+    UsingList* linkUsingList(CheshireType, char*, UsingList*);
 
 //defined in ParserTopNode.c
     ParserTopNode* createMethodDeclaration(CheshireType, char* name, ParameterList* params);

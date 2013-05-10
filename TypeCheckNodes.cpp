@@ -342,8 +342,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             return node->determinedType = TYPE_BOOLEAN;
         }
         case OP_VARIABLE: {
-            CheshireType ret = getVariableType(scope, node->string);
-            return node->determinedType = ret;
+            if (hasVariable(scope, node->string)) {
+                CheshireType ret = getVariableType(scope, node->string);
+                return node->determinedType = ret;
+            } else {
+                CheshireType ret = searchShadowTypeScope(scope, node->string);
+                defineVariable(scope, node->string, ret);
+                scope->dependencies = linkUsingList(ret, node->string, scope->dependencies);
+                return node->determinedType = ret;
+            }
         }
         case OP_STRING:
             return node->determinedType = TYPE_STRING;
@@ -402,21 +409,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         }
         case OP_CLOSURE: {
             auto oldscope = scope->highestScope;
+            auto olddependencies = scope->dependencies;
+            scope->dependencies = NULL;
 
+            //unwind old scope to global.
             for (; scope->highestScope->parentScope != NULL; scope->highestScope = scope->highestScope->parentScope);
 
             CheshireType currentExpectedType = getExpectedMethodType();
             setExpectedMethodType(node->closure.type);
             raiseTypeScope(scope);
-            auto newscope = scope->highestScope;
-
-            for (UsingList* u = node->closure.usingList; u != NULL; u = u->next) {
-                scope->highestScope = oldscope;
-                CheshireType vartype = getVariableType(scope, u->variable);
-                u->type = vartype;
-                scope->highestScope = newscope;
-                defineVariable(scope, u->variable, vartype);
-            }
 
             for (ParameterList* p = node->closure.params; p != NULL; p = p->next)
                 defineVariable(scope, p->name, p->type);
@@ -424,6 +425,16 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             typeCheckBlockList(scope, node->closure.body);
             fallTypeScope(scope);
             scope->highestScope = oldscope; //restore old scoping.
+            
+            node->closure.usingList = scope->dependencies;
+            scope->dependencies = olddependencies;
+            
+            for (UsingList* u = node->closure.usingList; u != NULL; u = u->next) {
+                if (!hasVariable(scope, u->variable)) {
+                    scope->dependencies = linkUsingList(u->type, u->variable, scope->dependencies);
+                }
+            }
+            
             setExpectedMethodType(currentExpectedType);
             return node->determinedType = getLambdaType(node->closure.type, node->closure.params);
         }
@@ -527,11 +538,11 @@ void typeCheckStatementNode(CheshireScope* scope, StatementNode* node) {
             if (isNull(givenType))
                 PANIC("Cannot infer type of TYPE_NULL!");
 
-            printf("Inferred ");
-            printType(givenType);
-            printf(" for expression: ");
-            printExpression(node->varDefinition.value);
-            printf("\n");
+            //printf("Inferred ");
+            //printType(givenType);
+            //printf(" for expression: ");
+            //printExpression(node->varDefinition.value);
+            //printf("\n");
         }
         break;
         case S_EXPRESSION: {
