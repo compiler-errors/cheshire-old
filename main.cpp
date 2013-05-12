@@ -22,8 +22,6 @@ extern "C" {
 
 using namespace std;
 
-//todo: think of a "parameter_list -> expression" syntax, ex ((Int a, Int b) -> a + b)(1, 2) would result in 3.
-
 /*
  *
  */

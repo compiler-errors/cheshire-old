@@ -27,6 +27,7 @@ extern "C" {
     ExpressionNode* createAccessNode(ExpressionNode*, char* classVariable);
     ExpressionNode* dereferenceExpression(ExpressionNode*);
     ExpressionNode* createClosureNode(CheshireType, ParameterList*, BlockList*);
+    ExpressionNode* createLambdaNode(ParameterList* params, ExpressionNode*);
     ExpressionNode* createSelfNode(void);
     ExpressionNode* createInstantiationOperation(CheshireType, ExpressionList*);
     ExpressionNode* createObjectCall(ExpressionNode*, char* method, ExpressionList*);

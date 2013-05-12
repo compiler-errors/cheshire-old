@@ -407,6 +407,23 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType child = typeCheckExpressionNode(scope, node->unaryChild);
             return node->determinedType = child;
         }
+        case OP_LAMBDA: {
+            raiseTypeScope(scope);
+            for (ParameterList* p = node->lambda.params; p != NULL; p = p->next)
+                defineVariable(scope, p->name, p->type);
+            CheshireType returnType = typeCheckExpressionNode(scope, node->lambda.expression);
+            fallTypeScope(scope);
+            
+            ParameterList* params = node->lambda.params;
+            ExpressionNode* expression = node->lambda.expression;
+            node->type = OP_CLOSURE;
+            node->closure.body = linkBlockList(createReturnStatement(expression), NULL);
+            node->closure.params = params;
+            node->closure.type = returnType;
+            node->closure.usingList = NULL;
+            CheshireType nodeType = typeCheckExpressionNode(scope, node); //recheck as closure to collect usingList, etc.
+            return node->determinedType = nodeType;
+        }
         case OP_CLOSURE: {
             auto oldscope = scope->highestScope;
             auto olddependencies = scope->dependencies;

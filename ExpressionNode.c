@@ -205,6 +205,18 @@ ExpressionNode* createClosureNode(CheshireType type, ParameterList* params, Bloc
     return node;
 }
 
+ExpressionNode* createLambdaNode(ParameterList* params, ExpressionNode* mapping) {
+    ExpressionNode* node = allocExpressionNode();
+    
+    if (node == NULL)
+        return NULL;
+    
+    node->type = OP_LAMBDA;
+    node->lambda.params = params;
+    node->lambda.expression = mapping;
+    return node;
+}
+
 ExpressionNode* createInstantiationOperation(CheshireType type, ExpressionList* params) {
     ExpressionNode* node = allocExpressionNode();
 
@@ -324,6 +336,10 @@ void deleteExpressionNode(ExpressionNode* node) {
             deleteExpressionNode(node->choose.condition);
             deleteExpressionNode(node->choose.iffalse);
             deleteExpressionNode(node->choose.iftrue);
+            break;
+        case OP_LAMBDA:
+            deleteExpressionNode(node->lambda.expression);
+            deleteParameterList(node->lambda.params);
             break;
         case OP_INTEGER:
         case OP_LONG_INTEGER:

@@ -175,9 +175,9 @@ void printExpression(ExpressionNode* node) {
             printf("('%c')", node->character);
             break;
         case OP_CAST:
-            printf("(cast <");
+            printf("((");
             printType(node->cast.type);
-            printf("> ");
+            printf(") ");
             printExpression(node->cast.child);
             printf(")");
             break;
@@ -216,6 +216,9 @@ void printExpression(ExpressionNode* node) {
             printf("(");
             printType(getLambdaType(node->closure.type, node->closure.params));
             printf(" <CLOSURE>)");
+            break;
+        case OP_LAMBDA:
+            printf("(<LAMBDA>)"); //todo: really do this...
             break;
         case OP_INSTANTIATION:
             printf("(new ");

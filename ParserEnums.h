@@ -63,6 +63,7 @@ extern "C" {
         OP_ARRAY_ACCESS,
         OP_STRING,
         OP_CLOSURE,
+        OP_LAMBDA,
         OP_INSTANTIATION,
         OP_OBJECT_CALL,
         OP_LENGTH,

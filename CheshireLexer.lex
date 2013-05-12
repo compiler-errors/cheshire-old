@@ -47,6 +47,8 @@ return    return TOK_RETURN;
 while     return TOK_WHILE;
 cast      return TOK_CAST;
 len       return TOK_LEN;
+lambda    return TOK_LAMBDA;
+"->" return TOK_ARROW;
 "("  return TOK_LPAREN;
 ")"  return TOK_RPAREN;
 "{"  return TOK_LBRACE;

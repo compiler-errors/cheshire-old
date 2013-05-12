@@ -160,6 +160,11 @@ extern "C" {
                 struct tagParameterList* params;
                 struct tagBlockList* body;
             } closure;
+            
+            struct {
+                struct tagParameterList* params;
+                struct tagExpressionNode* expression;
+            } lambda;
 
             struct {
                 struct tagExpressionNode* object;

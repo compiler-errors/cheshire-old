@@ -735,6 +735,7 @@ void emitStatement(FILE* out, StatementNode* statement) {
 LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
     switch (node->type) {
         case OP_NOP:
+        case OP_LAMBDA: //gets converted...
             break;
         case OP_LONG_INTEGER:
         case OP_INTEGER: {

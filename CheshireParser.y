@@ -96,6 +96,8 @@ typedef void* yyscan_t;
 %token TOK_LN
 %token TOK_INFER
 %token TOK_LEN
+%token TOK_LAMBDA
+%token TOK_ARROW
 %token <op_type> TOK_NOT
 /* Note: TOK_NOT is used for "not" and "compl" operations, like TOK_ADDSUB, etc.*/
 %token <op_type> TOK_INCREMENT
@@ -127,6 +129,7 @@ typedef void* yyscan_t;
 %nonassoc P_IF
 %nonassoc TOK_ELSE
 %nonassoc TOK_LPAREN TOK_RPAREN
+%nonassoc TOK_ARROW
 
 %type <string> possible_objectname
 %type <expression> expression
@@ -249,8 +252,9 @@ expression
     | TOK_LPAREN typename TOK_RPAREN expression  { $$ = createCastOperation( $4 , $2 ); }
     | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
     | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $4 ); }
+    | TOK_LAMBDA parameter_list TOK_ARROW TOK_LPAREN expression TOK_RPAREN  { $$ = createLambdaNode( $2 , $5 ); }
     | TOK_LEN expression  { $$ = createLenOperation( $2 ); }
-    | TOK_LBRACKET expression TOK_IF expression TOK_ELSE expression TOK_RBRACKET  { $$ = createChooseOperation( $4 , $2 , $6 ); }
+    | TOK_LBRACE expression TOK_IF expression TOK_ELSE expression TOK_RBRACE  { $$ = createChooseOperation( $4 , $2 , $6 ); }
     ;
 
 lval_expression
