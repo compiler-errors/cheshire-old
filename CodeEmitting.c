@@ -1181,8 +1181,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             FILE* oldout = out;
             out = newPreamble();
             int tempident = UNIQUE_IDENTIFIER;
-            int stringlength = strlen(node->string) + 1;
-            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\\00\", align 1\n\n", tempident, stringlength, node->string);
+            int stringlength = strlen(node->string);
+            PRINT("@.tempstring%d = private unnamed_addr constant [%d x i8] c\"%s\", align 1\n\n", tempident, stringlength, node->string);
             out = oldout;
             LLVMValue temp = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");

@@ -114,7 +114,7 @@ typedef void* yyscan_t;
 %token <string> TOK_STRING
 %token <character> TOK_CHAR
 
-%right TOK_COMMA
+%right TOK_COMMA TOK_LAMBDA TOK_ARROW
 %right TOK_SET
 %left TOK_AND_OR
 %left TOK_COMPARE TOK_INSTANCEOF TOK_LSQUARE TOK_RSQUARE
@@ -129,7 +129,6 @@ typedef void* yyscan_t;
 %nonassoc P_IF
 %nonassoc TOK_ELSE
 %nonassoc TOK_LPAREN TOK_RPAREN
-%nonassoc TOK_ARROW
 
 %type <string> possible_objectname
 %type <expression> expression
@@ -144,6 +143,8 @@ typedef void* yyscan_t;
 %type <expression_list> expression_list_contains
 %type <parameter_list> parameter_list
 %type <parameter_list> parameter_list_contains
+%type <parameter_list> named_parameter_list
+%type <parameter_list> named_parameter_list_contains
 %type <class_list> class_list
 %type <class_list> class_list_contains
 %type <class_list> class_list_or_pass
@@ -193,6 +194,16 @@ parameter_list_contains
     : typename  { $$ = linkParameterList( $1 , createDummyName("param") , NULL ); }
     | typename TOK_IDENTIFIER  { $$ = linkParameterList( $1 , $2 , NULL ); }
     | typename TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , createDummyName("param") , $3 ); }
+    | typename TOK_IDENTIFIER TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , $2 , $4 ); }
+    ;
+
+named_parameter_list
+    : TOK_LPAREN named_parameter_list_contains TOK_RPAREN  { $$ = $2 ; }
+    | TOK_LPAREN TOK_RPAREN  { $$ = NULL; }
+    ;
+
+named_parameter_list_contains
+    : typename TOK_IDENTIFIER  { $$ = linkParameterList( $1 , $2 , NULL ); }
     | typename TOK_IDENTIFIER TOK_COMMA parameter_list_contains  { $$ = linkParameterList( $1 , $2 , $4 ); }
     ;
 
@@ -252,7 +263,7 @@ expression
     | TOK_LPAREN typename TOK_RPAREN expression  { $$ = createCastOperation( $4 , $2 ); }
     | TOK_NEW TOK_TYPE expression_list  { $$ = createInstantiationOperation( $2 , $3 ); }
     | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $4 ); }
-    | TOK_LAMBDA parameter_list TOK_ARROW TOK_LPAREN expression TOK_RPAREN  { $$ = createLambdaNode( $2 , $5 ); }
+    | named_parameter_list TOK_ARROW expression  { $$ = createLambdaNode( $1 , $3 ); }
     | TOK_LEN expression  { $$ = createLenOperation( $2 ); }
     | TOK_LBRACE expression TOK_IF expression TOK_ELSE expression TOK_RBRACE  { $$ = createChooseOperation( $4 , $2 , $6 ); }
     ;

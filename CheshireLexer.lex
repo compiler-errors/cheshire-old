@@ -30,7 +30,7 @@ BACKSLASH   "\\"
 "##"([^"#"]*|"#"[^"#"])*"##"  {} /*comment*/
 "#"[^\n"#"]*                  {} /*comment*/
 infer     return TOK_INFER;
-True|False|Null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
+true|false|null  { determineReservedLiteral(yytext, &(yylval->reserved_literal)); return TOK_RESERVED_LITERAL; }
 using     return TOK_USING;
 forward   return TOK_FWDECL;
 external  return TOK_EXTERNAL;
@@ -47,7 +47,6 @@ return    return TOK_RETURN;
 while     return TOK_WHILE;
 cast      return TOK_CAST;
 len       return TOK_LEN;
-lambda    return TOK_LAMBDA;
 "->" return TOK_ARROW;
 "("  return TOK_LPAREN;
 ")"  return TOK_RPAREN;
@@ -90,12 +89,16 @@ lambda    return TOK_LAMBDA;
                                 }
 {WHITESPACE}+   {} /* whitespace */
 \n              lineno++;
-<<eof>>         return TOK_EOF;
+<<eof>>         { lineno = -1; return TOK_EOF; }
 .               { fprintf(stderr, "No such character expected: \'%s\' at line %d.\n", yytext, lineno); exit(0); }
 
 %%
 
 int yyerror(yyscan_t scanner, ExpressionNode** expression, const char* msg) {
-    fprintf(stderr, "Error: %s at line %d\n", msg, lineno);
+    if (lineno == -1) {
+        fprintf(stderr, "Error: %s after parsing.", msg);
+    } else {
+        fprintf(stderr, "Error: %s at line %d\n", msg, lineno);
+    }
     return 0;
 }
