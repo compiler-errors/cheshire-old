@@ -770,7 +770,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         case OP_COMPL: {
             LLVMValue a = emitExpression(out, node->unaryChild);
             LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
-            UNARY_STORE(l, "not", node->determinedType, a);
+            BINARY_STORE(l, "xor", node->determinedType, a, getIntegerLiteral(-1));
             return l;
         }
         break;
@@ -1280,9 +1280,8 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
 
                 for (i = 0; i < filesize; i++)
                     nesttype[i] = fgetc(out);
-                
-                nesttype[filesize] = '\0';
 
+                nesttype[filesize] = '\0';
                 fclose(out);
                 out = olderout;
                 PRINT("define fastcc ");
