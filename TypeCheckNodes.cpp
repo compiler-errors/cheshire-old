@@ -393,6 +393,8 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 case RL_NULL:
                     return node->determinedType = TYPE_NULL;
             }
+
+            PANIC("No such literal!");
         }
         case OP_INTEGER:
             ERROR_IF(node->integer > ((int64_t) INT_MAX) || node->integer < ((int64_t) INT_MIN), "Integer out of bounds!");
@@ -409,11 +411,12 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
         }
         case OP_LAMBDA: {
             raiseTypeScope(scope);
+
             for (ParameterList* p = node->lambda.params; p != NULL; p = p->next)
                 defineVariable(scope, p->name, p->type);
+
             CheshireType returnType = typeCheckExpressionNode(scope, node->lambda.expression);
             fallTypeScope(scope);
-            
             ParameterList* params = node->lambda.params;
             ExpressionNode* expression = node->lambda.expression;
             node->type = OP_CLOSURE;
@@ -442,16 +445,15 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             typeCheckBlockList(scope, node->closure.body);
             fallTypeScope(scope);
             scope->highestScope = oldscope; //restore old scoping.
-            
             node->closure.usingList = scope->dependencies;
             scope->dependencies = olddependencies;
-            
+
             for (UsingList* u = node->closure.usingList; u != NULL; u = u->next) {
                 if (!hasVariable(scope, u->variable)) {
                     scope->dependencies = linkUsingList(u->type, u->variable, scope->dependencies);
                 }
             }
-            
+
             setExpectedMethodType(currentExpectedType);
             return node->determinedType = getLambdaType(node->closure.type, node->closure.params);
         }
@@ -521,7 +523,7 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
                 WIDEN_NODE(widetype, left, node->choose.iftrue);
                 WIDEN_NODE(widetype, right, node->choose.iffalse);
                 return node->determinedType = widetype;
-            } else if ((node->type == OP_EQUALS || node->type == OP_NOT_EQUALS) && isObjectType(left) && isObjectType(right)) {
+            } else if (isObjectType(left) && isObjectType(right)) {
                 CheshireType widetype = getWidestObjectType(left, right);
                 ERROR_IF(isVoid(widetype), "No common type shared.");
                 WIDEN_NODE(widetype, left, node->choose.iftrue);

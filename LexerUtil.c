@@ -10,13 +10,13 @@
 
 void determineReservedLiteral(const char* string, ReservedLiteral* var) {
     switch (string[0]) {
-        case 'T':
+        case 't':
             *var = RL_TRUE;
             break;
-        case 'F':
+        case 'f':
             *var = RL_FALSE;
             break;
-        case 'N':
+        case 'n':
             *var = RL_NULL;
             break;
         default:

@@ -2,7 +2,7 @@
 #define STRUCTURES_H
 
 #include <stdlib.h>
-#define PANIC(format, args...) { printf("Error: "); printf(format , ##args); printf("\n"); exit(0); }
+#define PANIC(format, args...) { printf("Error: "); printf(format , ##args); printf("\n"); /* *((int*) NULL) = 0; */ exit(0); }
 #define PANIC_OR_RETURN_NULL { PANIC("Memory allocation error: ran out of memory!"); return NULL; }
 #define ERROR_IF(_case, format, args...) { if (_case) { PANIC(format , ##args) } }
 
@@ -160,7 +160,7 @@ extern "C" {
                 struct tagParameterList* params;
                 struct tagBlockList* body;
             } closure;
-            
+
             struct {
                 struct tagParameterList* params;
                 struct tagExpressionNode* expression;

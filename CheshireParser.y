@@ -265,7 +265,7 @@ expression
     | TOK_DEFINE typename parameter_list block_or_pass  { $$ = createClosureNode( $2 , $3 , $4 ); }
     | named_parameter_list TOK_ARROW expression  { $$ = createLambdaNode( $1 , $3 ); }
     | TOK_LEN expression  { $$ = createLenOperation( $2 ); }
-    | TOK_LBRACE expression TOK_IF expression TOK_ELSE expression TOK_RBRACE  { $$ = createChooseOperation( $4 , $2 , $6 ); }
+    | TOK_LBRACKET expression TOK_IF expression TOK_ELSE expression TOK_RBRACKET  { $$ = createChooseOperation( $4 , $2 , $6 ); }
     ;
 
 lval_expression
