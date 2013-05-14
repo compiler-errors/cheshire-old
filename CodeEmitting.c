@@ -924,17 +924,53 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         }
         break;
         case OP_AND: {
-            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
-            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
-            BINARY_STORE(l, "and", node->determinedType, a, b);
-            return l;
+            int enter = UNIQUE_IDENTIFIER, calculate = UNIQUE_IDENTIFIER, skip = UNIQUE_IDENTIFIER;
+            PRINT(" br label %%label%d\n", enter);
+            PRINT("label%d:\n", enter);
+            LLVMValue firstcondition = emitExpression(out, node->binary.left);
+            PRINT("    br i1 ");
+            emitValue(out, firstcondition);
+            PRINT(", label %%label%d, label %%label%d\n", calculate, skip);
+            PRINT("label%d:\n", calculate);
+            LLVMValue secondcondition = emitExpression(out, node->binary.right);
+            PRINT("    br label %%label%d\n", skip);
+            PRINT("label%d:\n", skip);
+            LLVMValue phi = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, phi);
+            PRINT(" = phi ");
+            emitType(out, node->determinedType);
+            PRINT(" [");
+            emitValue(out, firstcondition); //replace with true literal
+            PRINT(", %%label%d], [", enter);
+            emitValue(out, secondcondition);
+            PRINT(", %%label%d]\n", calculate);
+            return phi;
         }
         break;
         case OP_OR: {
-            LLVMValue a = emitExpression(out, node->binary.left), b = emitExpression(out, node->binary.right);
-            LLVMValue l = getTemporaryStorage(UNIQUE_IDENTIFIER);
-            BINARY_STORE(l, "or", node->determinedType, a, b);
-            return l;
+            int enter = UNIQUE_IDENTIFIER, calculate = UNIQUE_IDENTIFIER, skip = UNIQUE_IDENTIFIER;
+            PRINT(" br label %%label%d\n", enter);
+            PRINT("label%d:\n", enter);
+            LLVMValue firstcondition = emitExpression(out, node->binary.left);
+            PRINT("    br i1 ");
+            emitValue(out, firstcondition);
+            PRINT(", label %%label%d, label %%label%d\n", skip, calculate);
+            PRINT("label%d:\n", calculate);
+            LLVMValue secondcondition = emitExpression(out, node->binary.right);
+            PRINT("    br label %%label%d\n", skip);
+            PRINT("label%d:\n", skip);
+            LLVMValue phi = getTemporaryStorage(UNIQUE_IDENTIFIER);
+            PRINT("    ");
+            emitValue(out, phi);
+            PRINT(" = phi ");
+            emitType(out, node->determinedType);
+            PRINT(" [");
+            emitValue(out, firstcondition); //replace with true literal
+            PRINT(", %%label%d], [", enter);
+            emitValue(out, secondcondition);
+            PRINT(", %%label%d]\n", calculate);
+            return phi;
         }
         break;
         case OP_PLUS: {
