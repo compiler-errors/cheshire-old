@@ -77,10 +77,6 @@ static inline LLVMValue getDecimalLiteral(double literal) {
     return l;
 }
 
-static inline LLVMValue getBooleanLiteral(Boolean literal) {
-    return getIntegerLiteral(literal == TRUE ? 1 : 0);
-}
-
 static inline LLVMValue getTemporaryStorage(int identifier) {
     LLVMValue l;
     l.type = LVT_LOCAL_VALUE;
@@ -929,7 +925,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         break;
         case OP_AND: {
             int enter = UNIQUE_IDENTIFIER, calculate = UNIQUE_IDENTIFIER, skip = UNIQUE_IDENTIFIER;
-            PRINT("    br label %%label%d\n", enter);
+            PRINT(" br label %%label%d\n", enter);
             PRINT("label%d:\n", enter);
             LLVMValue firstcondition = emitExpression(out, node->binary.left);
             PRINT("    br i1 ");
@@ -945,7 +941,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             PRINT(" = phi ");
             emitType(out, node->determinedType);
             PRINT(" [");
-            emitValue(out, getBooleanLiteral(FALSE));
+            emitValue(out, firstcondition); //replace with true literal
             PRINT(", %%label%d], [", enter);
             emitValue(out, secondcondition);
             PRINT(", %%label%d]\n", calculate);
@@ -954,7 +950,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         break;
         case OP_OR: {
             int enter = UNIQUE_IDENTIFIER, calculate = UNIQUE_IDENTIFIER, skip = UNIQUE_IDENTIFIER;
-            PRINT("   br label %%label%d\n", enter);
+            PRINT(" br label %%label%d\n", enter);
             PRINT("label%d:\n", enter);
             LLVMValue firstcondition = emitExpression(out, node->binary.left);
             PRINT("    br i1 ");
@@ -970,7 +966,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             PRINT(" = phi ");
             emitType(out, node->determinedType);
             PRINT(" [");
-            emitValue(out, getBooleanLiteral(TRUE));
+            emitValue(out, firstcondition); //replace with true literal
             PRINT(", %%label%d], [", enter);
             emitValue(out, secondcondition);
             PRINT(", %%label%d]\n", calculate);
@@ -1175,9 +1171,9 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
         case OP_RESERVED_LITERAL: {
             switch (node->reserved) {
                 case RL_TRUE:
-                    return getBooleanLiteral(TRUE);
+                    return getIntegerLiteral(1);
                 case RL_FALSE:
-                    return getBooleanLiteral(FALSE);
+                    return getIntegerLiteral(0);
                 case RL_NULL: {
                     LLVMValue l;
                     l.type = LVT_NULL;
