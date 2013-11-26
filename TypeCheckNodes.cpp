@@ -358,6 +358,11 @@ CheshireType typeCheckExpressionNode(CheshireScope* scope, ExpressionNode* node)
             CheshireType cast = node->cast.type;
             CheshireType child = typeCheckExpressionNode(scope, node->cast.child);
 
+	    if (isLambdaType(cast) || isLambdaType(child)) {
+		    ERROR_IF(!(isLambdaType(cast) && isLambdaType(child)), "Cannot mix lambda and non-lambda types");
+		    //todo: make lambda node out of subnode invoking the new one etc etc etc
+	    }
+
             if (isObjectType(cast) && equalTypes(TYPE_NULL, child)) {//null case!
                 return node->determinedType = cast;
             }
