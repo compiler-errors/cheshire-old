@@ -19,8 +19,8 @@ LEX=flex
 BISON=bison
 
 LDFLAGS=-lm
-CFLAGS=-Wall -Wextra -Werror -g -Wno-unused
-CPPFLAGS=-Wall -Wextra -Werror -g -Wno-unused -std=c++0x
+CFLAGS=-Wall -Wextra -g -Wno-unused
+CPPFLAGS=-Wall -Wextra -g -Wno-unused -std=c++0x
 LEXFLAGS=
 BISONFLAGS=-rall
 
