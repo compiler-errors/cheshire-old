@@ -1407,6 +1407,29 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 PRINT("}\n\n");
                 fallVariableScope();
                 out = oldout;
+                LLVMValue storage = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                LLVMValue functioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, storage);
+                PRINT(" = call fastcc i8* @malloc(i32 10)\n"); //todo: determine sizes...
+                PRINT("    ");
+                emitValue(out, functioncast);
+                PRINT(" = bitcast ");
+                emitType(out, node->closure.type);
+                PRINT("(%s*", nesttype);
+
+                if (node->closure.params != NULL) {
+                    PRINT(", "); //put extra comma for %_Packed
+
+                    for (p = node->closure.params; p != NULL; p = p->next) {
+                        emitType(out, p->type);
+
+                        if (p->next != NULL)
+                            PRINT(", ");
+                    }
+                }
+
+                PRINT(")* @_ClosureBody_%d to i8*\n", bodyid);
                 LLVMValue sizeptr = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 LLVMValue size = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 PRINT("    ");
@@ -1420,7 +1443,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                 LLVMValue nest = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 PRINT("    ");
                 emitValue(out, nest);
-                PRINT(" = call fastcc i8* @cheshire.always.alloc(i32 ");
+                PRINT(" = call fastcc i8* @malloc(i32 ");
                 emitValue(out, size);
                 PRINT(")\n");
                 LLVMValue nestcast = getTemporaryStorage(UNIQUE_IDENTIFIER);
@@ -1458,22 +1481,28 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
                     PRINT("\n");
                 }
 
+                PRINT("    call void @llvm.init.trampoline(i8* ");
+                emitValue(out, storage);
+                PRINT(", i8* ");
+                emitValue(out, functioncast);
+                PRINT(", i8* ");
+                emitValue(out, nest);
+                PRINT(")\n");
                 LLVMValue outfunction = getTemporaryStorage(UNIQUE_IDENTIFIER);
                 PRINT("    ");
-		emitValue(out, outfunction);
-		PRINT(" = i8* @cheshire.alloc.trampoline(i8* ");
-		emitValue(out, function);
-		PRINT(", i8* ");
-		emitValue(out, nest);
-		PRINT(")\n");
-		LLVMValue outfunctioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
-		PRINT("    ");
-		emitValue(out, outfunctioncast);
-		PRINT(" = bitcast i8* "); 
-		emitValue(out, outfunction);
-		PRINT(" to ");
-		emitType(out, node->determinedType);
-		PRINT("\n");
+                emitValue(out, outfunction);
+                PRINT(" = call i8* @llvm.adjust.trampoline(i8* ");
+                emitValue(out, storage);
+                PRINT(")\n");
+                LLVMValue outfunctioncast = getTemporaryStorage(UNIQUE_IDENTIFIER);
+                PRINT("    ");
+                emitValue(out, outfunctioncast);
+                PRINT(" = bitcast i8* ");
+                emitValue(out, outfunction);
+                PRINT(" to ");
+                emitType(out, node->determinedType);
+                PRINT("\n");
+                free(nesttype);
                 return outfunctioncast;
             }
         }
@@ -1484,7 +1513,7 @@ LLVMValue emitExpression(FILE* out, ExpressionNode* node) {
             LLVMValue casted = getTemporaryStorage(UNIQUE_IDENTIFIER);
             PRINT("    ");
             emitValue(out, mallocated);
-            PRINT(" = call fastcc i8* @cheshire.alloc(i32 ");
+            PRINT(" = call fastcc i8* @malloc(i32 ");
             emitValue(out, size);
             PRINT(")\n");
             PRINT("    ");
