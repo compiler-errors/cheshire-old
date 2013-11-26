@@ -1,14 +1,14 @@
-ALLFILES=$(shell find -name '*.*' -not -name '*.yy.*')
-CSOURCES=$(shell find -name '*.c' -not -name '*.yy.c')
-CPPSOURCES=$(shell find -name '*.cpp' -not -name '*.yy.cpp')
-BISONSOURCES=$(shell find -name '*.y')
+ALLFILES=$(shell find -maxdepth 1 -name '*.*' -not -name '*.yy.*')
+CSOURCES=$(shell find -maxdepth 1 -name '*.c' -not -name '*.yy.c')
+CPPSOURCES=$(shell find -maxdepth 1 -name '*.cpp' -not -name '*.yy.cpp')
+BISONSOURCES=$(shell find -maxdepth 1 -name '*.y')
 BISONC=$(patsubst %.y, %.yy.c, $(BISONSOURCES))
-LEXSOURCES=$(shell find -name '*.lex')
+LEXSOURCES=$(shell find -maxdepth 1 -name '*.lex')
 LEXC=$(patsubst %.lex, %.yy.c, $(LEXSOURCES))
 COBJECTS=$(patsubst %.c, %.o, $(BISONC) $(LEXC) $(CSOURCES))
 CPPOBJECTS=$(patsubst %.cpp, %.o, $(CPPSOURCES))
-EXISTINGOBJS=$(shell find -name '*.o')
-EXISTINGYYC=$(shell find -name '*.yy.c')
+EXISTINGOBJS=$(shell find -maxdepth 1 -name '*.o')
+EXISTINGYYC=$(shell find -maxdepth 1 -name '*.yy.c')
 
 OUTNAME=cheshirec
 
